@@ -2,17 +2,16 @@ package com.winniethepooh.hotelsystembackend.service.impl;
 
 import com.winniethepooh.hotelsystembackend.dto.CommentOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
+import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.entity.Individual;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.entity.User;
-import com.winniethepooh.hotelsystembackend.enums.RoomStatus;
 import com.winniethepooh.hotelsystembackend.exception.UnknownOrderTypeException;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
 import com.winniethepooh.hotelsystembackend.service.OrderService;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
-import com.winniethepooh.hotelsystembackend.vo.GetAllRoomsVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,7 +62,7 @@ public class OrderServiceImpl implements OrderService {
             getAllRoomOrderVO.setIdCard(user.getIdCardNumber());
             getAllRoomOrderVO.setCheckInTime(roomOrder.getCheckinTime());
             getAllRoomOrderVO.setCheckOutTime(roomOrder.getCheckoutTime());
-            getAllRoomOrderVO.setStatus(RoomStatus.getDescriptionByCode(roomOrder.getStatus()));
+            getAllRoomOrderVO.setStatus(roomOrder.getStatus());
         }
         return allRoomOrderVOList;
     }
@@ -87,6 +86,16 @@ public class OrderServiceImpl implements OrderService {
         roomOrder.setCheckoutTime(insertRoomOrderDTO.getCheckOutTime());
         roomOrder.setRoomId(roomMapper.getRoomIdByRoomNumber(insertRoomOrderDTO.getRoomNumber()));
         orderMapper.insertRoomOrderV1(roomOrder);
+    }
+
+    @Override
+    public void modifyRoomOrderService(Integer id, ModifyRoomOrderDTO modifyRoomOrderDTO) {
+        orderMapper.modifyRoomOrder(id, modifyRoomOrderDTO);
+    }
+
+    @Override
+    public void deleteRoomOrderService(Integer id) {
+        orderMapper.deleteRoomOrder(id);
     }
 
 

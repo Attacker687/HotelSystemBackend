@@ -3,22 +3,43 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.OrderMapper">
     <insert id="insertRoomComment">
-        update room_order set comment = #{comment}, updated_at = now()
+        update room_order
+        set comment    = #{comment},
+            updated_at = now()
         where id = #{id}
     </insert>
     <insert id="insertMealComment">
-        update meal_order set comment = #{comment}, updated_at = now()
+        update meal_order
+        set comment    = #{comment},
+            updated_at = now()
         where id = #{id}
     </insert>
     <insert id="insertRoomOrderV1">
         insert into room_order
         set individual_id = #{individualId},
-            room_id = #{roomId},
-            checkin_time = #{checkInTime},
+            room_id       = #{roomId},
+            checkin_time  = #{checkInTime},
             checkout_time = #{checkOutTime},
-            created_at = now(),
-            updated_at = now()
+            created_at    = now(),
+            updated_at    = now()
     </insert>
+    <update id="modifyRoomOrder">
+        update room_order
+        <set>
+            <if test="modifyRoomOrderDTO.roomId != null">room_id = #{modifyRoomOrderDTO.roomId},</if>
+            <if test="modifyRoomOrderDTO.checkInTime != null">checkin_time = #{modifyRoomOrderDTO.checkInTime},</if>
+            <if test="modifyRoomOrderDTO.checkOutTime != null">checkout_time = #{modifyRoomOrderDTO.checkOutTime},</if>
+            updated_at = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <update id="deleteRoomOrder">
+        update room_order
+        set is_deleted = 1,
+            updated_at = now()
+        where id = #{id}
+    </update>
 
     <select id="getMealOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
         select *

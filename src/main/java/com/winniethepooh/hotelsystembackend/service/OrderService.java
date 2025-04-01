@@ -3,6 +3,7 @@ package com.winniethepooh.hotelsystembackend.service;
 
 import com.winniethepooh.hotelsystembackend.dto.CommentOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
+import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 
@@ -17,4 +18,8 @@ public interface OrderService {
     List<GetAllRoomOrderVO> getAllRoomOrderService();
 
     void insertRoomOrderService(InsertRoomOrderDTO insertRoomOrderDTO);
+
+    void modifyRoomOrderService(Integer id, ModifyRoomOrderDTO modifyRoomOrderDTO);
+
+    void deleteRoomOrderService(Integer id);
 }

@@ -29,7 +29,8 @@ public class LoginFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
         //登录放行
-        if (httpServletRequest.getRequestURI().contains("/api/user/login") || httpServletRequest.getRequestURI().contains("/api/user/register")) {
+        if (httpServletRequest.getRequestURI().contains("/api/user/login") || httpServletRequest.getRequestURI().contains("/api/user/register")
+        || httpServletRequest.getRequestURI().contains("/swagger-ui.html")) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
