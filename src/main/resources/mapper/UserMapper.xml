@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.winniethepooh.hotelsystembackend.mapper.UserMapper">
+
+    <insert id="createUser">
+        insert into user
+        set name           = #{name},
+            id_card_number = #{idCardNumber},
+            phone          = #{phone},
+            password       = #{password},
+            email          = #{email},
+            created_at     = now(),
+            updated_at     = now()
+    </insert>
+    <update id="updateLastLoginTime">
+        update user
+        set last_login = now()
+        where id = #{id}
+    </update>
+
+    <select id="findUserByPhone" resultType="com.winniethepooh.hotelsystembackend.entity.User">
+        select * from user where phone = #{phone}
+    </select>
+
+    <select id="findUserByPhoneAndPassword" resultType="com.winniethepooh.hotelsystembackend.entity.User">
+        select * from user where phone = #{phone} and password = #{password}
+    </select>
+
+</mapper>

@@ -131,7 +131,11 @@
 			<artifactId>jakarta.websocket-api</artifactId>
 			<version>2.0.0</version>
 		</dependency>
-
+		<dependency>
+			<groupId>cn.hutool</groupId>
+			<artifactId>hutool-all</artifactId>
+			<version>5.8.24</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
