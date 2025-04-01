@@ -55,4 +55,9 @@ public class GlobalExceptionHandler {
         return Result.error(exception.getMessage());
     }
 
+    @ExceptionHandler(UnknownException.class)
+    public Result UnknownSituationHandler(UnknownException exception) {
+        return Result.error(exception.getMessage());
+    }
+
 }
