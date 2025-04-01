@@ -45,7 +45,7 @@ public class LoginFilter implements Filter {
             if (userId == null) throw new RuntimeException();
             claims = JwtUtils.parseJWT(tokenGotFromRequest);
             Integer id = (Integer) claims.get("id");
-            if (id != null) BaseContext.setCurrentId(Long.valueOf(id));
+            if (id != null) BaseContext.setCurrentId(id);
         } catch (Exception e) {
             e.printStackTrace();
             response.sendError(401, "Unauthorized");

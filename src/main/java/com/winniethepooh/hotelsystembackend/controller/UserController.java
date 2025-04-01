@@ -2,11 +2,13 @@ package com.winniethepooh.hotelsystembackend.controller;
 
 import com.winniethepooh.hotelsystembackend.dto.LoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
+import com.winniethepooh.hotelsystembackend.dto.UserInfoChangeDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.entity.User;
 import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.UserService;
 import com.winniethepooh.hotelsystembackend.utils.JwtUtils;
+import com.winniethepooh.hotelsystembackend.vo.LoginVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -50,6 +52,14 @@ public class UserController {
         ops.set(token, String.valueOf(user.getId()), 3, TimeUnit.HOURS);
         // 更新redis里的token, 保证同一用户的token只有一个
 
-        return Result.success(token);
+        LoginVO loginVO = new LoginVO();
+        loginVO.setToken(token);
+        return Result.success(loginVO);
+    }
+
+    @PostMapping("/change")
+    public Result changeInfoController(@RequestBody UserInfoChangeDTO userInfoChangeDTO) {
+        userService.changeInfoService(userInfoChangeDTO);
+        return Result.success();
     }
 }

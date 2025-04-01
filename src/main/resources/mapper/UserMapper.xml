@@ -18,13 +18,37 @@
         set last_login = now()
         where id = #{id}
     </update>
+    <update id="modifyUserInfo">
+        update user
+        <set>
+            <if test="passwordToChange != null">
+                password = #{passwordToChange},
+            </if>
+            <if test="emailToChange != null">
+                email = #{emailToChange},
+            </if>
+            updated_at = now()
+        </set>
+        where phone = #{phone}
+    </update>
 
     <select id="findUserByPhone" resultType="com.winniethepooh.hotelsystembackend.entity.User">
-        select * from user where phone = #{phone}
+        select *
+        from user
+        where phone = #{phone}
     </select>
 
     <select id="findUserByPhoneAndPassword" resultType="com.winniethepooh.hotelsystembackend.entity.User">
-        select * from user where phone = #{phone} and password = #{password}
+        select *
+        from user
+        where phone = #{phone}
+          and password = #{password}
+    </select>
+
+    <select id="findUserById" resultType="com.winniethepooh.hotelsystembackend.entity.User">
+        select *
+        from user
+        where id = #{id}
     </select>
 
 </mapper>
