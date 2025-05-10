@@ -7,6 +7,7 @@ import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.dto.LoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
 import com.winniethepooh.hotelsystembackend.dto.UserInfoChangeDTO;
+import com.winniethepooh.hotelsystembackend.entity.Individual;
 import com.winniethepooh.hotelsystembackend.entity.User;
 import com.winniethepooh.hotelsystembackend.exception.*;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
@@ -43,6 +44,11 @@ public class UserServiceImpl implements UserService {
         if (user != null) throw new UserDuplicatedException("该手机号已被注册");
         registerDTO.setPassword(DigestUtils.md5Hex(registerDTO.getPassword()));
         userMapper.createUser(registerDTO);
+        Individual individual = new Individual();
+        individual.setName(registerDTO.getName());
+        individual.setPhone(registerDTO.getPhone());
+        individual.setIdCardNumber(registerDTO.getIdCardNumber());
+        userMapper.createIndividual(individual);
     }
 
     @Override

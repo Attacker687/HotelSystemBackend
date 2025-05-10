@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.winniethepooh.hotelsystembackend.mapper.RoomMapper">
+    <update id="modifyRoomStatus">
+        update room set status = #{status} where room_number = #{roomNumber} and is_deleted = 0
+    </update>
+
+    <select id="getAllRooms" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
+        select * from room where is_deleted = 0
+    </select>
+
+    <select id="getTypeNameByRoomId" resultType="java.lang.String">
+        select name from room_type where id = #{roomTypeId} and is_deleted = 0
+    </select>
+
+    <select id="getRoomIdByRoomNumber" resultType="java.lang.Long">
+        select id from room where room_number = #{roomNumber} and is_deleted = 0
+    </select>
+</mapper>

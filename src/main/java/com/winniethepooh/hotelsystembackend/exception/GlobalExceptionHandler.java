@@ -60,4 +60,8 @@ public class GlobalExceptionHandler {
         return Result.error(exception.getMessage());
     }
 
+    @ExceptionHandler(UnknownOrderTypeException.class)
+    public Result UnknownOrderTypeExceptionHandler(UnknownOrderTypeException exception)  {
+        return Result.error(exception.getMessage());
+    }
 }

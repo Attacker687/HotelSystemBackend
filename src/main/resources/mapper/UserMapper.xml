@@ -13,11 +13,13 @@
             created_at     = now(),
             updated_at     = now()
     </insert>
+
     <update id="updateLastLoginTime">
         update user
         set last_login = now()
         where id = #{id}
     </update>
+
     <update id="modifyUserInfo">
         update user
         <set>
@@ -32,23 +34,38 @@
         where phone = #{phone}
     </update>
 
+    <insert id="createIndividual" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO individual (name, phone, id_card_number)
+        VALUES (#{name}, #{phone}, #{idCardNumber})
+    </insert>
+
     <select id="findUserByPhone" resultType="com.winniethepooh.hotelsystembackend.entity.User">
         select *
         from user
         where phone = #{phone}
+        and is_deleted = 0
     </select>
 
     <select id="findUserByPhoneAndPassword" resultType="com.winniethepooh.hotelsystembackend.entity.User">
         select *
         from user
         where phone = #{phone}
-          and password = #{password}
+        and password = #{password}
+        and is_deleted = 0
     </select>
 
     <select id="findUserById" resultType="com.winniethepooh.hotelsystembackend.entity.User">
         select *
         from user
         where id = #{id}
+        and is_deleted = 0
+    </select>
+    <select id="findIndividual" resultType="com.winniethepooh.hotelsystembackend.entity.Individual">
+        select *
+        from individual
+        where phone = #{phone}
+        and name = #{name}
+        and id_card_number = #{idCard}
     </select>
 
 </mapper>

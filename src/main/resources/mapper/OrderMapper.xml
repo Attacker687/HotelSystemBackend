@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.winniethepooh.hotelsystembackend.mapper.OrderMapper">
+    <insert id="insertRoomComment">
+        update room_order set comment = #{comment}, updated_at = now()
+        where id = #{id}
+    </insert>
+    <insert id="insertMealComment">
+        update meal_order set comment = #{comment}, updated_at = now()
+        where id = #{id}
+    </insert>
+    <insert id="insertRoomOrderV1">
+        insert into room_order
+        set individual_id = #{individualId},
+            room_id = #{roomId},
+            checkin_time = #{checkInTime},
+            checkout_time = #{checkOutTime},
+            created_at = now(),
+            updated_at = now()
+    </insert>
+
+    <select id="getMealOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
+        select *
+        from meal_order
+        where is_deleted = 0
+          and (DATE(created_at) between #{startDate} and #{endDate})
+          and user_id = #{id}
+    </select>
+
+    <select id="getRoomOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select *
+        from room_order
+        where is_deleted = 0
+          and (DATE(created_at) between #{startDate} and #{endDate})
+          and user_id = #{id}
+    </select>
+
+    <select id="getAllRoomOrderList" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select *
+        from room_order
+        where is_deleted = 0
+    </select>
+</mapper>
