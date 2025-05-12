@@ -9,14 +9,12 @@ import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.UserService;
 import com.winniethepooh.hotelsystembackend.utils.JwtUtils;
 import com.winniethepooh.hotelsystembackend.vo.LoginVO;
+import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -54,6 +52,7 @@ public class UserController {
 
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(token);
+        loginVO.setId(user.getId());
         return Result.success(loginVO);
     }
 
@@ -61,5 +60,11 @@ public class UserController {
     public Result changeInfoController(@RequestBody UserInfoChangeDTO userInfoChangeDTO) {
         userService.changeInfoService(userInfoChangeDTO);
         return Result.success();
+    }
+
+    @GetMapping("/{id}")
+    public Result queryUserByIdController(@PathVariable Integer id) {
+        QueryUserVO queryUserVO = userService.queryUserByIdService(id);
+        return Result.success(queryUserVO);
     }
 }

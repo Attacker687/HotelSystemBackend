@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 public class QueryRoomsVO {
     private Integer id;
     private Integer number;
-    private String type;
+    private Integer type;
     private Integer status;
     private BigDecimal price;
 }

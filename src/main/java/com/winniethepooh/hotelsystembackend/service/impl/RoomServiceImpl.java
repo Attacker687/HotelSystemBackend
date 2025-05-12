@@ -1,6 +1,6 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
-import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
+import com.winniethepooh.hotelsystembackend.dto.InsertRoomDTO;
 import com.winniethepooh.hotelsystembackend.entity.Room;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
@@ -25,24 +25,24 @@ public class RoomServiceImpl implements RoomService {
         vo.setNumber(Integer.valueOf(room.getRoomNumber()));
         vo.setPrice(room.getPrice());
         vo.setStatus(room.getStatus());
-        vo.setType(roomMapper.getTypeNameByRoomId(room.getId()));
+        vo.setType(room.getRoomType());
         return vo;
     }
 
     @Override
-    public List<QueryRoomsVO> queryRoomsService(Integer page, Integer pageSize, Integer roomNumber, Integer roomTypeId, Integer status) {
+    public List<QueryRoomsVO> queryRoomsService(Integer page, Integer pageSize, Integer roomNumber, Integer roomType, Integer status) {
         if (page == null || page < 1) page = 1;
         if (pageSize == null || pageSize < 1) pageSize = 10;
         List<QueryRoomsVO> voList = new ArrayList<>();
         Integer offset = (page - 1) * pageSize;
-        List<Room> roomList = roomMapper.queryRooms(pageSize, offset, roomNumber, roomTypeId, status);
+        List<Room> roomList = roomMapper.queryRooms(pageSize, offset, roomNumber, roomType, status);
         for (Room room : roomList) voList.add(convertToVO(room));
         return voList;
     }
 
     @Override
-    public void modifyRoomStatusService(Integer roomNumber, Integer status) {
-        roomMapper.modifyRoomStatus(roomNumber, status);
+    public void modifyRoomStatusService(Integer id, Integer status) {
+        roomMapper.modifyRoomStatus(id, status);
     }
 
     @Override
@@ -52,7 +52,17 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public void insertRoomService(InsertRoomOrderDTO insertRoomOrderDTO) {
-        roomMapper.insertRoom(insertRoomOrderDTO);
+    public void insertRoomService(InsertRoomDTO insertRoomDTO) {
+        roomMapper.insertRoom(insertRoomDTO);
+    }
+
+    @Override
+    public void modifyRoomInfoService(InsertRoomDTO insertRoomDTO, Integer id) {
+        roomMapper.modifyRoomInfo(insertRoomDTO, id);
+    }
+
+    @Override
+    public void deleteRoomService(Integer id) {
+        roomMapper.deleteRoom(id);
     }
 }

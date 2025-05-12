@@ -54,15 +54,23 @@ public class OrderServiceImpl implements OrderService {
         List<RoomOrder> roomOrderList = orderMapper.getAllRoomOrderList();
         for (RoomOrder roomOrder : roomOrderList) {
             GetAllRoomOrderVO getAllRoomOrderVO = new GetAllRoomOrderVO();
-            User user = userMapper.findUserById(roomOrder.getUserId());
+            if (roomOrder.getUserId() != null) { // 订单的用户在本系统注册过
+                User user = userMapper.findUserById(roomOrder.getUserId());
+                getAllRoomOrderVO.setName(user.getName());
+                getAllRoomOrderVO.setPhone(user.getPhone());
+                getAllRoomOrderVO.setIdCard(user.getIdCardNumber());
+            } else { // 用户未注册的情况
+                Individual individual = userMapper.findIndividualById(roomOrder.getIndividualId());
+                getAllRoomOrderVO.setName(individual.getName());
+                getAllRoomOrderVO.setIdCard(individual.getIdCardNumber());
+                getAllRoomOrderVO.setPhone(individual.getPhone());
+            }
             getAllRoomOrderVO.setId(Math.toIntExact(roomOrder.getId()));
             getAllRoomOrderVO.setRoomNumber(String.valueOf(roomOrder.getRoomId()));
-            getAllRoomOrderVO.setName(user.getName());
-            getAllRoomOrderVO.setPhone(user.getPhone());
-            getAllRoomOrderVO.setIdCard(user.getIdCardNumber());
             getAllRoomOrderVO.setCheckInTime(roomOrder.getCheckinTime());
             getAllRoomOrderVO.setCheckOutTime(roomOrder.getCheckoutTime());
             getAllRoomOrderVO.setStatus(roomOrder.getStatus());
+            allRoomOrderVOList.add(getAllRoomOrderVO);
         }
         return allRoomOrderVOList;
     }

@@ -13,6 +13,7 @@ import com.winniethepooh.hotelsystembackend.exception.*;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
 import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.UserService;
+import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -85,5 +86,10 @@ public class UserServiceImpl implements UserService {
             throw new UserEmailInvalidException("请输入正确的邮箱");
         userMapper.modifyUserInfo(userInfoChangeDTO);
         if (passwordChanged) redisService.deleteKeysByValue(String.valueOf(BaseContext.getCurrentId()));
+    }
+
+    @Override
+    public QueryUserVO queryUserByIdService(Integer id) {
+        return userMapper.findUserByIdV2(id);
     }
 }

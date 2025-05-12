@@ -3,16 +3,41 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.RoomMapper">
     <insert id="insertRoom">
-        insert into room (room_number, room_type_id, status, floor, price, capacity, description, is_deleted,
+        insert into room (room_number, room_type, status, floor, price, capacity, description, is_deleted,
                           created_at, updated_at)
         values (#{roomNumber}, #{roomType}, #{status}, #{floor}, #{price}, #{capacity}, #{description}, 0, now(), now())
     </insert>
+
     <update id="modifyRoomStatus">
         update room
         set status = #{status}
-        where room_number = #{roomNumber}
+        where id = #{id}
           and is_deleted = 0
     </update>
+
+    <update id="modifyRoomInfo">
+        UPDATE room
+        <set>
+            <if test="roomNumber != null">room_number = #{dto.roomNumber},</if>
+            <if test="roomType != null">room_type_id = #{dto.roomType},</if>
+            <if test="status != null">status = #{dto.status},</if>
+            <if test="floor != null">floor = #{dto.floor},</if>
+            <if test="price != null">price = #{dto.price},</if>
+            <if test="capacity != null">capacity = #{dto.capacity},</if>
+            <if test="description != null">description = #{dto.description},</if>
+            updated_at = now()
+        </set>
+        WHERE id = #{id}
+        AND is_deleted = 0
+    </update>
+
+    <update id="deleteRoom">
+        update room
+        set is_deleted = 1
+        where id = #{id}
+          and is_deleted = 0
+    </update>
+
 
     <select id="queryRooms" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
         select * from room
@@ -20,22 +45,15 @@
             <if test="roomNumber != null">
                 and room_number = #{roomNumber}
             </if>
-            <if test="roomTypeId != null">
-                and room_type_id = #{roomTypeId}
+            <if test="roomType != null">
+                and room_type = #{roomType}
             </if>
             <if test="status != null">
                 and status = #{status}
             </if>
             and is_deleted = 0
         </where>
-        limit #{offset} offset #{limit}
-    </select>
-
-    <select id="getTypeNameByRoomId" resultType="java.lang.String">
-        select name
-        from room_type
-        where id = #{roomTypeId}
-          and is_deleted = 0
+        limit #{limit} offset #{offset}
     </select>
 
     <select id="getRoomIdByRoomNumber" resultType="java.lang.Long">

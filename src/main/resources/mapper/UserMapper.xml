@@ -43,7 +43,6 @@
         select *
         from user
         where phone = #{phone}
-        and is_deleted = 0
     </select>
 
     <select id="findUserByPhoneAndPassword" resultType="com.winniethepooh.hotelsystembackend.entity.User">
@@ -51,21 +50,31 @@
         from user
         where phone = #{phone}
         and password = #{password}
-        and is_deleted = 0
     </select>
 
     <select id="findUserById" resultType="com.winniethepooh.hotelsystembackend.entity.User">
         select *
         from user
         where id = #{id}
-        and is_deleted = 0
     </select>
+
     <select id="findIndividual" resultType="com.winniethepooh.hotelsystembackend.entity.Individual">
         select *
         from individual
         where phone = #{phone}
         and name = #{name}
         and id_card_number = #{idCard}
+    </select>
+
+    <select id="findIndividualById" resultType="com.winniethepooh.hotelsystembackend.entity.Individual">
+        select *
+        from individual
+        where id = #{id}
+    </select>
+
+    <select id="findUserByIdV2" resultType="com.winniethepooh.hotelsystembackend.vo.QueryUserVO">
+        select * from user
+        where id = #{id}
     </select>
 
 </mapper>

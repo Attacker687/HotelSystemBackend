@@ -18,8 +18,8 @@
         insert into room_order
         set individual_id = #{individualId},
             room_id       = #{roomId},
-            checkin_time  = #{checkInTime},
-            checkout_time = #{checkOutTime},
+            checkin_time  = #{checkinTime},
+            checkout_time = #{checkoutTime},
             created_at    = now(),
             updated_at    = now()
     </insert>
@@ -44,17 +44,25 @@
     <select id="getMealOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
         select *
         from meal_order
-        where is_deleted = 0
-          and (DATE(created_at) between #{startDate} and #{endDate})
-          and user_id = #{id}
+        <where>
+            is_deleted = 0
+            and (DATE(created_at) between #{startDate} and #{endDate})
+            <if test="id != null">
+                and user_id = #{id}
+            </if>
+        </where>
     </select>
 
     <select id="getRoomOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
         select *
         from room_order
-        where is_deleted = 0
-          and (DATE(created_at) between #{startDate} and #{endDate})
-          and user_id = #{id}
+        <where>
+            is_deleted = 0
+            and (DATE(created_at) between #{startDate} and #{endDate})
+            <if test="id != null">
+                and user_id = #{id}
+            </if>
+        </where>
     </select>
 
     <select id="getAllRoomOrderList" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
@@ -62,4 +70,35 @@
         from room_order
         where is_deleted = 0
     </select>
+
+    <select id="getTodayStats" resultType="java.math.BigDecimal">
+        select sum(total_amount) as today from room_order where DATE(checkin_time) = DATE(#{date}) and pay_status = 1 and is_deleted = 0
+    </select>
+
+    <select id="getThisMonthStats" resultType="java.math.BigDecimal">
+        select sum(total_amount) as thisMonth from room_order where DATE_FORMAT(checkin_time, '%Y-%m') = DATE_FORMAT(#{date}, '%Y-%m') and pay_status = 1 and is_deleted = 0
+    </select>
+
+    <select id="getTodayAvgRoomPrice" resultType="java.math.BigDecimal">
+        select avg(total_amount) as todayAvg from room_order where DATE(checkin_time) = DATE(#{date}) and pay_status = 1 and is_deleted = 0
+    </select>
+
+    <select id="getTodayOccupancyRate" resultType="java.lang.Double">
+        select cast(count(*) as decimal) / (select count(*) from room where room.created_at &lt;= DATE(#{date})) * 100 as todayOccupancyRate
+        from room_order
+        where (DATE(#{date}) between DATE(checkin_time) and DATE(checkout_time))
+        and pay_status = 1
+        and is_deleted = 0
+    </select>
+
+    <select id="getThisTypeRoomRevenueDuringTheTime" resultType="java.math.BigDecimal">
+        select sum(total_amount) as thisTypeRoomRevenueDuringTheTime
+        from room_order
+        where (DATE(checkin_time) between DATE(#{startDate}) and DATE(#{endDate}))
+        and pay_status = 1
+        and room_id = #{roomType}
+        and is_deleted = 0
+    </select>
+
+
 </mapper>

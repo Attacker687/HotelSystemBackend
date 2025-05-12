@@ -15,11 +15,12 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-@WebFilter
+//@Component
+//@WebFilter
 @Slf4j
-@Component
+
 public class LoginFilter implements Filter {
-    @Autowired
+//    @Autowired
     private StringRedisTemplate redisTemplate;
 
     @Override

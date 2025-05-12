@@ -27,8 +27,8 @@ public class OrderController {
     private OrderService orderService;
 
     @GetMapping("/query")
-    public Result queryOrderController(@RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-                                       @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+    public Result queryOrderController(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+                                       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         OrderQueryVO orderQueryVO = orderService.queryOrderService(startDate, endDate, BaseContext.getCurrentId());
         return Result.success(orderQueryVO);
     }

@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend.controller;
 
+import com.winniethepooh.hotelsystembackend.dto.InsertRoomDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomStatusDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
@@ -19,9 +20,9 @@ public class RoomController {
 
     @GetMapping
     public Result queryRoomsController(@RequestParam Integer page, @RequestParam Integer pageSize,
-                                        @RequestParam(required = false) Integer roomNumber, @RequestParam(required = false) Integer roomTypeId,
+                                        @RequestParam(required = false) Integer roomNumber, @RequestParam(required = false) Integer roomType,
                                         @RequestParam(required = false) Integer status) {
-        List<QueryRoomsVO> queryRoomsVOList = roomService.queryRoomsService(page, pageSize, roomNumber, roomTypeId, status);
+        List<QueryRoomsVO> queryRoomsVOList = roomService.queryRoomsService(page, pageSize, roomNumber, roomType, status);
         PageBean<QueryRoomsVO> pageBean = new PageBean<>();
         pageBean.setTotal(queryRoomsVOList.size());
         pageBean.setList(queryRoomsVOList);
@@ -34,17 +35,28 @@ public class RoomController {
         return Result.success(queryRoomsVO);
     }
 
-    @PutMapping("/{roomNumber}/status")
-    public Result modifyRoomStatusController(@PathVariable Integer roomNumber, @RequestBody ModifyRoomStatusDTO roomStatusDTO) {
-        roomService.modifyRoomStatusService(roomNumber, roomStatusDTO.getStatus());
+    @PatchMapping("/{id}/status")
+    public Result modifyRoomStatusController(@PathVariable Integer id, @RequestBody ModifyRoomStatusDTO roomStatusDTO) {
+        roomService.modifyRoomStatusService(id, roomStatusDTO.getStatus());
         return Result.success();
     }
 
     @PostMapping
-    public Result insertRoomController(@RequestBody InsertRoomOrderDTO insertRoomOrderDTO) {
-        roomService.insertRoomService(insertRoomOrderDTO);
+    public Result insertRoomController(@RequestBody InsertRoomDTO insertRoomDTO) {
+        roomService.insertRoomService(insertRoomDTO);
         return Result.success();
     }
 
+    @PutMapping("/{id}")
+    public Result modifyRoomInfoController(@RequestBody InsertRoomDTO insertRoomDTO, @PathVariable Integer id) {
+        roomService.modifyRoomInfoService(insertRoomDTO, id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/{id}")
+    public Result deleteRoomController(@PathVariable Integer id) {
+        roomService.deleteRoomService(id);
+        return Result.success();
+    }
 
 }
