@@ -2,11 +2,11 @@ package com.winniethepooh.hotelsystembackend.service.impl;
 
 import com.winniethepooh.hotelsystembackend.constant.RoomTypeConstant;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
+import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
+import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
 import com.winniethepooh.hotelsystembackend.service.BusinessService;
 import com.winniethepooh.hotelsystembackend.utils.LocalDateUtil;
-import com.winniethepooh.hotelsystembackend.vo.RevenueRoomTypeVO;
-import com.winniethepooh.hotelsystembackend.vo.RevenueStatsVO;
-import com.winniethepooh.hotelsystembackend.vo.RevenueTrendVO;
+import com.winniethepooh.hotelsystembackend.vo.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,11 +16,16 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class BusinessServiceImpl implements BusinessService {
     @Autowired
     private OrderMapper orderMapper;
+    @Autowired
+    private RoomMapper roomMapper;
+    @Autowired
+    private UserMapper userMapper;
     /** 计算 BigDecimal 类型的同比变化百分比 */
     private double calcChange(BigDecimal current, BigDecimal previous) {
         if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) return 0.0;
@@ -68,9 +73,9 @@ public class BusinessServiceImpl implements BusinessService {
         List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
         List<BigDecimal> revenueList = new ArrayList<>(dateList.size());
         List<Double> occupancyList = new ArrayList<>(dateList.size());
-        for (int i = 0; i < dateList.size(); i++) {
-            revenueList.set(i, orderMapper.getTodayStats(dateList.get(i)));
-            occupancyList.set(i, orderMapper.getTodayOccupancyRate(dateList.get(i)));
+        for (LocalDate date : dateList) {
+            revenueList.add(orderMapper.getTodayStats(date));
+            occupancyList.add(orderMapper.getTodayOccupancyRate(date));
         }
         RevenueTrendVO revenueTrendVO = new RevenueTrendVO();
         revenueTrendVO.setDates(dateList);
@@ -95,5 +100,57 @@ public class BusinessServiceImpl implements BusinessService {
         voList.add(doubleRoom);
         voList.add(suiteRoom);
         return voList;
+    }
+
+    @Override
+    public OccupancyHeatmapVO getEachFloorOccupancyService(LocalDate startDate, LocalDate endDate, Integer floor) {
+        OccupancyHeatmapVO occupancyHeatmapVO = new OccupancyHeatmapVO();
+        List<Integer> floors = new ArrayList<>();
+        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
+        if (floor == null) floors = roomMapper.getExistFloors();
+        else floors.add(floor);
+        occupancyHeatmapVO.setDates(dateList);
+        occupancyHeatmapVO.setFloors(floors.stream().map(i -> i + "楼").collect(Collectors.toList()));
+        List<List<Object>> data = new ArrayList<>();
+        for (int i = 0; i < dateList.size(); i++) {
+            for (int j = 0; j < floors.size(); j++) {
+                List<Object> detail = new ArrayList<>(3);
+                detail.add(i); // 横轴索引：日期
+                detail.add(j); // 纵轴索引：楼层
+                Double occupancy = orderMapper.getEachFloorOccupancy(dateList.get(i), floors.get(j));
+                detail.add(occupancy == null ? 0.0 : occupancy); // 防止空指针
+                data.add(detail);
+            }
+        }
+        occupancyHeatmapVO.setData(data);
+        return occupancyHeatmapVO;
+    }
+
+    @Override
+    public DishTop10VO getTop10DishesService(LocalDate startDate, LocalDate endDate) {
+        return orderMapper.getTop10Dishes(startDate, endDate);
+    }
+
+    @Override
+    public List<BusinessDetailVO> getBusinessDetail(LocalDate startDate, LocalDate endDate) {
+        List<BusinessDetailVO> detailVOList = new ArrayList<>();
+        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
+        for (LocalDate date : dateList) {
+            BusinessDetailVO businessDetailVO = new BusinessDetailVO();
+            businessDetailVO.setDate(date);
+            businessDetailVO.setRevenue(orderMapper.getTodayStats(date));
+            businessDetailVO.setRoomCount(roomMapper.getRoomCount(date));
+            businessDetailVO.setOccupancyRate(orderMapper.getTodayOccupancyRate(date));
+            businessDetailVO.setOccupiedCount((int) (businessDetailVO.getRoomCount() * businessDetailVO.getOccupancyRate() / 100));
+            businessDetailVO.setAvgPrice(orderMapper.getTodayAvgRoomPrice(date));
+            Integer customerCount = userMapper.getCustomerCount(date);
+            Integer newCustomerCount = userMapper.getNewCustomerCount(date);
+            businessDetailVO.setCustomerCount(customerCount);
+            businessDetailVO.setNewCustomerCount(newCustomerCount);
+            if (customerCount == 0) businessDetailVO.setRepeatCustomerRate(0.0);
+            else businessDetailVO.setRepeatCustomerRate((double) ((customerCount - newCustomerCount) / userMapper.getCustomerCount(date.minusDays(1))));
+            detailVOList.add(businessDetailVO);
+        }
+        return detailVOList;
     }
 }

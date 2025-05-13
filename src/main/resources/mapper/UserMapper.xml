@@ -77,4 +77,16 @@
         where id = #{id}
     </select>
 
+    <select id="getCustomerCount" resultType="java.lang.Integer">
+        select count(*) from individual
+        where is_deleted = 0
+        and DATE(created_at) &lt;= #{date}
+    </select>
+
+    <select id="getNewCustomerCount" resultType="java.lang.Integer">
+        select count(*) from individual
+        where is_deleted = 0
+        and DATE(created_at) = #{date}
+    </select>
+
 </mapper>

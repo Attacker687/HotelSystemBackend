@@ -72,32 +72,82 @@
     </select>
 
     <select id="getTodayStats" resultType="java.math.BigDecimal">
-        select sum(total_amount) as today from room_order where DATE(checkin_time) = DATE(#{date}) and pay_status = 1 and is_deleted = 0
+        select sum(total_amount) as today
+        from room_order
+        where DATE(checkin_time) = DATE(#{date})
+          and pay_status = 1
+          and is_deleted = 0
     </select>
 
     <select id="getThisMonthStats" resultType="java.math.BigDecimal">
-        select sum(total_amount) as thisMonth from room_order where DATE_FORMAT(checkin_time, '%Y-%m') = DATE_FORMAT(#{date}, '%Y-%m') and pay_status = 1 and is_deleted = 0
+        select sum(total_amount) as thisMonth
+        from room_order
+        where DATE_FORMAT(checkin_time, '%Y-%m') = DATE_FORMAT(#{date}, '%Y-%m')
+          and pay_status = 1
+          and is_deleted = 0
     </select>
 
     <select id="getTodayAvgRoomPrice" resultType="java.math.BigDecimal">
-        select avg(total_amount) as todayAvg from room_order where DATE(checkin_time) = DATE(#{date}) and pay_status = 1 and is_deleted = 0
+        select avg(total_amount) as todayAvg
+        from room_order
+        where DATE(checkin_time) = DATE(#{date})
+          and pay_status = 1
+          and is_deleted = 0
     </select>
 
     <select id="getTodayOccupancyRate" resultType="java.lang.Double">
-        select cast(count(*) as decimal) / (select count(*) from room where room.created_at &lt;= DATE(#{date})) * 100 as todayOccupancyRate
+        select cast(count(*) as decimal) / (select count(*) from room where room.created_at &lt;= DATE(#{date})) *
+               100 as todayOccupancyRate
         from room_order
         where (DATE(#{date}) between DATE(checkin_time) and DATE(checkout_time))
-        and pay_status = 1
-        and is_deleted = 0
+          and pay_status = 1
+          and is_deleted = 0
     </select>
 
     <select id="getThisTypeRoomRevenueDuringTheTime" resultType="java.math.BigDecimal">
         select sum(total_amount) as thisTypeRoomRevenueDuringTheTime
         from room_order
         where (DATE(checkin_time) between DATE(#{startDate}) and DATE(#{endDate}))
-        and pay_status = 1
-        and room_id = #{roomType}
-        and is_deleted = 0
+          and pay_status = 1
+          and room_id = #{roomType}
+          and is_deleted = 0
+    </select>
+
+    <select id="getEachFloorOccupancy" resultType="java.lang.Double">
+        SELECT
+        CAST(COUNT(DISTINCT r.id) AS DECIMAL) /
+        (
+        SELECT COUNT(*)
+        FROM room
+        WHERE floor = #{floor} AND created_at &lt;= DATE(#{date})
+        ) * 100 AS eachFloorOccupancy
+        FROM room_order ro
+        JOIN room r ON ro.room_id = r.id
+        WHERE DATE(#{date}) BETWEEN DATE(ro.checkin_time) AND DATE(ro.checkout_time)
+        AND ro.pay_status = 1
+        AND ro.is_deleted = 0
+        AND r.floor = #{floor}
+    </select>
+
+    <select id="getTop10Dishes" resultType="com.winniethepooh.hotelsystembackend.vo.DishTop10VO">
+        SELECT
+            d.name AS name,  -- 获取菜品名称
+            SUM(moi.quantity) AS value  -- 计算每个菜品的总销量
+        FROM
+            meal_order_item moi
+                JOIN
+            meal_order mo ON moi.meal_order_id = mo.id  -- 连接餐饮订单表，获取订单信息
+                JOIN
+            dish d ON moi.dish_id = d.id  -- 连接菜品表，获取菜品名称
+        WHERE
+            mo.created_at BETWEEN #{startDate} AND #{endDate}  -- 限制订单时间范围
+          AND mo.is_deleted = 0  -- 订单未删除
+          AND d.is_deleted = 0  -- 菜品未删除
+        GROUP BY
+            d.name  -- 按照菜品名称分组
+        ORDER BY
+            value DESC  -- 按销量降序排序
+        LIMIT 10;  -- 获取前 10 个销量最高的菜品
     </select>
 
 

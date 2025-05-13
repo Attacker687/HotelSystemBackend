@@ -85,7 +85,6 @@ public class OrderServiceImpl implements OrderService {
             individual.setName(insertRoomOrderDTO.getName());
             individual.setPhone(insertRoomOrderDTO.getPhone());
             userMapper.createIndividual(individual);
-
         }
         RoomOrder roomOrder = new RoomOrder();
         roomOrder.setRoomId(Long.valueOf(insertRoomOrderDTO.getRoomNumber()));

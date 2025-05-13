@@ -29,7 +29,12 @@ mybatis:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
-
+server:
+  port: 8081
+springdoc:
+  swagger-ui:
+    path: /apiv1/swagger-ui.html
+    config-url: /apiv1/v3/api-docs/swagger-config
 ---
 
 
@@ -37,7 +42,7 @@ spring:
   application:
     name: HotelSystemBackend
   datasource:
-    url: jdbc:mysql://${db.name}:3306/take_out?useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${db.name}:3306/HotelSystem?useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: ${db.pwd}
     driver-class-name: com.mysql.cj.jdbc.Driver
