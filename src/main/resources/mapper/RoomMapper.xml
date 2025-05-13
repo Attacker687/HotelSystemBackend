@@ -70,5 +70,15 @@
           and is_deleted = 0
     </select>
 
+    <select id="getExistFloors" resultType="java.lang.Integer">
+        select distinct floor
+        from room
+        where is_deleted = 0
+    </select>
+
+    <select id="getRoomCount" resultType="java.lang.Integer">
+        select count(*) from room where DATE (created_at) &lt;= #{date} and is_deleted = 0
+    </select>
+
 
 </mapper>

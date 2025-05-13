@@ -3,6 +3,7 @@ package com.winniethepooh.hotelsystembackend.mapper;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
+import com.winniethepooh.hotelsystembackend.vo.DishTop10VO;
 import com.winniethepooh.hotelsystembackend.vo.RevenueStatsVO;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -38,4 +39,8 @@ public interface OrderMapper {
     Double getTodayOccupancyRate(LocalDate date);
 
     BigDecimal getThisTypeRoomRevenueDuringTheTime(int roomType, LocalDate startDate, LocalDate endDate);
+
+    Double getEachFloorOccupancy(LocalDate date, Integer floor);
+
+    DishTop10VO getTop10Dishes(LocalDate startDate, LocalDate endDate);
 }

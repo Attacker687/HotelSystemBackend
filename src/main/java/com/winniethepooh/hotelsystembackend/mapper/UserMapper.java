@@ -7,6 +7,8 @@ import com.winniethepooh.hotelsystembackend.entity.User;
 import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.time.LocalDate;
+
 @Mapper
 public interface UserMapper {
 
@@ -29,4 +31,8 @@ public interface UserMapper {
     Individual findIndividualById(Integer individualId);
 
     QueryUserVO findUserByIdV2(Integer id);
+
+    Integer getCustomerCount(LocalDate date);
+
+    Integer getNewCustomerCount(LocalDate date);
 }
