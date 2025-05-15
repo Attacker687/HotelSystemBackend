@@ -35,8 +35,8 @@
     </update>
 
     <insert id="createIndividual" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO individual (name, phone, id_card_number)
-        VALUES (#{name}, #{phone}, #{idCardNumber})
+        INSERT INTO individual (name, phone, id_card_number, created_at)
+        VALUES (#{name}, #{phone}, #{idCardNumber}, NOW())
     </insert>
 
     <select id="findUserByPhone" resultType="com.winniethepooh.hotelsystembackend.entity.User">
@@ -77,16 +77,18 @@
         where id = #{id}
     </select>
 
-    <select id="getCustomerCount" resultType="java.lang.Integer">
+    <select id="getCustomerCountSince" resultType="java.lang.Integer">
         select count(*) from individual
-        where is_deleted = 0
-        and DATE(created_at) &lt;= #{date}
+        where DATE(created_at) &lt;= #{date}
     </select>
 
     <select id="getNewCustomerCount" resultType="java.lang.Integer">
         select count(*) from individual
-        where is_deleted = 0
-        and DATE(created_at) = #{date}
+        where DATE(created_at) = #{date}
+    </select>
+    <select id="getTodayCustomerCount" resultType="java.lang.Integer">
+        select count(*) from room_order
+        where DATE(checkin_time) = #{date}
     </select>
 
 </mapper>

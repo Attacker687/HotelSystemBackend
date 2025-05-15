@@ -64,4 +64,19 @@ public class GlobalExceptionHandler {
     public Result UnknownOrderTypeExceptionHandler(UnknownOrderTypeException exception)  {
         return Result.error(exception.getMessage());
     }
+
+    @ExceptionHandler(RoomNumberDuplicatedException.class)
+    public Result RoomNumberDuplicatedExceptionHandler(RoomNumberDuplicatedException exception)  {
+        return Result.error(exception.getMessage());
+    }
+
+    @ExceptionHandler(UnknownRoomTypeException.class)
+    public Result UnknownRoomTypeExceptionHandler(UnknownRoomTypeException exception)  {
+        return Result.error(exception.getMessage());
+    }
+
+    @ExceptionHandler(MismatchException.class)
+    public Result MismatchExceptionHandler(MismatchException exception)  {
+        return Result.error(exception.getMessage());
+    }
 }

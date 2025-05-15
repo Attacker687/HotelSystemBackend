@@ -15,12 +15,12 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-//@Component
-//@WebFilter
+@Component
+@WebFilter
 @Slf4j
 
 public class LoginFilter implements Filter {
-//    @Autowired
+    @Autowired
     private StringRedisTemplate redisTemplate;
 
     @Override
@@ -29,9 +29,9 @@ public class LoginFilter implements Filter {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
-        //登录放行
-        if (httpServletRequest.getRequestURI().contains("/api/user/login") || httpServletRequest.getRequestURI().contains("/api/user/register")
-        || httpServletRequest.getRequestURI().contains("/swagger-ui.html")) {
+        // 只拦截/user的
+        if (httpServletRequest.getRequestURI().contains("/apiv1/user/login") || httpServletRequest.getRequestURI().contains("/apiv1/user/register")
+        || httpServletRequest.getRequestURI().contains("/swagger-ui.html" ) || !httpServletRequest.getRequestURI().contains("/apiv1/user")) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }

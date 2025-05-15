@@ -80,5 +80,16 @@
         select count(*) from room where DATE (created_at) &lt;= #{date} and is_deleted = 0
     </select>
 
+    <select id="getRoomCountOnAFloor" resultType="java.lang.Integer">
+        select count(*) from room where DATE (created_at) &lt;= #{date} and is_deleted = 0 and floor = #{floor}
+    </select>
+
+    <select id="existByRoomNumber" resultType="java.lang.Boolean">
+        select count(*) > 0
+        from room
+        where room_number = #{roomNumber}
+          and is_deleted = 0
+    </select>
+
 
 </mapper>

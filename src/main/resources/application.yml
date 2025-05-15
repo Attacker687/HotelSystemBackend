@@ -1,8 +1,7 @@
 db:
-  name: mysql
-  pwd: 123456
+  name: localhost
 redis:
-  name: redis
+  name: localhost
 spring:
   profiles:
     active: dev
@@ -30,11 +29,7 @@ mybatis:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
 server:
-  port: 8081
-springdoc:
-  swagger-ui:
-    path: /apiv1/swagger-ui.html
-    config-url: /apiv1/v3/api-docs/swagger-config
+  port: 8080
 ---
 
 
@@ -43,13 +38,14 @@ spring:
     name: HotelSystemBackend
   datasource:
     url: jdbc:mysql://${db.name}:3306/HotelSystem?useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: ${db.pwd}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
       host: ${redis.name}
       port: 6379
+      password: ${REDIS_PASSWORD}
   config:
     activate:
       on-profile: pro
@@ -58,5 +54,10 @@ mybatis:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
-
+server:
+  port: 8081
+springdoc:
+  swagger-ui:
+    path: /apiv1/swagger-ui.html
+    config-url: /apiv1/v3/api-docs/swagger-config
 ---

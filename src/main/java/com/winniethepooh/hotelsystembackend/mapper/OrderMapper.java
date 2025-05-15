@@ -36,11 +36,11 @@ public interface OrderMapper {
 
     BigDecimal getTodayAvgRoomPrice(LocalDate date);
 
-    Double getTodayOccupancyRate(LocalDate date);
-
     BigDecimal getThisTypeRoomRevenueDuringTheTime(int roomType, LocalDate startDate, LocalDate endDate);
 
-    Double getEachFloorOccupancy(LocalDate date, Integer floor);
-
     DishTop10VO getTop10Dishes(LocalDate startDate, LocalDate endDate);
+
+    Integer getTodayOccupiedRoomCount(LocalDate date);
+
+    Integer getRoomsOccupiedOnAFloor(Integer floor, LocalDate date);
 }

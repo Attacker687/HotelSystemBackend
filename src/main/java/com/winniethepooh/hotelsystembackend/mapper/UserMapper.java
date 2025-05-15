@@ -32,7 +32,9 @@ public interface UserMapper {
 
     QueryUserVO findUserByIdV2(Integer id);
 
-    Integer getCustomerCount(LocalDate date);
+    Integer getCustomerCountSince(LocalDate date);
 
     Integer getNewCustomerCount(LocalDate date);
+
+    Integer getTodayCustomerCount(LocalDate date);
 }

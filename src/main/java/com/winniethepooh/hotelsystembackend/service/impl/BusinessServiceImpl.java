@@ -41,6 +41,21 @@ public class BusinessServiceImpl implements BusinessService {
         return (current - previous) / previous * 100;
     }
 
+    private double getTodayOccupiedRate(LocalDate date) {
+        Integer todayOccupiedRoom = orderMapper.getTodayOccupiedRoomCount(date);
+        Integer todayRoomCount = roomMapper.getRoomCount(date);
+        double todayOccupancyRate;
+        if (todayRoomCount == 0)  todayOccupancyRate = 0.0;
+        else todayOccupancyRate = (double) todayOccupiedRoom / todayRoomCount;
+        return todayOccupancyRate;
+    }
+
+    private double getFloorTodayOccupancy(LocalDate date, Integer floor) {
+        Integer roomsOnFloor = roomMapper.getRoomCountOnAFloor(floor, date);
+        Integer roomsOccupiedOnAFloor = orderMapper.getRoomsOccupiedOnAFloor(floor, date);
+        return roomsOnFloor == 0 ? 0.0 : (double) roomsOccupiedOnAFloor / roomsOnFloor;
+    }
+
     @Override
     public RevenueStatsVO getRevenueStatsService(LocalDate date) {
         RevenueStatsVO revenueStatsVO = new RevenueStatsVO();
@@ -51,15 +66,12 @@ public class BusinessServiceImpl implements BusinessService {
         BigDecimal lastMonthStats = Optional.ofNullable(orderMapper.getThisMonthStats(date.minusMonths(1))).orElse(BigDecimal.ZERO);
         BigDecimal todayAvgRoomPrice = Optional.ofNullable(orderMapper.getTodayAvgRoomPrice(date)).orElse(BigDecimal.ZERO);
         BigDecimal yesterdayAvgRoomPrice = Optional.ofNullable(orderMapper.getTodayAvgRoomPrice(date.minusDays(1))).orElse(BigDecimal.ZERO);
-
-        Double todayOccupancyRate = orderMapper.getTodayOccupancyRate(date);
-        Double yesterdayOccupancyRate = orderMapper.getTodayOccupancyRate(date.minusDays(1));
-
+        double todayOccupancyRate = getTodayOccupiedRate(date);
+        double yesterdayOccupancyRate = getTodayOccupiedRate(date.minusDays(1));
         revenueStatsVO.setToday(todayStats);
         revenueStatsVO.setMonth(thisMonthStats);
         revenueStatsVO.setAvgPrice(todayAvgRoomPrice);
         revenueStatsVO.setOccupancyRate(todayOccupancyRate);
-
         revenueStatsVO.setTodayChange(calcChange(todayStats, yesterdayStats));
         revenueStatsVO.setMonthChange(calcChange(thisMonthStats, lastMonthStats));
         revenueStatsVO.setAvgPriceChange(calcChange(todayAvgRoomPrice, yesterdayAvgRoomPrice));
@@ -75,7 +87,7 @@ public class BusinessServiceImpl implements BusinessService {
         List<Double> occupancyList = new ArrayList<>(dateList.size());
         for (LocalDate date : dateList) {
             revenueList.add(orderMapper.getTodayStats(date));
-            occupancyList.add(orderMapper.getTodayOccupancyRate(date));
+            occupancyList.add(getTodayOccupiedRate(date));
         }
         RevenueTrendVO revenueTrendVO = new RevenueTrendVO();
         revenueTrendVO.setDates(dateList);
@@ -117,8 +129,8 @@ public class BusinessServiceImpl implements BusinessService {
                 List<Object> detail = new ArrayList<>(3);
                 detail.add(i); // 横轴索引：日期
                 detail.add(j); // 纵轴索引：楼层
-                Double occupancy = orderMapper.getEachFloorOccupancy(dateList.get(i), floors.get(j));
-                detail.add(occupancy == null ? 0.0 : occupancy); // 防止空指针
+                Double occupancy = getFloorTodayOccupancy(dateList.get(i), floors.get(j));
+                detail.add(occupancy);
                 data.add(detail);
             }
         }
@@ -140,15 +152,19 @@ public class BusinessServiceImpl implements BusinessService {
             businessDetailVO.setDate(date);
             businessDetailVO.setRevenue(orderMapper.getTodayStats(date));
             businessDetailVO.setRoomCount(roomMapper.getRoomCount(date));
-            businessDetailVO.setOccupancyRate(orderMapper.getTodayOccupancyRate(date));
-            businessDetailVO.setOccupiedCount((int) (businessDetailVO.getRoomCount() * businessDetailVO.getOccupancyRate() / 100));
+            businessDetailVO.setOccupiedCount(orderMapper.getTodayOccupiedRoomCount(date));
+            businessDetailVO.setOccupancyRate(getTodayOccupiedRate(date));
             businessDetailVO.setAvgPrice(orderMapper.getTodayAvgRoomPrice(date));
-            Integer customerCount = userMapper.getCustomerCount(date);
+
+
+            Integer customerCount = userMapper.getCustomerCountSince(date);
             Integer newCustomerCount = userMapper.getNewCustomerCount(date);
+            Integer todayCustomerCount = userMapper.getTodayCustomerCount(date);
+
             businessDetailVO.setCustomerCount(customerCount);
             businessDetailVO.setNewCustomerCount(newCustomerCount);
-            if (customerCount == 0) businessDetailVO.setRepeatCustomerRate(0.0);
-            else businessDetailVO.setRepeatCustomerRate((double) ((customerCount - newCustomerCount) / userMapper.getCustomerCount(date.minusDays(1))));
+            if (todayCustomerCount == 0) businessDetailVO.setRepeatCustomerRate(0.0);
+            else businessDetailVO.setRepeatCustomerRate((double) ((customerCount - newCustomerCount) / todayCustomerCount));
             detailVOList.add(businessDetailVO);
         }
         return detailVOList;

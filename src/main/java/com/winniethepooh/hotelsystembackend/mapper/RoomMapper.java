@@ -27,4 +27,8 @@ public interface RoomMapper {
     List<Integer> getExistFloors();
 
     Integer getRoomCount(LocalDate date);
+
+    Integer getRoomCountOnAFloor(Integer floor, LocalDate date);
+
+    boolean existByRoomNumber(String roomNumber);
 }
