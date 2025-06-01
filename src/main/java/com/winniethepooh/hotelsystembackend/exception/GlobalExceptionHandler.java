@@ -79,4 +79,9 @@ public class GlobalExceptionHandler {
     public Result MismatchExceptionHandler(MismatchException exception)  {
         return Result.error(exception.getMessage());
     }
+
+    @ExceptionHandler(CategoryNameDuplicatedException.class)
+    public Result CategoryNameDuplicatedExceptionHandler(CategoryNameDuplicatedException exception)  {
+        return Result.error(exception.getMessage());
+    }
 }

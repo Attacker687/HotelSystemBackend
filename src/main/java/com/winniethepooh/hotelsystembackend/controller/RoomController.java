@@ -1,12 +1,12 @@
 package com.winniethepooh.hotelsystembackend.controller;
 
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomDTO;
-import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomStatusDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.service.RoomService;
 import com.winniethepooh.hotelsystembackend.vo.QueryRoomsVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +19,10 @@ public class RoomController {
     private RoomService roomService;
 
     @GetMapping
-    public Result queryRoomsController(@RequestParam Integer page, @RequestParam Integer pageSize,
-                                        @RequestParam(required = false) Integer roomNumber, @RequestParam(required = false) Integer roomType,
-                                        @RequestParam(required = false) Integer status) {
+    public Result queryRoomsController(@RequestParam(required = false, defaultValue = "1") Integer page, @RequestParam(required = false, defaultValue = "10") Integer pageSize,
+                                       @RequestParam(required = false) Integer roomNumber, @RequestParam(required = false) Integer roomType,
+                                       @RequestParam(required = false) Integer status) {
+
         List<QueryRoomsVO> queryRoomsVOList = roomService.queryRoomsService(page, pageSize, roomNumber, roomType, status);
         PageBean<QueryRoomsVO> pageBean = new PageBean<>();
         pageBean.setTotal(queryRoomsVOList.size());
@@ -38,6 +39,12 @@ public class RoomController {
     @PatchMapping("/{id}/status")
     public Result modifyRoomStatusController(@PathVariable Integer id, @RequestBody ModifyRoomStatusDTO roomStatusDTO) {
         roomService.modifyRoomStatusService(id, roomStatusDTO.getStatus());
+        return Result.success();
+    }
+
+    @PutMapping
+    public Result modifyRoomStatusController(@RequestParam Integer id, @RequestParam Integer status) {
+        roomService.modifyRoomStatusService(id, status);
         return Result.success();
     }
 
@@ -58,5 +65,6 @@ public class RoomController {
         roomService.deleteRoomService(id);
         return Result.success();
     }
+
 
 }

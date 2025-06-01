@@ -41,6 +41,14 @@
         where id = #{id}
     </update>
 
+    <update id="modifyRoomOrderStatus">
+        update room_order
+        set status = #{status},
+            updated_at = now()
+        where id = #{id}
+          and is_deleted = 0
+    </update>
+
     <select id="getMealOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
         select *
         from meal_order
@@ -150,6 +158,15 @@
           AND ro.is_deleted = 0
           AND r.floor = #{floor}
           AND r.is_deleted = 0
+    </select>
+
+    <select id="findRoomOrdersToRelease" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select *
+        from room_order
+        where is_deleted = 0
+          and status = 0
+          and pay_status = 1
+          and checkout_time &lt; #{now}
     </select>
 
 

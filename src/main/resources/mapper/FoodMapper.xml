@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.winniethepooh.hotelsystembackend.mapper.FoodMapper">
+    <insert id="createFoodCategory">
+        insert into category
+        set name       = #{name},
+            created_at = now(),
+            updated_at = now()
+    </insert>
+
+    <insert id="createDish">
+        insert into dish
+        set name        = #{name},
+            price       = #{price},
+            description = #{description},
+            image       = #{image},
+            category_id = #{categoryId},
+            created_at  = now(),
+            updated_at  = now()
+    </insert>
+
+    <update id="modifyDish">
+        update dish
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="image != null">image = #{image},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            updated_at = now()
+        </set>
+        where id = #{id}
+    </update>
+
+    <update id="deleteDish">
+        update dish
+        set is_deleted = 1,
+            updated_at = now()
+        where id = #{id}
+    </update>
+
+    <select id="getFoodCategory" resultType="com.winniethepooh.hotelsystembackend.vo.FoodCategoryVO">
+        select id, name
+        from category
+        where is_deleted = 0
+    </select>
+
+    <select id="getDishesByCategory" resultType="com.winniethepooh.hotelsystembackend.vo.DishVO">
+        select d.id as id, d.name as name, d.price as price, d.description as description,
+               d.image as image, d.status as status, d.category_id as categoryId, c.name as categoryName
+        from dish d left join category c on d.category_id = c.id
+        where d.is_deleted = 0
+          and c.is_deleted = 0
+          and c.id = #{id}
+          and category_id = #{id}
+    </select>
+
+    <select id="existCategoryName" resultType="java.lang.Boolean">
+        select count(1) > 0
+        from category
+        where name = #{name}
+          and is_deleted = 0
+    </select>
+
+    <select id="getAllDishes" resultType="com.winniethepooh.hotelsystembackend.vo.DishVO">
+        select d.id as id, d.name as name, d.price as price, d.description as description,
+               d.image as image, d.status as status, d.category_id as categoryId, c.name as categoryName
+        from dish d left join category c on d.category_id = c.id
+        where d.is_deleted = 0
+          and c.is_deleted = 0
+    </select>
+</mapper>

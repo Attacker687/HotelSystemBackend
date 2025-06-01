@@ -25,13 +25,14 @@ public class LoginFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        log.info("The filter is working");
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
+        log.info("The filter is working");
+        log.info("Current url: {}", httpServletRequest.getRequestURI());
 
         // 只拦截/user的
-        if (httpServletRequest.getRequestURI().contains("/apiv1/user/login") || httpServletRequest.getRequestURI().contains("/apiv1/user/register")
-        || httpServletRequest.getRequestURI().contains("/swagger-ui.html" ) || !httpServletRequest.getRequestURI().contains("/apiv1/user")) {
+        if (httpServletRequest.getRequestURI().contains("/user/login") || httpServletRequest.getRequestURI().contains("/user/register")
+        || httpServletRequest.getRequestURI().contains("/swagger-ui.html" ) || !httpServletRequest.getRequestURI().contains("/user")) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }

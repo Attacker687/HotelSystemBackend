@@ -4,8 +4,12 @@ redis:
   name: localhost
 spring:
   profiles:
-    active: dev
-
+    active: pro
+aliyun:
+  endpoint: https://oss-cn-chengdu.aliyuncs.com
+  access-key-id: ${ALIYUN_ACCESS_KEY_ID}
+  access-key-secret: ${ALIYUN_SECRET_KEY}
+  bucket-name: hotelsystem
 ---
 
 spring:

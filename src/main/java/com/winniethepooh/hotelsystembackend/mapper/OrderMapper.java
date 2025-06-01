@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -43,4 +44,8 @@ public interface OrderMapper {
     Integer getTodayOccupiedRoomCount(LocalDate date);
 
     Integer getRoomsOccupiedOnAFloor(Integer floor, LocalDate date);
+
+    List<RoomOrder> findRoomOrdersToRelease(LocalDateTime now);
+
+    void modifyRoomOrderStatus(Long id, int status);
 }

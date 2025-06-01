@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
+import com.winniethepooh.hotelsystembackend.constant.RoomStatusConstant;
 import com.winniethepooh.hotelsystembackend.dto.CommentOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
@@ -15,6 +16,7 @@ import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -76,6 +78,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void insertRoomOrderService(InsertRoomOrderDTO insertRoomOrderDTO) {
         Individual individual = userMapper.findIndividual
                 (insertRoomOrderDTO.getName(), insertRoomOrderDTO.getPhone(), insertRoomOrderDTO.getIdCard());
@@ -87,12 +90,13 @@ public class OrderServiceImpl implements OrderService {
             userMapper.createIndividual(individual);
         }
         RoomOrder roomOrder = new RoomOrder();
-        roomOrder.setRoomId(Long.valueOf(insertRoomOrderDTO.getRoomNumber()));
         roomOrder.setIndividualId(individual.getId());
         roomOrder.setCheckinTime(insertRoomOrderDTO.getCheckInTime());
         roomOrder.setCheckoutTime(insertRoomOrderDTO.getCheckOutTime());
-        roomOrder.setRoomId(roomMapper.getRoomIdByRoomNumber(insertRoomOrderDTO.getRoomNumber()));
+        Long roomId = roomMapper.getRoomIdByRoomNumber(insertRoomOrderDTO.getRoomNumber());
+        roomOrder.setRoomId(roomId);
         orderMapper.insertRoomOrderV1(roomOrder);
+        roomMapper.modifyRoomStatus(Math.toIntExact(roomId), RoomStatusConstant.OCCUPIED);
     }
 
     @Override

@@ -24,20 +24,20 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
-    @GetMapping("/query")
+    @GetMapping("/user/query")
     public Result queryOrderController(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
                                        @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         OrderQueryVO orderQueryVO = orderService.queryOrderService(startDate, endDate, BaseContext.getCurrentId());
         return Result.success(orderQueryVO);
     }
 
-    @PostMapping("/comment")
+    @PostMapping("/user/comment")
     public Result commentOrderController(@RequestBody CommentOrderDTO commentOrderDTO) {
         orderService.commentOrderService(commentOrderDTO);
         return Result.success();
     }
 
-    @GetMapping("/AllRoomOrder")
+    @GetMapping("/query")
     public Result getAllRoomOrderController() {
         List<GetAllRoomOrderVO> allRoomOrderVOList = orderService.getAllRoomOrderService();
         return Result.success(allRoomOrderVOList);
