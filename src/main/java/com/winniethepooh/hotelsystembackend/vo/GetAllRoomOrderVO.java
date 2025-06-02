@@ -14,4 +14,6 @@ public class GetAllRoomOrderVO {
     private LocalDateTime checkInTime;
     private LocalDateTime checkOutTime;
     private Integer status;
+    private String comment;
+    private Integer commentStar;
 }

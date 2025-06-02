@@ -11,4 +11,5 @@ public class QueryRoomsVO {
     private Integer type;
     private Integer status;
     private BigDecimal price;
+    private String image;
 }

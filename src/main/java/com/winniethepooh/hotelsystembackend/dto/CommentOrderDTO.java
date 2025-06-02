@@ -7,4 +7,5 @@ public class CommentOrderDTO {
     private String type;
     private Integer id;
     private String comment;
+    private Integer commentStar;
 }

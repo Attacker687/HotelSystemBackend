@@ -17,5 +17,6 @@ public class MealOrder {
     private LocalDateTime createdAt;     // 创建时间
     private LocalDateTime updatedAt;     // 更新时间
     private String comment;              // 用户对这次订单的评价
+    private Integer commentStar;
 }
 

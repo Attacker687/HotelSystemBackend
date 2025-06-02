@@ -42,9 +42,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void commentOrderService(CommentOrderDTO commentOrderDTO) {
         if (commentOrderDTO.getType().equals("room")) {
-            orderMapper.insertRoomComment(commentOrderDTO.getId(), commentOrderDTO.getComment());
+            orderMapper.insertRoomComment(commentOrderDTO.getId(), commentOrderDTO.getComment(), commentOrderDTO.getCommentStar());
         } else if (commentOrderDTO.getType().equals("meal")) {
-            orderMapper.insertMealComment(commentOrderDTO.getId(), commentOrderDTO.getComment());
+            orderMapper.insertMealComment(commentOrderDTO.getId(), commentOrderDTO.getComment(), commentOrderDTO.getCommentStar());
         } else {
             throw new UnknownOrderTypeException("未知的订单类型");
         }
@@ -68,10 +68,12 @@ public class OrderServiceImpl implements OrderService {
                 getAllRoomOrderVO.setPhone(individual.getPhone());
             }
             getAllRoomOrderVO.setId(Math.toIntExact(roomOrder.getId()));
-            getAllRoomOrderVO.setRoomNumber(String.valueOf(roomOrder.getRoomId()));
+            getAllRoomOrderVO.setRoomNumber(roomMapper.queryRoomById(Math.toIntExact(roomOrder.getRoomId())).getRoomNumber());
             getAllRoomOrderVO.setCheckInTime(roomOrder.getCheckinTime());
             getAllRoomOrderVO.setCheckOutTime(roomOrder.getCheckoutTime());
             getAllRoomOrderVO.setStatus(roomOrder.getStatus());
+            getAllRoomOrderVO.setComment(roomOrder.getComment());
+            getAllRoomOrderVO.setCommentStar(roomOrder.getCommentStar());
             allRoomOrderVOList.add(getAllRoomOrderVO);
         }
         return allRoomOrderVOList;

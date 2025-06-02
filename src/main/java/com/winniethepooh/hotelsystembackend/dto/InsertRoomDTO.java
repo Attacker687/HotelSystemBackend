@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 
 @Data
 public class InsertRoomDTO {
+    private Integer id;
     private String roomNumber;     // 房间号
     private Integer roomType;      // 房型
     private Integer floor;         // 楼层

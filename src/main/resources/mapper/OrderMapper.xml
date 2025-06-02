@@ -5,15 +5,19 @@
     <insert id="insertRoomComment">
         update room_order
         set comment    = #{comment},
+            comment_star = #{commentStar},
             updated_at = now()
         where id = #{id}
     </insert>
+
     <insert id="insertMealComment">
         update meal_order
         set comment    = #{comment},
+            comment_star = #{commentStar},
             updated_at = now()
         where id = #{id}
     </insert>
+
     <insert id="insertRoomOrderV1">
         insert into room_order
         set individual_id = #{individualId},
@@ -132,14 +136,14 @@
         FROM meal_order_item moi
                  JOIN
              meal_order mo ON moi.meal_order_id = mo.id -- 连接餐饮订单表，获取订单信息
-                 JOIN
+            JOIN
              dish d ON moi.dish_id = d.id -- 连接菜品表，获取菜品名称
         WHERE mo.created_at BETWEEN #{startDate} AND #{endDate} -- 限制订单时间范围
           AND mo.is_deleted = 0                                 -- 订单未删除
           AND d.is_deleted = 0                                  -- 菜品未删除
         GROUP BY d.name -- 按照菜品名称分组
         ORDER BY value DESC -- 按销量降序排序
-        LIMIT 10; -- 获取前 10 个销量最高的菜品
+            LIMIT 10; -- 获取前 10 个销量最高的菜品
     </select>
 
     <select id="getTodayOccupiedRoomCount" resultType="java.lang.Integer">

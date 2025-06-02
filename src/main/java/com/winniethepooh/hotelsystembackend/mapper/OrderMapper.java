@@ -19,9 +19,9 @@ public interface OrderMapper {
 
     List<RoomOrder> getRoomOrdersByDate(LocalDate startDate, LocalDate endDate, Integer id);
 
-    void insertRoomComment(Integer id, String comment);
+    void insertRoomComment(Integer id, String comment, Integer commentStar);
 
-    void insertMealComment(Integer id, String comment);
+    void insertMealComment(Integer id, String comment, Integer commentStar);
 
     List<RoomOrder> getAllRoomOrderList();
 

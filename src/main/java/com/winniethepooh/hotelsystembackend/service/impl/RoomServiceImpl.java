@@ -39,6 +39,8 @@ public class RoomServiceImpl implements RoomService {
         vo.setPrice(room.getPrice());
         vo.setStatus(room.getStatus());
         vo.setType(room.getRoomType());
+        vo.setImage(room.getImage());
+        if (vo.getImage() == null) vo.setImage("https://hotelsystem.oss-cn-chengdu.aliyuncs.com/sample.jpeg");
         return vo;
     }
 

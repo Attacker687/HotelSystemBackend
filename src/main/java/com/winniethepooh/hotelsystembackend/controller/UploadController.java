@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend.controller;
 
+import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.utils.AliOSSUtil;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +20,7 @@ public class UploadController {
     }
 
     @PostMapping("/image")
-    public String uploadImage(@RequestParam MultipartFile file) throws IOException {
-        return aliOSSUtil.upload(file);
+    public Result uploadImage(@RequestParam MultipartFile file) throws IOException {
+        return Result.success(aliOSSUtil.upload(file));
     }
 }

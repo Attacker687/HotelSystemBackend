@@ -2,11 +2,11 @@ package com.winniethepooh.hotelsystembackend.controller;
 
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomStatusDTO;
+import com.winniethepooh.hotelsystembackend.dto.ModifyStatusDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.service.RoomService;
 import com.winniethepooh.hotelsystembackend.vo.QueryRoomsVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,8 +43,8 @@ public class RoomController {
     }
 
     @PutMapping
-    public Result modifyRoomStatusController(@RequestParam Integer id, @RequestParam Integer status) {
-        roomService.modifyRoomStatusService(id, status);
+    public Result modifyRoomStatusController(@RequestBody ModifyStatusDTO modifyStatusDTO) {
+        roomService.modifyRoomStatusService(modifyStatusDTO.getId(), modifyStatusDTO.getStatus());
         return Result.success();
     }
 
