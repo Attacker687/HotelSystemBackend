@@ -1,6 +1,8 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
 import com.winniethepooh.hotelsystembackend.constant.RoomTypeConstant;
+import com.winniethepooh.hotelsystembackend.dto.DynamicUpdatePriceDTO;
+import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
@@ -9,6 +11,7 @@ import com.winniethepooh.hotelsystembackend.utils.LocalDateUtil;
 import com.winniethepooh.hotelsystembackend.vo.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,13 +50,13 @@ public class BusinessServiceImpl implements BusinessService {
         double todayOccupancyRate;
         if (todayRoomCount == 0)  todayOccupancyRate = 0.0;
         else todayOccupancyRate = (double) todayOccupiedRoom / todayRoomCount;
-        return todayOccupancyRate;
+        return todayOccupancyRate * 100.0;
     }
 
     private double getFloorTodayOccupancy(LocalDate date, Integer floor) {
         Integer roomsOnFloor = roomMapper.getRoomCountOnAFloor(floor, date);
         Integer roomsOccupiedOnAFloor = orderMapper.getRoomsOccupiedOnAFloor(floor, date);
-        return roomsOnFloor == 0 ? 0.0 : (double) roomsOccupiedOnAFloor / roomsOnFloor;
+        return roomsOnFloor == 0 ? 0.0 : (double) roomsOccupiedOnAFloor / roomsOnFloor * 100.0;
     }
 
     @Override
@@ -139,12 +142,13 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
-    public DishTop10VO getTop10DishesService(LocalDate startDate, LocalDate endDate) {
+    public List<DishTop10VO> getTop10DishesService(LocalDate startDate, LocalDate endDate) {
         return orderMapper.getTop10Dishes(startDate, endDate);
     }
 
     @Override
-    public List<BusinessDetailVO> getBusinessDetail(LocalDate startDate, LocalDate endDate) {
+    public PageBean<BusinessDetailVO> getBusinessDetail(LocalDate startDate, LocalDate endDate) {
+        PageBean<BusinessDetailVO> pageBean = new PageBean<>();
         List<BusinessDetailVO> detailVOList = new ArrayList<>();
         List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
         for (LocalDate date : dateList) {
@@ -164,9 +168,39 @@ public class BusinessServiceImpl implements BusinessService {
             businessDetailVO.setCustomerCount(customerCount);
             businessDetailVO.setNewCustomerCount(newCustomerCount);
             if (todayCustomerCount == 0) businessDetailVO.setRepeatCustomerRate(0.0);
-            else businessDetailVO.setRepeatCustomerRate((double) ((customerCount - newCustomerCount) / todayCustomerCount));
+            else businessDetailVO.setRepeatCustomerRate((double) ((customerCount - newCustomerCount) / todayCustomerCount) * 100.0);
             detailVOList.add(businessDetailVO);
         }
-        return detailVOList;
+        pageBean.setList(detailVOList);
+        pageBean.setTotal(detailVOList.size());
+        return pageBean;
+    }
+
+    @Override
+    @Transactional
+    public void updateRoomPriceService(DynamicUpdatePriceDTO dynamicUpdatePriceDTO) {
+        List<LocalDate> dateList = LocalDateUtil.getDatesBetween
+                (dynamicUpdatePriceDTO.getStartDate(), dynamicUpdatePriceDTO.getEndDate());
+        for (LocalDate date : dateList) {
+            PriceCalendar priceCalendar = new PriceCalendar();
+            priceCalendar.setRoomType(dynamicUpdatePriceDTO.getRoomType());
+            priceCalendar.setDate(date);
+            priceCalendar.setPrice(dynamicUpdatePriceDTO.getPrice());
+            PriceCalendar priceCalendarInDatabase = roomMapper.getPriceCalendarByRoomTypeAndDate
+                    (priceCalendar.getRoomType(), priceCalendar.getDate());
+            if (priceCalendarInDatabase == null) roomMapper.insertPriceCalendar(priceCalendar);
+            else roomMapper.modifyPriceCalendar(priceCalendar);
+        }
+    }
+
+    @Override
+    public List<PriceCalendar> getPriceCalendarService(LocalDate startDate, LocalDate endDate, Integer roomType) {
+        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
+        List<PriceCalendar> priceCalendarList = new ArrayList<>();
+        for (LocalDate date : dateList) {
+            PriceCalendar priceCalendar = roomMapper.getPriceCalendarByRoomTypeAndDate(roomType, date);
+            priceCalendarList.add(priceCalendar);
+        }
+        return priceCalendarList;
     }
 }

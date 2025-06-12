@@ -26,4 +26,6 @@ public interface FoodMapper {
     boolean existCategoryName(String name);
 
     List<DishVO> getAllDishes();
+
+    void deleteCategory(String id);
 }

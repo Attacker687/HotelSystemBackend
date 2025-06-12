@@ -1,5 +1,7 @@
 package com.winniethepooh.hotelsystembackend.controller;
 
+import com.winniethepooh.hotelsystembackend.annotation.RoleRequired;
+import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.dto.CreateDishDTO;
 import com.winniethepooh.hotelsystembackend.dto.CreateFoodCategoryDTO;
 import com.winniethepooh.hotelsystembackend.entity.Dish;
@@ -24,11 +26,6 @@ public class FoodController {
         return Result.success(voList);
     }
 
-    @PostMapping("/category")
-    public Result createFoodCategoryController(@RequestBody CreateFoodCategoryDTO createFoodCategoryDTO) {
-        foodService.createFoodCategoryService(createFoodCategoryDTO.getName());
-        return Result.success();
-    }
 
     @GetMapping("/category/{id}")
     public Result getDishesByCategoryIdController(@PathVariable String id) {
@@ -36,18 +33,35 @@ public class FoodController {
         return Result.success(voList);
     }
 
+    @RoleRequired({RoleConstant.MANAGER})
+    @PostMapping("/category")
+    public Result createFoodCategoryController(@RequestBody CreateFoodCategoryDTO createFoodCategoryDTO) {
+        foodService.createFoodCategoryService(createFoodCategoryDTO.getName());
+        return Result.success();
+    }
+
+    @RoleRequired({RoleConstant.MANAGER})
+    @DeleteMapping("/category/{id}")
+    public Result deleteCategoryController(@PathVariable String id) {
+        foodService.deleteCategoryService(id);
+        return Result.success();
+    }
+
+    @RoleRequired({RoleConstant.MANAGER})
     @PostMapping("/dish")
     public Result createDishController(@RequestBody CreateDishDTO createDishDTO) {
         foodService.createDishService(createDishDTO);
         return Result.success();
     }
 
+    @RoleRequired({RoleConstant.MANAGER})
     @PutMapping("/dish")
     public Result modifyDishController(@RequestBody Dish dish) {
         foodService.modifyDishService(dish);
         return Result.success();
     }
 
+    @RoleRequired({RoleConstant.MANAGER})
     @DeleteMapping("/dish")
     public Result deleteDishController(@RequestParam Integer id) {
         foodService.deleteDishService(id);
@@ -59,4 +73,6 @@ public class FoodController {
         List<DishVO> voList = foodService.getAllDishesService();
         return Result.success(voList);
     }
+
+
 }

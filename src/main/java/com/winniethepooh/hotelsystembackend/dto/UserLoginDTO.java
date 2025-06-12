@@ -3,7 +3,7 @@ package com.winniethepooh.hotelsystembackend.dto;
 import lombok.Data;
 
 @Data
-public class LoginDTO {
+public class UserLoginDTO {
     private String phone;
     private String password;
 }

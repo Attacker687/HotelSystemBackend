@@ -21,4 +21,6 @@ public interface FoodService {
     void deleteDishService(Integer id);
 
     List<DishVO> getAllDishesService();
+
+    void deleteCategoryService(String id);
 }

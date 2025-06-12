@@ -1,6 +1,8 @@
 package com.winniethepooh.hotelsystembackend.controller;
 
-import com.winniethepooh.hotelsystembackend.dto.LoginDTO;
+import com.winniethepooh.hotelsystembackend.annotation.RoleRequired;
+import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
+import com.winniethepooh.hotelsystembackend.dto.UserLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
 import com.winniethepooh.hotelsystembackend.dto.UserInfoChangeDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
@@ -38,30 +40,34 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result loginController(@RequestBody LoginDTO loginDTO) {
-        log.info("用户登录:{}", loginDTO.getPhone());
-        User user = userService.loginService(loginDTO);
+    public Result loginController(@RequestBody UserLoginDTO userLoginDTO) {
+        log.info("用户登录:{}", userLoginDTO.getPhone());
+        User user = userService.loginService(userLoginDTO);
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
+        claims.put("role", RoleConstant.USER);
         String token = JwtUtils.generateJwt(claims);
 
-        redisService.deleteKeysByValue(String.valueOf(user.getId()));
+        redisService.deleteKeysByValue(RoleConstant.convertToStringConstant(RoleConstant.USER) + "_" + user.getId());
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        ops.set(token, String.valueOf(user.getId()), 3, TimeUnit.HOURS);
+        ops.set(token, RoleConstant.convertToStringConstant(RoleConstant.USER) + "_" + user.getId(), 3, TimeUnit.HOURS);
         // 更新redis里的token, 保证同一用户的token只有一个
 
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(token);
         loginVO.setId(user.getId());
+        loginVO.setRole(RoleConstant.USER);
         return Result.success(loginVO);
     }
 
+    @RoleRequired({RoleConstant.USER})
     @PostMapping("/change")
     public Result changeInfoController(@RequestBody UserInfoChangeDTO userInfoChangeDTO) {
         userService.changeInfoService(userInfoChangeDTO);
         return Result.success();
     }
 
+    @RoleRequired({RoleConstant.USER})
     @GetMapping("/{id}")
     public Result queryUserByIdController(@PathVariable Integer id) {
         QueryUserVO queryUserVO = userService.queryUserByIdService(id);

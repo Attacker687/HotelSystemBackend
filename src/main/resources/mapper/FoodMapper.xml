@@ -16,6 +16,7 @@
             description = #{description},
             image       = #{image},
             category_id = #{categoryId},
+            status      = #{status},
             created_at  = now(),
             updated_at  = now()
     </insert>
@@ -37,6 +38,12 @@
     <update id="deleteDish">
         update dish
         set is_deleted = 1,
+            updated_at = now()
+        where id = #{id}
+    </update>
+
+    <update id="deleteCategory">
+        update category set is_deleted = 1,
             updated_at = now()
         where id = #{id}
     </update>

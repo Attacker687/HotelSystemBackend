@@ -1,5 +1,7 @@
 package com.winniethepooh.hotelsystembackend.service;
 
+import com.winniethepooh.hotelsystembackend.dto.DynamicUpdatePriceDTO;
+import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
 import com.winniethepooh.hotelsystembackend.vo.*;
 
 import java.time.LocalDate;
@@ -15,7 +17,11 @@ public interface BusinessService {
 
     OccupancyHeatmapVO getEachFloorOccupancyService(LocalDate startDate, LocalDate endDate, Integer floor);
 
-    DishTop10VO getTop10DishesService(LocalDate startDate, LocalDate endDate);
+    List<DishTop10VO> getTop10DishesService(LocalDate startDate, LocalDate endDate);
 
-    List<BusinessDetailVO> getBusinessDetail(LocalDate startDate, LocalDate endDate);
+    PageBean<BusinessDetailVO> getBusinessDetail(LocalDate startDate, LocalDate endDate);
+
+    void updateRoomPriceService(DynamicUpdatePriceDTO dynamicUpdatePriceDTO);
+
+    List<PriceCalendar> getPriceCalendarService(LocalDate startDate, LocalDate endDate, Integer roomType);
 }

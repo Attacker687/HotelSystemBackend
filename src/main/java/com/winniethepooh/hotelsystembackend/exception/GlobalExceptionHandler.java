@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.nio.file.AccessDeniedException;
+
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -40,8 +42,8 @@ public class GlobalExceptionHandler {
         return Result.error(exception.getMessage());
     }
 
-    @ExceptionHandler(UserDuplicatedException.class)
-    public Result UserDuplicatedHandler(UserDuplicatedException exception) {
+    @ExceptionHandler(DuplicatedException.class)
+    public Result UserDuplicatedHandler(DuplicatedException exception) {
         return Result.error(exception.getMessage());
     }
 
@@ -84,4 +86,15 @@ public class GlobalExceptionHandler {
     public Result CategoryNameDuplicatedExceptionHandler(CategoryNameDuplicatedException exception)  {
         return Result.error(exception.getMessage());
     }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Result AccessDeniedExceptionHandler(AccessDeniedException exception)  {
+        return Result.error(exception.getMessage());
+    }
+
+    @ExceptionHandler(ArgumentInvalidException.class)
+    public Result ArgumentInvalidExceptionHandler(ArgumentInvalidException exception)  {
+        return Result.error(exception.getMessage());
+    }
+
 }

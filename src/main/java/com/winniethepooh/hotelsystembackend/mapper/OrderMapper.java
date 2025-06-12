@@ -1,7 +1,12 @@
 package com.winniethepooh.hotelsystembackend.mapper;
 
+import com.winniethepooh.hotelsystembackend.dto.InsertMealOrderDTO;
+import com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
+import com.winniethepooh.hotelsystembackend.dto.TimeCheckDTO;
+import com.winniethepooh.hotelsystembackend.entity.Individual;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
+import com.winniethepooh.hotelsystembackend.entity.MealOrderItem;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.vo.DishTop10VO;
 import com.winniethepooh.hotelsystembackend.vo.RevenueStatsVO;
@@ -23,7 +28,7 @@ public interface OrderMapper {
 
     void insertMealComment(Integer id, String comment, Integer commentStar);
 
-    List<RoomOrder> getAllRoomOrderList();
+    List<RoomOrder> getAllRoomOrderList(Integer offset, Integer limit);
 
     void insertRoomOrderV1(RoomOrder roomOrder);
 
@@ -39,7 +44,7 @@ public interface OrderMapper {
 
     BigDecimal getThisTypeRoomRevenueDuringTheTime(int roomType, LocalDate startDate, LocalDate endDate);
 
-    DishTop10VO getTop10Dishes(LocalDate startDate, LocalDate endDate);
+    List<DishTop10VO> getTop10Dishes(LocalDate startDate, LocalDate endDate);
 
     Integer getTodayOccupiedRoomCount(LocalDate date);
 
@@ -48,4 +53,36 @@ public interface OrderMapper {
     List<RoomOrder> findRoomOrdersToRelease(LocalDateTime now);
 
     void modifyRoomOrderStatus(Long id, int status);
+
+    List<Individual> getIndividualByRoomIdAndDate(Long roomId, LocalDate date);
+
+    int getAllRoomOrderCount();
+
+    TimeCheckDTO getCheckTimeByRoomIdAndTime(Integer roomId, LocalDateTime now);
+
+    void insertRoomOrderV2(RoomOrder roomOrder);
+
+    List<RoomOrder> findRoomOrdersToEnable(LocalDateTime now);
+
+    RoomOrder getRoomOrderByRoomIdAndTime(Integer id, LocalDateTime now);
+
+    void modifyRoomOrderPayStatus(Long id, int status);
+
+    void flushExpiredRoomOrders();
+
+    RoomOrder getRoomOrderById(Long id);
+
+    MealOrderStatusCountDTO getLiveMealOrderStatusCount();
+
+    List<MealOrder> getLiveMealOrderList();
+
+    List<MealOrderItem> getMealOrderItemsByOrderId(Integer mealOrderId);
+
+    MealOrder getMealOrderByOrderId(Integer mealOrderId);
+
+    void modifyMealOrderStatus(Integer id, Integer status);
+
+    void insertMealOrder(InsertMealOrderDTO insertMealOrderDTO);
+
+    void insertMealOrderItem(MealOrderItem item);
 }

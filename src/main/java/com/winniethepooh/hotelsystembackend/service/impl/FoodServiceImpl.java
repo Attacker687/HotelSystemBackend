@@ -9,6 +9,7 @@ import com.winniethepooh.hotelsystembackend.vo.DishVO;
 import com.winniethepooh.hotelsystembackend.vo.FoodCategoryVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -52,5 +53,13 @@ public class FoodServiceImpl implements FoodService {
     @Override
     public List<DishVO> getAllDishesService() {
         return foodMapper.getAllDishes();
+    }
+
+    @Override
+    @Transactional
+    public void deleteCategoryService(String id) {
+        List<DishVO> dishes = foodMapper.getDishesByCategory(Integer.valueOf(id));
+        for (DishVO dish : dishes) foodMapper.deleteDish(dish.getId());
+        foodMapper.deleteCategory(id);
     }
 }

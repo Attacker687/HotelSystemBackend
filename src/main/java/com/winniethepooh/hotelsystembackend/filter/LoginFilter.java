@@ -30,9 +30,8 @@ public class LoginFilter implements Filter {
         log.info("The filter is working");
         log.info("Current url: {}", httpServletRequest.getRequestURI());
 
-        // 只拦截/user的
-        if (httpServletRequest.getRequestURI().contains("/user/login") || httpServletRequest.getRequestURI().contains("/user/register")
-        || httpServletRequest.getRequestURI().contains("/swagger-ui.html" ) || !httpServletRequest.getRequestURI().contains("/user")) {
+        if (httpServletRequest.getRequestURI().contains("/login") || httpServletRequest.getRequestURI().contains("/register")
+        || httpServletRequest.getRequestURI().contains("/swagger-ui.html" )) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
@@ -44,11 +43,14 @@ public class LoginFilter implements Filter {
         }
         try {
             ValueOperations<String, String> ops = redisTemplate.opsForValue();
-            String userId = ops.get(tokenGotFromRequest);
-            if (userId == null) throw new RuntimeException();
+            String info = ops.get(tokenGotFromRequest);
+            if (info == null) throw new RuntimeException();
+
             claims = JwtUtils.parseJWT(tokenGotFromRequest);
             Integer id = (Integer) claims.get("id");
+            Integer role = (Integer) claims.get("role");
             if (id != null) BaseContext.setCurrentId(id);
+            if (role != null) BaseContext.setCurrentRole(role);
         } catch (Exception e) {
             e.printStackTrace();
             response.sendError(401, "Unauthorized");

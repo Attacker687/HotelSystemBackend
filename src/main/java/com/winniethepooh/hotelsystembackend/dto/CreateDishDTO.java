@@ -11,4 +11,5 @@ public class CreateDishDTO {
     private BigDecimal price;
     private String image;
     private String description;
+    private Integer status;
 }

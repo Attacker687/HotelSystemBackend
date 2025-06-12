@@ -4,13 +4,14 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class MealOrder {
 
     private Integer id;                  // 订单id
     private Integer userId;              // 关联的用户id
-    private Integer tableNumber;         // 餐桌号
+    private String address;         // 送餐地址
     private BigDecimal totalAmount;      // 总金额
     private Integer orderStatus;         // 订单状态（0准备中，1已送达，2已完成，3已取消）
     private String remarks;              // 订单备注
@@ -18,5 +19,6 @@ public class MealOrder {
     private LocalDateTime updatedAt;     // 更新时间
     private String comment;              // 用户对这次订单的评价
     private Integer commentStar;
+    private List<MealOrderItem> itemList;
 }
 

@@ -4,12 +4,16 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+
 @Data
 public class QueryRoomsVO {
     private Integer id;
-    private Integer number;
-    private Integer type;
+    private Integer roomNumber;
+    private Integer roomType;
     private Integer status;
-    private BigDecimal price;
     private String image;
+    private Integer floor;
+    private Integer capacity;
+    private String description;
+    private BigDecimal price;
 }

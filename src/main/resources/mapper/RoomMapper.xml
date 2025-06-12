@@ -3,9 +3,14 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.RoomMapper">
     <insert id="insertRoom">
-        insert into room (room_number, room_type, status, floor, price, capacity, description, is_deleted,
-                          created_at, updated_at)
-        values (#{roomNumber}, #{roomType}, #{status}, #{floor}, #{price}, #{capacity}, #{description}, 0, now(), now())
+        insert into room (room_number, room_type, status, floor, capacity, description, is_deleted,
+                          created_at, updated_at, image)
+        values (#{roomNumber}, #{roomType}, #{status}, #{floor}, #{capacity}, #{description}, 0, now(), now(), #{image})
+    </insert>
+
+    <insert id="insertPriceCalendar">
+        insert into price_calendar (room_type, date, price, is_deleted, created_at, updated_at)
+        values (#{roomType}, #{date}, #{price}, 0, now(), now())
     </insert>
 
     <update id="modifyRoomStatus">
@@ -18,13 +23,13 @@
     <update id="modifyRoomInfo">
         UPDATE room
         <set>
-            <if test="roomNumber != null">room_number = #{dto.roomNumber},</if>
-            <if test="roomType != null">room_type_id = #{dto.roomType},</if>
-            <if test="status != null">status = #{dto.status},</if>
-            <if test="floor != null">floor = #{dto.floor},</if>
-            <if test="price != null">price = #{dto.price},</if>
-            <if test="capacity != null">capacity = #{dto.capacity},</if>
-            <if test="description != null">description = #{dto.description},</if>
+            <if test="dto.roomNumber != null">room_number = #{dto.roomNumber},</if>
+            <if test="dto.roomType != null">room_type = #{dto.roomType},</if>
+            <if test="dto.status != null">status = #{dto.status},</if>
+            <if test="dto.floor != null">floor = #{dto.floor},</if>
+            <if test="dto.capacity != null">capacity = #{dto.capacity},</if>
+            <if test="dto.description != null">description = #{dto.description},</if>
+            <if test="dto.image != null">image = #{dto.image},</if>
             updated_at = now()
         </set>
         WHERE id = #{id}
@@ -38,23 +43,16 @@
           and is_deleted = 0
     </update>
 
+    <update id="modifyPriceCalendar">
+        update price_calendar
+        set price = #{price}, updated_at = now()
+        where room_type = #{roomType}
+          and date = #{date}
+          and is_deleted = 0
+    </update>
 
-    <select id="queryRooms" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
-        select * from room
-        <where>
-            <if test="roomNumber != null">
-                and room_number = #{roomNumber}
-            </if>
-            <if test="roomType != null">
-                and room_type = #{roomType}
-            </if>
-            <if test="status != null">
-                and status = #{status}
-            </if>
-            and is_deleted = 0
-        </where>
-        limit #{limit} offset #{offset}
-    </select>
+
+
 
     <select id="getRoomIdByRoomNumber" resultType="java.lang.Long">
         select id
@@ -66,8 +64,12 @@
     <select id="queryRoomById" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
         select *
         from room
-        where id = #{id}
-          and is_deleted = 0
+        <where>
+            id = #{id}
+            <if test="containDeleted != null and !containDeleted">
+                and is_deleted = 0
+            </if>
+        </where>
     </select>
 
     <select id="getExistFloors" resultType="java.lang.Integer">
@@ -86,6 +88,61 @@
 
     <select id="existByRoomNumber" resultType="java.lang.Boolean">
         select count(*) > 0
+        from room
+        where room_number = #{roomNumber}
+          and is_deleted = 0
+    </select>
+
+    <select id="getPriceCalendarByRoomTypeAndDate"
+            resultType="com.winniethepooh.hotelsystembackend.entity.PriceCalendar">
+        select * from price_calendar
+        where room_type = #{roomType}
+          and date = #{date}
+          and is_deleted = 0
+    </select>
+
+    <select id="getRoomPriceByTypeAndDate" resultType="java.math.BigDecimal">
+        select price
+        from price_calendar
+        where room_type = #{roomType}
+          and date = #{date}
+          and is_deleted = 0
+    </select>
+    <select id="queryRooms" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
+        select * from room
+        <where>
+            <if test="roomNumber != null">
+                and room_number = #{roomNumber}
+            </if>
+            <if test="roomType != null">
+                and room_type = #{roomType}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            and is_deleted = 0
+        </where>
+        <if test="limit != null and offset != null">
+            limit #{limit} offset #{offset}
+        </if>
+    </select>
+    <select id="queryRoomsCount" resultType="java.lang.Integer">
+        select count(*) from room
+        <where>
+            <if test="roomNumber != null">
+                and room_number = #{roomNumber}
+            </if>
+            <if test="roomType != null">
+                and room_type = #{roomType}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            and is_deleted = 0
+        </where>
+    </select>
+    <select id="getRoomByRoomNumber" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
+        select *
         from room
         where room_number = #{roomNumber}
           and is_deleted = 0

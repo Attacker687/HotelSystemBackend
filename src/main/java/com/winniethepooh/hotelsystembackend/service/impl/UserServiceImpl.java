@@ -4,7 +4,7 @@ import cn.hutool.core.lang.Validator;
 import cn.hutool.core.util.IdcardUtil;
 import cn.hutool.core.util.PhoneUtil;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
-import com.winniethepooh.hotelsystembackend.dto.LoginDTO;
+import com.winniethepooh.hotelsystembackend.dto.UserLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
 import com.winniethepooh.hotelsystembackend.dto.UserInfoChangeDTO;
 import com.winniethepooh.hotelsystembackend.entity.Individual;
@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
         ))
             throw new UserPasswordInvalidException("密码必须包含大小写字母、数字和特殊字符");
         User user = userMapper.findUserByPhone(registerDTO.getPhone());
-        if (user != null) throw new UserDuplicatedException("该手机号已被注册");
+        if (user != null) throw new DuplicatedException("该手机号已被注册");
         registerDTO.setPassword(DigestUtils.md5Hex(registerDTO.getPassword()));
         userMapper.createUser(registerDTO);
         Individual individual = new Individual();
@@ -53,11 +53,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User loginService(LoginDTO loginDTO) {
-        if (userMapper.findUserByPhone(loginDTO.getPhone()) == null)
+    public User loginService(UserLoginDTO userLoginDTO) {
+        if (userMapper.findUserByPhone(userLoginDTO.getPhone()) == null)
             throw new UserNotFoundException("该用户未注册");
-        loginDTO.setPassword(DigestUtils.md5Hex(loginDTO.getPassword()));
-        User user = userMapper.findUserByPhoneAndPassword(loginDTO.getPhone(), loginDTO.getPassword());
+        userLoginDTO.setPassword(DigestUtils.md5Hex(userLoginDTO.getPassword()));
+        User user = userMapper.findUserByPhoneAndPassword(userLoginDTO.getPhone(), userLoginDTO.getPassword());
         if (user == null) throw new PasswordIncorrectException("密码错误，请重新输入");
         userMapper.updateLastLoginTime(user.getId());
         return user;

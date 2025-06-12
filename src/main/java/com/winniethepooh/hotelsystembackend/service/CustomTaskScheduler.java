@@ -35,5 +35,20 @@ public class CustomTaskScheduler {
             System.out.println("释放房间ID: " + order.getRoomId());
         }
     }
+
+    @Scheduled(cron = "1 * * * * *")
+    public void flushRoomStatus() {
+        LocalDateTime now = LocalDateTime.now();
+        List<RoomOrder> ordersNeedTobeEnable = orderMapper.findRoomOrdersToEnable(now);
+        for (RoomOrder roomOrder : ordersNeedTobeEnable) {
+            roomMapper.modifyRoomStatus(Math.toIntExact(roomOrder.getRoomId()), RoomStatusConstant.OCCUPIED);
+        }
+    }
+
+    @Scheduled(cron = "2 * * * * *")
+    public void flushExpiredRoomOrders() {
+        orderMapper.flushExpiredRoomOrders();
+    }
+
 }
 

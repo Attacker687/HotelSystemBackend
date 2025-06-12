@@ -4,17 +4,17 @@
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.OrderMapper">
     <insert id="insertRoomComment">
         update room_order
-        set comment    = #{comment},
+        set comment      = #{comment},
             comment_star = #{commentStar},
-            updated_at = now()
+            updated_at   = now()
         where id = #{id}
     </insert>
 
     <insert id="insertMealComment">
         update meal_order
-        set comment    = #{comment},
+        set comment      = #{comment},
             comment_star = #{commentStar},
-            updated_at = now()
+            updated_at   = now()
         where id = #{id}
     </insert>
 
@@ -24,6 +24,39 @@
             room_id       = #{roomId},
             checkin_time  = #{checkinTime},
             checkout_time = #{checkoutTime},
+            pay_status    = 1,
+            status        = 0,
+            created_at    = now(),
+            updated_at    = now()
+    </insert>
+    <insert id="insertRoomOrderV2" useGeneratedKeys="true" keyProperty="id">
+        insert into room_order
+        set individual_id = #{individualId},
+            user_id       = #{userId},
+            room_id       = #{roomId},
+            checkin_time  = #{checkinTime},
+            checkout_time = #{checkoutTime},
+            pay_status    = 0,
+            status        = 0,
+            created_at    = now(),
+            updated_at    = now()
+    </insert>
+    <insert id="insertMealOrder" useGeneratedKeys="true" keyProperty="id">
+        insert into meal_order
+        set user_id      = #{userId},
+            address      = #{address},
+            remarks      = #{remarks},
+            total_amount = #{totalAmount},
+            order_status = 0,
+            created_at   = now(),
+            updated_at   = now()
+    </insert>
+    <insert id="insertMealOrderItem">
+        insert into meal_order_item
+        set meal_order_id = #{mealOrderId},
+            dish_id       = #{dishId},
+            quantity      = #{quantity},
+            unit_price    = #{unitPrice},
             created_at    = now(),
             updated_at    = now()
     </insert>
@@ -47,8 +80,33 @@
 
     <update id="modifyRoomOrderStatus">
         update room_order
-        set status = #{status},
+        set status     = #{status},
             updated_at = now()
+        where id = #{id}
+          and is_deleted = 0
+    </update>
+
+    <update id="modifyRoomOrderPayStatus">
+        update room_order
+        set pay_status = #{status},
+            updated_at = now()
+        where id = #{id}
+          and is_deleted = 0
+    </update>
+
+    <update id="flushExpiredRoomOrders">
+        update room_order
+        set status     = 2,
+            updated_at = now()
+        where is_deleted = 0
+          and status = 0
+          and pay_status = 0
+          and created_at &lt; DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+    </update>
+    <update id="modifyMealOrderStatus">
+        update meal_order
+        set order_status = #{status},
+            updated_at   = now()
         where id = #{id}
           and is_deleted = 0
     </update>
@@ -81,6 +139,7 @@
         select *
         from room_order
         where is_deleted = 0
+        limit #{offset}, #{limit}
     </select>
 
     <select id="getTodayStats" resultType="java.math.BigDecimal">
@@ -136,14 +195,14 @@
         FROM meal_order_item moi
                  JOIN
              meal_order mo ON moi.meal_order_id = mo.id -- 连接餐饮订单表，获取订单信息
-            JOIN
+                 JOIN
              dish d ON moi.dish_id = d.id -- 连接菜品表，获取菜品名称
         WHERE mo.created_at BETWEEN #{startDate} AND #{endDate} -- 限制订单时间范围
           AND mo.is_deleted = 0                                 -- 订单未删除
           AND d.is_deleted = 0                                  -- 菜品未删除
         GROUP BY d.name -- 按照菜品名称分组
         ORDER BY value DESC -- 按销量降序排序
-            LIMIT 10; -- 获取前 10 个销量最高的菜品
+        LIMIT 10; -- 获取前 10 个销量最高的菜品
     </select>
 
     <select id="getTodayOccupiedRoomCount" resultType="java.lang.Integer">
@@ -153,6 +212,7 @@
           AND pay_status = 1
           AND is_deleted = 0
     </select>
+
     <select id="getRoomsOccupiedOnAFloor" resultType="java.lang.Integer">
         SELECT COUNT(DISTINCT ro.room_id) AS occupiedRoomCount
         FROM room_order ro
@@ -171,6 +231,98 @@
           and status = 0
           and pay_status = 1
           and checkout_time &lt; #{now}
+    </select>
+
+    <select id="getIndividualByRoomIdAndDate"
+            resultType="com.winniethepooh.hotelsystembackend.entity.Individual">
+        select distinct i.*
+        from individual i
+                 join room_order ro on i.id = ro.individual_id
+        where ro.room_id = #{roomId}
+          and DATE(ro.checkin_time) &lt;= DATE(#{date})
+          and DATE(ro.checkout_time) &gt;= DATE(#{date})
+          and ro.is_deleted = 0
+    </select>
+
+    <select id="getAllRoomOrderCount" resultType="java.lang.Integer">
+        select count(*)
+        from room_order
+        where is_deleted = 0
+    </select>
+
+    <select id="getCheckTimeByRoomIdAndTime"
+            resultType="com.winniethepooh.hotelsystembackend.dto.TimeCheckDTO">
+        select checkin_time  as checkInTime,
+               checkout_time as checkOutTime
+        from room_order
+        where room_id = #{roomId}
+          and is_deleted = 0
+          and checkin_time &lt;= #{now}
+          and checkout_time &gt;= #{now}
+          and pay_status = 1
+          and status = 0
+    </select>
+
+    <select id="findRoomOrdersToEnable" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select *
+        from room_order
+        where is_deleted = 0
+          and status = 0
+          and pay_status = 1
+          and #{now} &gt;= checkin_time
+    </select>
+
+    <select id="getRoomOrderByRoomIdAndTime"
+            resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select *
+        from room_order
+        where room_id = #{id}
+          and is_deleted = 0
+          and checkin_time &lt;= #{now}
+          and checkout_time &gt;= #{now}
+          and pay_status = 1
+          and status = 0
+    </select>
+    <select id="getRoomOrderById" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select *
+        from room_order
+        where id = #{id}
+          and is_deleted = 0
+    </select>
+    <select id="getLiveMealOrderStatusCount"
+            resultType="com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO">
+        SELECT SUM(IF(order_status = 0 AND created_at >= NOW() - INTERVAL 1 DAY, 1, 0)) AS newOrderCount,
+               SUM(IF(order_status = 1 AND created_at >= NOW() - INTERVAL 1 DAY, 1, 0)) AS pendingOrderCount,
+               SUM(IF(order_status = 2 AND created_at >= NOW() - INTERVAL 1 DAY, 1, 0)) AS doneOrderCount
+        FROM meal_order;
+    </select>
+    <select id="getLiveMealOrderList" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
+        SELECT *
+        FROM meal_order
+        WHERE is_deleted = 0
+          AND created_at >= NOW() - INTERVAL 1 DAY
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="getMealOrderItemsByOrderId"
+            resultType="com.winniethepooh.hotelsystembackend.entity.MealOrderItem">
+        select moi.id          as id,
+               moi.dish_id     as dishId,
+               moi.quantity    as quantity,
+               moi.unit_price  as unitPrice,
+               moi.total_price as totalPrice,
+               d.name          as name
+        from meal_order_item moi
+                 join dish d on moi.dish_id = d.id
+        where meal_order_id = #{mealOrderId}
+          and moi.is_deleted = 0
+    </select>
+
+    <select id="getMealOrderByOrderId" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
+        select *
+        from meal_order
+        where id = #{mealOrderId}
+          and is_deleted = 0
     </select>
 
 
