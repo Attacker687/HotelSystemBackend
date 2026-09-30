@@ -197,7 +197,9 @@
              meal_order mo ON moi.meal_order_id = mo.id -- 连接餐饮订单表，获取订单信息
                  JOIN
              dish d ON moi.dish_id = d.id -- 连接菜品表，获取菜品名称
-        WHERE mo.created_at BETWEEN #{startDate} AND #{endDate} -- 限制订单时间范围
+        WHERE mo.created_at >= #{startDate}                     -- 限制订单时间范围：含结束日当天
+          AND mo.created_at &lt; #{endDate} + INTERVAL 1 DAY
+          AND mo.order_status != 3                              -- 排除已取消
           AND mo.is_deleted = 0                                 -- 订单未删除
           AND d.is_deleted = 0                                  -- 菜品未删除
         GROUP BY d.name -- 按照菜品名称分组
@@ -291,10 +293,12 @@
     </select>
     <select id="getLiveMealOrderStatusCount"
             resultType="com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO">
-        SELECT SUM(IF(order_status = 0 AND created_at >= NOW() - INTERVAL 1 DAY, 1, 0)) AS newOrderCount,
-               SUM(IF(order_status = 1 AND created_at >= NOW() - INTERVAL 1 DAY, 1, 0)) AS pendingOrderCount,
-               SUM(IF(order_status = 2 AND created_at >= NOW() - INTERVAL 1 DAY, 1, 0)) AS doneOrderCount
-        FROM meal_order;
+        SELECT COALESCE(SUM(order_status = 0), 0) AS newOrderCount,
+               COALESCE(SUM(order_status = 1), 0) AS pendingOrderCount,
+               COALESCE(SUM(order_status = 2), 0) AS doneOrderCount
+        FROM meal_order
+        WHERE is_deleted = 0
+          AND created_at >= NOW() - INTERVAL 1 DAY
     </select>
     <select id="getLiveMealOrderList" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
         SELECT *
