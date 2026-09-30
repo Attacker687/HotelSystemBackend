@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +17,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import static com.winniethepooh.hotelsystembackend.SqlLogIT.MAPPER;
-import static com.winniethepooh.hotelsystembackend.SqlLogIT.NEW_GUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -51,7 +51,7 @@ class DevSqlLogIT extends IntegrationTestBase {
         assertThat(env.getActiveProfiles()).contains("test", "dev");
         appender.list.clear();
 
-        Resp r = post("/user/register", null, NEW_GUEST);
+        Resp r = post("/user/register", null, Fixtures.registration("N"));
 
         assertThat(r.status()).isEqualTo(200);
         assertThat(r.code()).isZero();

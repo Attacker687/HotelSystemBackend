@@ -21,10 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SqlLogIT extends IntegrationTestBase {
 
     static final String MAPPER = "com.winniethepooh.hotelsystembackend.mapper";
-    static final String ID_CARD = "110101199001010189";
-    /** 新住客 N（strategy.data）。 */
-    static final Map<String, String> NEW_GUEST = Map.of("name", "测试新客", "idCardNumber", ID_CARD,
-            "phone", "17000000900", "email", "n@example.test", "password", Fixtures.PASSWORD);
 
     @Autowired
     private Environment env;
@@ -45,13 +41,15 @@ class SqlLogIT extends IntegrationTestBase {
     void tc059_nonDevProfileDoesNotPrintSqlParameters(CapturedOutput output) {
         assertThat(env.getActiveProfiles()).containsExactly("test");
 
-        Resp r = post("/user/register", null, NEW_GUEST);
+        Map<String, Object> n = Fixtures.registration("N");
+
+        Resp r = post("/user/register", null, n);
 
         assertThat(r.status()).isEqualTo(200);
         assertThat(r.code()).isZero();
-        String hash = jdbc.queryForObject("select password from user where phone = ?", String.class, "17000000900");
+        String hash = jdbc.queryForObject("select password from user where phone = ?", String.class, n.get("phone"));
         assertThat(output.getAll())
-                .doesNotContain(ID_CARD)
+                .doesNotContain((String) n.get("idCardNumber"))
                 .doesNotContain(hash)
                 .doesNotContainPattern("==>\\s+Parameters:");
     }
