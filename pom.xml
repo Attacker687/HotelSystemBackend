@@ -28,6 +28,11 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
+		<!-- 1.20.x 使用本地已有的 ryuk 0.8.1 镜像；Boot 3.3.4 默认管理的是 1.19.8 -->
+		<testcontainers.version>1.20.3</testcontainers.version>
+		<docker.api.version>1.44</docker.api.version>
+		<!-- surefire / failsafe 默认读取 argLine：测试 JVM 时区与数据库一致（conventions.md 第 1 节） -->
+		<argLine>-Duser.timezone=Asia/Shanghai</argLine>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -37,6 +42,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.mybatis.spring.boot</groupId>
@@ -58,6 +67,21 @@
 			<groupId>org.mybatis.spring.boot</groupId>
 			<artifactId>mybatis-spring-boot-starter-test</artifactId>
 			<version>3.0.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mysql</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -148,6 +172,19 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<!-- *IT 集成测试（Testcontainers，需要 Docker）在 integration-test 阶段由 failsafe 运行；
+			     surefire 默认只认 *Test/*Tests，mvn test 不依赖 Docker -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<configuration>
+					<systemPropertyVariables>
+						<!-- Docker Engine 29 起最低 API 为 1.44，testcontainers 1.20 默认用 1.32 会被拒；
+						     旧版 Docker（<25）可用 -Ddocker.api.version=1.32 覆盖 -->
+						<api.version>${docker.api.version}</api.version>
+					</systemPropertyVariables>
 				</configuration>
 			</plugin>
 		</plugins>
