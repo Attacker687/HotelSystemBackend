@@ -7,3 +7,8 @@ spring:
       mode: always
       schema-locations: classpath:db/schema.sql
       data-locations: classpath:db/demo-data.sql
+
+# 只在开发 profile 打印 SQL（MyBatis 走 SLF4J，DEBUG 级别含参数）；其他 profile 不输出，避免身份证号、密码哈希进日志。
+logging:
+  level:
+    com.winniethepooh.hotelsystembackend.mapper: debug
