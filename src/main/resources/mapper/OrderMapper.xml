@@ -116,7 +116,8 @@
         from meal_order
         <where>
             is_deleted = 0
-            and (DATE(created_at) between #{startDate} and #{endDate})
+            and created_at >= #{startDate}
+            and created_at &lt; #{endDate} + INTERVAL 1 DAY
             <if test="id != null">
                 and user_id = #{id}
             </if>
@@ -128,7 +129,8 @@
         from room_order
         <where>
             is_deleted = 0
-            and (DATE(created_at) between #{startDate} and #{endDate})
+            and created_at >= #{startDate}
+            and created_at &lt; #{endDate} + INTERVAL 1 DAY
             <if test="id != null">
                 and user_id = #{id}
             </if>
@@ -142,51 +144,30 @@
         limit #{offset}, #{limit}
     </select>
 
-    <select id="getTodayStats" resultType="java.math.BigDecimal">
-        select sum(total_amount) as today
-        from room_order
-        where DATE(checkin_time) = DATE(#{date})
-          and pay_status = 1
-          and is_deleted = 0
-    </select>
-
-    <select id="getThisMonthStats" resultType="java.math.BigDecimal">
-        select sum(total_amount) as thisMonth
-        from room_order
-        where DATE_FORMAT(checkin_time, '%Y-%m') = DATE_FORMAT(#{date}, '%Y-%m')
-          and pay_status = 1
-          and is_deleted = 0
-    </select>
-
-    <select id="getTodayAvgRoomPrice" resultType="java.math.BigDecimal">
-        select avg(total_amount) as todayAvg
-        from room_order
-        where DATE(checkin_time) = DATE(#{date})
-          and pay_status = 1
-          and is_deleted = 0
+    <!-- 统计口径：营收按晚拆分（room_order_night），只计已支付、未取消、未删除的订单（D2、D3、D4） -->
+    <select id="getNightRevenueByDate" resultType="com.winniethepooh.hotelsystembackend.dto.DailyRevenueDTO">
+        select n.night      as date,
+               sum(n.price) as revenue,
+               count(*)     as nightCount
+        from room_order_night n
+                 join room_order o on o.id = n.room_order_id
+        where n.night between #{startDate} and #{endDate}
+          and o.pay_status = 1
+          and o.status != 2
+          and o.is_deleted = 0
+        group by n.night
     </select>
 
     <select id="getThisTypeRoomRevenueDuringTheTime" resultType="java.math.BigDecimal">
-        select sum(total_amount) as thisTypeRoomRevenueDuringTheTime
-        from room_order
-        where (DATE(checkin_time) between DATE(#{startDate}) and DATE(#{endDate}))
-          and pay_status = 1
-          and room_id = #{roomType}
-          and is_deleted = 0
-    </select>
-
-    <select id="getEachFloorOccupancy" resultType="java.lang.Double">
-        SELECT CAST(COUNT(DISTINCT r.id) AS DECIMAL) /
-               (SELECT COUNT(*)
-                FROM room
-                WHERE floor = #{floor}
-                  AND created_at &lt;= DATE(#{date})) * 100 AS eachFloorOccupancy
-        FROM room_order ro
-                 JOIN room r ON ro.room_id = r.id
-        WHERE DATE(#{date}) BETWEEN DATE(ro.checkin_time) AND DATE(ro.checkout_time)
-          AND ro.pay_status = 1
-          AND ro.is_deleted = 0
-          AND r.floor = #{floor}
+        select coalesce(sum(n.price), 0) as thisTypeRoomRevenueDuringTheTime
+        from room_order_night n
+                 join room_order o on o.id = n.room_order_id
+                 join room r on r.id = o.room_id
+        where n.night between #{startDate} and #{endDate}
+          and r.room_type = #{roomType}
+          and o.pay_status = 1
+          and o.status != 2
+          and o.is_deleted = 0
     </select>
 
     <select id="getTop10Dishes" resultType="com.winniethepooh.hotelsystembackend.vo.DishTop10VO">
@@ -207,23 +188,36 @@
         LIMIT 10; -- 获取前 10 个销量最高的菜品
     </select>
 
-    <select id="getTodayOccupiedRoomCount" resultType="java.lang.Integer">
-        SELECT COUNT(DISTINCT room_id) AS occupiedRoomCount
-        FROM room_order
-        WHERE DATE(#{date}) between DATE(checkin_time) and DATE(checkout_time)
-          AND pay_status = 1
-          AND is_deleted = 0
+    <!-- 某天 date 被占用指 DATE(checkin) <= date < DATE(checkout)，离店当天不算（D5）；
+         这里取出与 [startDate, endDate] 有交集的有效订单，按天在 BusinessServiceImpl 里汇总 -->
+    <select id="getOccupyingRoomOrders" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select id, room_id, checkin_time, checkout_time
+        from room_order
+        where checkin_time &lt; #{endDate} + INTERVAL 1 DAY
+          and checkout_time >= #{startDate} + INTERVAL 1 DAY
+          and pay_status = 1
+          and status != 2
+          and is_deleted = 0
     </select>
 
-    <select id="getRoomsOccupiedOnAFloor" resultType="java.lang.Integer">
-        SELECT COUNT(DISTINCT ro.room_id) AS occupiedRoomCount
-        FROM room_order ro
-                 left join room r on ro.room_id = r.id
-        WHERE DATE(#{date}) between DATE(ro.checkin_time) and DATE(ro.checkout_time)
-          AND ro.pay_status = 1
-          AND ro.is_deleted = 0
-          AND r.floor = #{floor}
-          AND r.is_deleted = 0
+    <!-- 复住率（D7）：每天入住的客人（按入住人去重）及其中在当天之前已有有效入住记录的人数 -->
+    <select id="getCheckinGuestCountByDate" resultType="com.winniethepooh.hotelsystembackend.dto.DailyGuestDTO">
+        select DATE(o.checkin_time)            as date,
+               count(distinct o.individual_id) as guestCount,
+               count(distinct h.individual_id) as repeatGuestCount
+        from room_order o
+                 left join room_order h
+                           on h.individual_id = o.individual_id
+                               and h.checkin_time &lt; DATE(o.checkin_time)
+                               and h.pay_status = 1
+                               and h.status != 2
+                               and h.is_deleted = 0
+        where o.checkin_time >= #{startDate}
+          and o.checkin_time &lt; #{endDate} + INTERVAL 1 DAY
+          and o.pay_status = 1
+          and o.status != 2
+          and o.is_deleted = 0
+        group by DATE(o.checkin_time)
     </select>
 
     <select id="findRoomOrdersToRelease" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
@@ -241,8 +235,8 @@
         from individual i
                  join room_order ro on i.id = ro.individual_id
         where ro.room_id = #{roomId}
-          and DATE(ro.checkin_time) &lt;= DATE(#{date})
-          and DATE(ro.checkout_time) &gt;= DATE(#{date})
+          and ro.checkin_time &lt; #{date} + INTERVAL 1 DAY
+          and ro.checkout_time &gt;= #{date}
           and ro.is_deleted = 0
     </select>
 

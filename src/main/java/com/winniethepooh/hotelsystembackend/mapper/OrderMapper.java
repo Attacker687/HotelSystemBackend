@@ -1,5 +1,7 @@
 package com.winniethepooh.hotelsystembackend.mapper;
 
+import com.winniethepooh.hotelsystembackend.dto.DailyGuestDTO;
+import com.winniethepooh.hotelsystembackend.dto.DailyRevenueDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertMealOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
@@ -36,19 +38,17 @@ public interface OrderMapper {
 
     void deleteRoomOrder(Integer id);
 
-    BigDecimal getTodayStats(LocalDate date);
-
-    BigDecimal getThisMonthStats(LocalDate date);
-
-    BigDecimal getTodayAvgRoomPrice(LocalDate date);
+    /** 区间内每晚的营收与售出间夜数（按晚拆分，只计已支付、未取消、未删除的订单）。 */
+    List<DailyRevenueDTO> getNightRevenueByDate(LocalDate startDate, LocalDate endDate);
 
     BigDecimal getThisTypeRoomRevenueDuringTheTime(int roomType, LocalDate startDate, LocalDate endDate);
 
     List<DishTop10VO> getTop10Dishes(LocalDate startDate, LocalDate endDate);
 
-    Integer getTodayOccupiedRoomCount(LocalDate date);
+    /** 在 [startDate, endDate] 内至少占用一天的有效订单（已支付、未取消、未删除），只含 id、room_id、入住和离店时间。 */
+    List<RoomOrder> getOccupyingRoomOrders(LocalDate startDate, LocalDate endDate);
 
-    Integer getRoomsOccupiedOnAFloor(Integer floor, LocalDate date);
+    List<DailyGuestDTO> getCheckinGuestCountByDate(LocalDate startDate, LocalDate endDate);
 
     List<RoomOrder> findRoomOrdersToRelease(LocalDateTime now);
 
