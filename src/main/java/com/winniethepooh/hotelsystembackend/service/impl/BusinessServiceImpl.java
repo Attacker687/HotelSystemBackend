@@ -51,9 +51,8 @@ public class BusinessServiceImpl implements BusinessService {
     /** 统计和价格日历一次最多查询或设置的天数（含首尾，P3、B12，GAP-18）。 */
     static final int MAX_SPAN_DAYS = 366;
 
-    /** 区间内的全部日期；开始晚于结束或跨度超过 MAX_SPAN_DAYS 时返回 400。 */
+    /** 区间内的全部日期；跨度超过 MAX_SPAN_DAYS 时返回 400（开始晚于结束由 LocalDateUtil 返回 400）。 */
     private static List<LocalDate> checkedDates(LocalDate startDate, LocalDate endDate) {
-        if (startDate.isAfter(endDate)) throw new ArgumentInvalidException("开始日期不能在结束日期之后");
         if (ChronoUnit.DAYS.between(startDate, endDate) + 1 > MAX_SPAN_DAYS)
             throw new ArgumentInvalidException("日期跨度不能超过 " + MAX_SPAN_DAYS + " 天");
         return LocalDateUtil.getDatesBetween(startDate, endDate);
