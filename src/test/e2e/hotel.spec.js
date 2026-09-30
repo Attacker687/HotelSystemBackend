@@ -188,7 +188,7 @@ test('TC-134 两张餐饮单取消一张，另一张推进、评价并计入 Top
   await expect(mealOrder(page, one.id)).toContainText('已取消');
   await expect(mealOrder(page, two.id)).toContainText('新订单');
   await mealOrder(page, two.id).getByRole('button', { name: '推进', exact: true }).click();
-  await expect(mealOrder(page, two.id)).toContainText('待完成（状态 1）');
+  await expect(mealOrder(page, two.id).getByText('待完成', { exact: true })).toBeVisible();
   await mealOrder(page, two.id).getByRole('button', { name: '推进', exact: true }).click();
   await expect(mealOrder(page, two.id)).toContainText('已完成');
   expect((await fixture('state')).mealOrders[1].order_status).toBe(2);
