@@ -36,11 +36,10 @@ public interface RoomMapper {
 
     boolean existByRoomNumber(String roomNumber);
 
-    PriceCalendar getPriceCalendarByRoomTypeAndDate(Integer roomType, LocalDate date);
+    List<PriceCalendar> getPriceCalendars(Integer roomType, LocalDate startDate, LocalDate endDate);
 
-    void insertPriceCalendar(PriceCalendar priceCalendar);
-
-    void modifyPriceCalendar(PriceCalendar priceCalendar);
+    /** 一条 INSERT … ON DUPLICATE KEY UPDATE 写入全部日期；已软删除的记录恢复为有效。 */
+    void upsertPriceCalendar(Integer roomType, BigDecimal price, List<LocalDate> dates);
 
     BigDecimal getRoomPriceByTypeAndDate(Integer roomType, LocalDate date);
 

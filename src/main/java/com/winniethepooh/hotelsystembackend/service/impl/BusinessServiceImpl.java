@@ -3,6 +3,7 @@ package com.winniethepooh.hotelsystembackend.service.impl;
 import com.winniethepooh.hotelsystembackend.constant.RoomTypeConstant;
 import com.winniethepooh.hotelsystembackend.dto.DynamicUpdatePriceDTO;
 import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
+import com.winniethepooh.hotelsystembackend.exception.ArgumentInvalidException;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
@@ -11,13 +12,14 @@ import com.winniethepooh.hotelsystembackend.utils.LocalDateUtil;
 import com.winniethepooh.hotelsystembackend.vo.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -29,6 +31,18 @@ public class BusinessServiceImpl implements BusinessService {
     private RoomMapper roomMapper;
     @Autowired
     private UserMapper userMapper;
+
+    /** 统计和价格日历一次最多查询或设置的天数（含首尾，P3、B12，GAP-18）。 */
+    static final int MAX_SPAN_DAYS = 366;
+
+    /** 区间内的全部日期；开始晚于结束或跨度超过 MAX_SPAN_DAYS 时返回 400。 */
+    private static List<LocalDate> checkedDates(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) throw new ArgumentInvalidException("开始日期不能在结束日期之后");
+        if (ChronoUnit.DAYS.between(startDate, endDate) + 1 > MAX_SPAN_DAYS)
+            throw new ArgumentInvalidException("日期跨度不能超过 " + MAX_SPAN_DAYS + " 天");
+        return LocalDateUtil.getDatesBetween(startDate, endDate);
+    }
+
     /** 计算 BigDecimal 类型的同比变化百分比 */
     private double calcChange(BigDecimal current, BigDecimal previous) {
         if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) return 0.0;
@@ -85,7 +99,7 @@ public class BusinessServiceImpl implements BusinessService {
 
     @Override
     public RevenueTrendVO getRevenueTrendService(LocalDate startDate, LocalDate endDate) {
-        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
+        List<LocalDate> dateList = checkedDates(startDate, endDate);
         List<BigDecimal> revenueList = new ArrayList<>(dateList.size());
         List<Double> occupancyList = new ArrayList<>(dateList.size());
         for (LocalDate date : dateList) {
@@ -121,7 +135,7 @@ public class BusinessServiceImpl implements BusinessService {
     public OccupancyHeatmapVO getEachFloorOccupancyService(LocalDate startDate, LocalDate endDate, Integer floor) {
         OccupancyHeatmapVO occupancyHeatmapVO = new OccupancyHeatmapVO();
         List<Integer> floors = new ArrayList<>();
-        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
+        List<LocalDate> dateList = checkedDates(startDate, endDate);
         if (floor == null) floors = roomMapper.getExistFloors();
         else floors.add(floor);
         occupancyHeatmapVO.setDates(dateList);
@@ -150,7 +164,7 @@ public class BusinessServiceImpl implements BusinessService {
     public PageBean<BusinessDetailVO> getBusinessDetail(LocalDate startDate, LocalDate endDate) {
         PageBean<BusinessDetailVO> pageBean = new PageBean<>();
         List<BusinessDetailVO> detailVOList = new ArrayList<>();
-        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
+        List<LocalDate> dateList = checkedDates(startDate, endDate);
         for (LocalDate date : dateList) {
             BusinessDetailVO businessDetailVO = new BusinessDetailVO();
             businessDetailVO.setDate(date);
@@ -177,30 +191,16 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
-    @Transactional
-    public void updateRoomPriceService(DynamicUpdatePriceDTO dynamicUpdatePriceDTO) {
-        List<LocalDate> dateList = LocalDateUtil.getDatesBetween
-                (dynamicUpdatePriceDTO.getStartDate(), dynamicUpdatePriceDTO.getEndDate());
-        for (LocalDate date : dateList) {
-            PriceCalendar priceCalendar = new PriceCalendar();
-            priceCalendar.setRoomType(dynamicUpdatePriceDTO.getRoomType());
-            priceCalendar.setDate(date);
-            priceCalendar.setPrice(dynamicUpdatePriceDTO.getPrice());
-            PriceCalendar priceCalendarInDatabase = roomMapper.getPriceCalendarByRoomTypeAndDate
-                    (priceCalendar.getRoomType(), priceCalendar.getDate());
-            if (priceCalendarInDatabase == null) roomMapper.insertPriceCalendar(priceCalendar);
-            else roomMapper.modifyPriceCalendar(priceCalendar);
-        }
+    public void updateRoomPriceService(DynamicUpdatePriceDTO dto) {
+        roomMapper.upsertPriceCalendar(dto.getRoomType(), dto.getPrice(), checkedDates(dto.getStartDate(), dto.getEndDate()));
     }
 
+    /** 每个日期一项，没有设价的日期为 null（与原接口一致）。 */
     @Override
     public List<PriceCalendar> getPriceCalendarService(LocalDate startDate, LocalDate endDate, Integer roomType) {
-        List<LocalDate> dateList = LocalDateUtil.getDatesBetween(startDate, endDate);
-        List<PriceCalendar> priceCalendarList = new ArrayList<>();
-        for (LocalDate date : dateList) {
-            PriceCalendar priceCalendar = roomMapper.getPriceCalendarByRoomTypeAndDate(roomType, date);
-            priceCalendarList.add(priceCalendar);
-        }
-        return priceCalendarList;
+        List<LocalDate> dateList = checkedDates(startDate, endDate);
+        Map<LocalDate, PriceCalendar> byDate = roomMapper.getPriceCalendars(roomType, startDate, endDate).stream()
+                .collect(Collectors.toMap(PriceCalendar::getDate, p -> p));
+        return dateList.stream().map(byDate::get).collect(Collectors.toList());
     }
 }

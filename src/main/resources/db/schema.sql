@@ -108,6 +108,21 @@ CREATE TABLE IF NOT EXISTS room_order
     KEY idx_room_order_created_at (created_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '客房订单';
 
+-- 客房订单按晚明细：每晚一行，night 为该晚的日期（入住日 … 离店日前一天），price 为下单时该晚的房价，
+-- 各晚 price 之和等于 room_order.total_amount。下单时写入；营收、平均房价（ADR）按 night 汇总，
+-- 是否计入看所属订单（已支付、未取消、未删除）。改期重算时整单删除后重写。
+CREATE TABLE IF NOT EXISTS room_order_night
+(
+    id            BIGINT         NOT NULL AUTO_INCREMENT,
+    room_order_id BIGINT         NOT NULL,
+    night         DATE           NOT NULL,
+    price         DECIMAL(10, 2) NOT NULL,
+    created_at    DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_room_order_night (room_order_id, night),
+    KEY idx_room_order_night_night (night)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '客房订单按晚明细';
+
 -- 餐饮主单：order_status 0 新订单 NEW_ORDER / 1 PENDING / 2 已完成 DONE / 3 已取消 CANCELLED
 CREATE TABLE IF NOT EXISTS meal_order
 (
