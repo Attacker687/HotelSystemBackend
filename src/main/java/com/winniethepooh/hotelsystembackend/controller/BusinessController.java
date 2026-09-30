@@ -5,7 +5,6 @@ import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.dto.DynamicUpdatePriceDTO;
 import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
 import com.winniethepooh.hotelsystembackend.entity.Result;
-import com.winniethepooh.hotelsystembackend.exception.ArgumentInvalidException;
 import com.winniethepooh.hotelsystembackend.service.BusinessService;
 import com.winniethepooh.hotelsystembackend.vo.*;
 import jakarta.validation.Valid;
@@ -68,8 +67,6 @@ public class BusinessController {
 
     @PostMapping("/calendar")
     public Result updatePriceCalendarController(@Valid @RequestBody DynamicUpdatePriceDTO dynamicUpdatePriceDTO) {
-        if (dynamicUpdatePriceDTO.getStartDate().isAfter(dynamicUpdatePriceDTO.getEndDate()))
-            throw new ArgumentInvalidException("开始日期不能在结束日期之后");
         businessService.updateRoomPriceService(dynamicUpdatePriceDTO);
         return Result.success();
     }

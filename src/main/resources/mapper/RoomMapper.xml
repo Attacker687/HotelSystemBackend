@@ -8,9 +8,13 @@
         values (#{roomNumber}, #{roomType}, #{status}, #{floor}, #{capacity}, #{description}, 0, now(), now(), #{image})
     </insert>
 
-    <insert id="insertPriceCalendar">
+    <insert id="upsertPriceCalendar">
         insert into price_calendar (room_type, date, price, is_deleted, created_at, updated_at)
-        values (#{roomType}, #{date}, #{price}, 0, now(), now())
+        values
+        <foreach collection="dates" item="date" separator=",">
+            (#{roomType}, #{date}, #{price}, 0, now(), now())
+        </foreach>
+        on duplicate key update price = #{price}, is_deleted = 0, updated_at = now()
     </insert>
 
     <update id="modifyRoomStatus">
@@ -43,14 +47,6 @@
           and is_deleted = 0
     </update>
 
-    <update id="modifyPriceCalendar">
-        update price_calendar
-        set price = #{price}, updated_at = now()
-        where room_type = #{roomType}
-          and date = #{date}
-          and is_deleted = 0
-    </update>
-
 
 
 
@@ -78,14 +74,6 @@
         where is_deleted = 0
     </select>
 
-    <select id="getRoomCount" resultType="java.lang.Integer">
-        select count(*) from room where DATE (created_at) &lt;= #{date} and is_deleted = 0
-    </select>
-
-    <select id="getRoomCountOnAFloor" resultType="java.lang.Integer">
-        select count(*) from room where DATE (created_at) &lt;= #{date} and is_deleted = 0 and floor = #{floor}
-    </select>
-
     <select id="existByRoomNumber" resultType="java.lang.Boolean">
         select count(*) > 0
         from room
@@ -93,11 +81,10 @@
           and is_deleted = 0
     </select>
 
-    <select id="getPriceCalendarByRoomTypeAndDate"
-            resultType="com.winniethepooh.hotelsystembackend.entity.PriceCalendar">
+    <select id="getPriceCalendars" resultType="com.winniethepooh.hotelsystembackend.entity.PriceCalendar">
         select * from price_calendar
         where room_type = #{roomType}
-          and date = #{date}
+          and date between #{startDate} and #{endDate}
           and is_deleted = 0
     </select>
 

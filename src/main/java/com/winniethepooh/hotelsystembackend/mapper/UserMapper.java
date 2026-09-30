@@ -8,6 +8,8 @@ import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Mapper
 public interface UserMapper {
@@ -32,9 +34,9 @@ public interface UserMapper {
 
     QueryUserVO findUserByIdV2(Integer id);
 
-    Integer getCustomerCountSince(LocalDate date);
+    /** date 之前（不含 date 当天）建立的入住人数。 */
+    Integer getCustomerCountBefore(LocalDate date);
 
-    Integer getNewCustomerCount(LocalDate date);
-
-    Integer getTodayCustomerCount(LocalDate date);
+    /** [startDate, endDate] 内建立的入住人的创建时间。 */
+    List<LocalDateTime> getIndividualCreatedTimes(LocalDate startDate, LocalDate endDate);
 }
