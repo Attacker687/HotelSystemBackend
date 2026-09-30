@@ -5,7 +5,6 @@ import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,8 +26,10 @@ class ErrorResponseIT extends IntegrationTestBase {
 
     @Test
     void c1_businessExceptionCarriesItsStatusAndMessage() {
-        Resp r = post("/user/register", null, Map.of("name", "重复", "idCardNumber", Fixtures.idCard(77),
-                "phone", base.userA().login(), "email", "dup@example.test", "password", "Aa1!aaaa"));
+        Map<String, Object> body = Fixtures.registration("N");
+        body.put("phone", base.user("A").login());
+
+        Resp r = post("/user/register", null, body);
 
         assertThat(r.status()).isEqualTo(409);
         assertThat(r.code()).isEqualTo(1);
@@ -39,8 +40,10 @@ class ErrorResponseIT extends IntegrationTestBase {
     void c1_plainRuntimeMessageIsNoLongerSwallowed() {
         String token = login(base.userA());
 
-        Resp r = post("/order/meal-order", token, Map.of("address", "1208 房", "totalAmount", 1,
-                "itemList", List.of(Map.of("dishId", base.dishX(), "quantity", 2, "unitPrice", 38.00))));
+        Map<String, Object> body = Fixtures.mealOrderBody();
+        body.put("totalAmount", 1);
+
+        Resp r = post("/order/meal-order", token, body);
 
         assertThat(r.status()).isEqualTo(400);
         assertThat(r.msg()).isEqualTo("订单金额校验失败");

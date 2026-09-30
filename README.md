@@ -258,16 +258,19 @@ $env:REDIS_PORT='6379'
 CREATE DATABASE HotelSystem DEFAULT CHARACTER SET utf8mb4;
 ```
 
-默认激活的 `dev` profile 启动时会自动执行 `src/main/resources/db/schema.sql`（建表）和 `src/main/resources/db/demo-data.sql`（演示数据），两份脚本都可以重复执行。其他 profile 不会自动执行 SQL，需要手动建表，演示数据按需导入：
+**本地开发**：设置 `SPRING_PROFILES_ACTIVE=dev` 再启动。`dev` profile 启动时会自动执行 `src/main/resources/db/schema.sql`（建表）和 `src/main/resources/db/demo-data.sql`（演示数据），两份脚本都可以重复执行。
+
+```bash
+export SPRING_PROFILES_ACTIVE=dev      # PowerShell：$env:SPRING_PROFILES_ACTIVE='dev'
+mvn spring-boot:run
+```
+
+演示账号（仅 dev 加载，仅用于本地）：经理 `admin` / `Admin@123`，前台 `front` / `Front@123`，餐厅 `kitchen` / `Kitchen@123`，住客手机号 `13900000000` / `User@1234`。
+
+**生产部署**：不设置 `SPRING_PROFILES_ACTIVE`（默认不激活任何 profile）。此时应用不会执行任何 SQL，也不会写入演示数据，需要先手动建表：
 
 ```bash
 mysql -uroot -p HotelSystem < src/main/resources/db/schema.sql
-mysql -uroot -p HotelSystem < src/main/resources/db/demo-data.sql   # 可选
-```
-
-演示账号（仅用于本地）：经理 `admin` / `Admin@123`，前台 `front` / `Front@123`，餐厅 `kitchen` / `Kitchen@123`，住客手机号 `13900000000` / `User@1234`。
-
-```bash
 mvn spring-boot:run
 ```
 
