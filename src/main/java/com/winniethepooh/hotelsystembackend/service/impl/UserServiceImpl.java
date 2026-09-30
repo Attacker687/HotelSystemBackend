@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
+import cn.hutool.core.util.DesensitizedUtil;
 import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.dto.UserLoginDTO;
@@ -70,6 +71,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public QueryUserVO queryUserByIdService(Integer id) {
-        return userMapper.findUserByIdV2(id);
+        QueryUserVO vo = userMapper.findUserByIdV2(id);
+        // 身份证号脱敏：保留前 6 位和后 4 位
+        if (vo != null && vo.getIdCardNumber() != null)
+            vo.setIdCardNumber(DesensitizedUtil.idCardNum(vo.getIdCardNumber(), 6, 4));
+        return vo;
     }
 }

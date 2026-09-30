@@ -2,6 +2,7 @@ package com.winniethepooh.hotelsystembackend.controller;
 
 import com.winniethepooh.hotelsystembackend.annotation.RoleRequired;
 import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
+import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.dto.UserLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
 import com.winniethepooh.hotelsystembackend.dto.UserInfoChangeDTO;
@@ -71,7 +72,8 @@ public class UserController {
     @RoleRequired({RoleConstant.USER})
     @GetMapping("/{id}")
     public Result queryUserByIdController(@PathVariable Integer id) {
-        QueryUserVO queryUserVO = userService.queryUserByIdService(id);
+        // 路径参数只为兼容保留：住客只能查自己的信息
+        QueryUserVO queryUserVO = userService.queryUserByIdService(BaseContext.getCurrentId());
         return Result.success(queryUserVO);
     }
 }
