@@ -2,29 +2,32 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.OrderMapper">
-    <insert id="insertRoomComment">
+    <update id="insertRoomComment">
         update room_order
         set comment      = #{comment},
             comment_star = #{commentStar},
             updated_at   = now()
         where id = #{id}
-    </insert>
+          and user_id = #{userId} and status = 1 and is_deleted = 0
+    </update>
 
-    <insert id="insertMealComment">
+    <update id="insertMealComment">
         update meal_order
         set comment      = #{comment},
             comment_star = #{commentStar},
             updated_at   = now()
         where id = #{id}
-    </insert>
+          and user_id = #{userId} and order_status = 2 and is_deleted = 0
+    </update>
 
-    <insert id="insertRoomOrderV1">
+    <insert id="insertRoomOrderV1" useGeneratedKeys="true" keyProperty="id">
         insert into room_order
         set individual_id = #{individualId},
             room_id       = #{roomId},
             checkin_time  = #{checkinTime},
             checkout_time = #{checkoutTime},
-            pay_status    = 1,
+            total_amount  = #{totalAmount},
+            pay_status    = #{payStatus},
             status        = 0,
             created_at    = now(),
             updated_at    = now()
@@ -36,6 +39,7 @@
             room_id       = #{roomId},
             checkin_time  = #{checkinTime},
             checkout_time = #{checkoutTime},
+            total_amount  = #{totalAmount},
             pay_status    = 0,
             status        = 0,
             created_at    = now(),
@@ -57,19 +61,39 @@
             dish_id       = #{dishId},
             quantity      = #{quantity},
             unit_price    = #{unitPrice},
+            total_price   = #{totalPrice},
             created_at    = now(),
             updated_at    = now()
     </insert>
     <update id="modifyRoomOrder">
         update room_order
-        <set>
-            <if test="modifyRoomOrderDTO.roomId != null">room_id = #{modifyRoomOrderDTO.roomId},</if>
-            <if test="modifyRoomOrderDTO.checkInTime != null">checkin_time = #{modifyRoomOrderDTO.checkInTime},</if>
-            <if test="modifyRoomOrderDTO.checkOutTime != null">checkout_time = #{modifyRoomOrderDTO.checkOutTime},</if>
-            updated_at = now()
-        </set>
-        where id = #{id}
+        set room_id = #{roomId}, checkin_time = #{checkinTime}, checkout_time = #{checkoutTime},
+            total_amount = #{totalAmount}, updated_at = now()
+        where id = #{id} and status = 0 and is_deleted = 0
     </update>
+
+    <insert id="insertRoomOrderNights">
+        insert into room_order_night (room_order_id, night, price) values
+        <foreach collection="nights" index="night" item="price" separator=",">
+            (#{orderId}, #{night}, #{price})
+        </foreach>
+    </insert>
+
+    <delete id="deleteRoomOrderNights">
+        delete from room_order_night where room_order_id = #{orderId}
+    </delete>
+
+    <select id="findOverlappingOrder" resultType="java.lang.Long">
+        select id from room_order
+        where room_id = #{roomId} and status = 0 and is_deleted = 0
+          and checkin_time &lt; #{checkout} and checkout_time &gt; #{checkin}
+        <if test="excludeId != null">and id != #{excludeId}</if>
+        limit 1 for update
+    </select>
+
+    <select id="getRoomOrderByIdForUpdate" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
+        select * from room_order where id = #{id} and is_deleted = 0 for update
+    </select>
 
     <update id="deleteRoomOrder">
         update room_order
@@ -86,12 +110,19 @@
           and is_deleted = 0
     </update>
 
-    <update id="modifyRoomOrderPayStatus">
+    <update id="payRoomOrder">
         update room_order
-        set pay_status = #{status},
+        set pay_status = 1,
             updated_at = now()
-        where id = #{id}
-          and is_deleted = 0
+        where id = #{id} and user_id = #{userId} and status = 0 and pay_status = 0 and is_deleted = 0
+          and created_at >= NOW() - INTERVAL 15 MINUTE
+    </update>
+
+    <update id="cancelRoomOrder">
+        update room_order
+        set status = 2, pay_status = case when pay_status = 1 then 2 else pay_status end, updated_at = now()
+        where id = #{id} and user_id = #{userId} and status = 0 and pay_status in (0, 1) and is_deleted = 0
+          and checkin_time &gt; #{now}
     </update>
 
     <update id="flushExpiredRoomOrders">
@@ -101,14 +132,29 @@
         where is_deleted = 0
           and status = 0
           and pay_status = 0
+          and user_id is not null
           and created_at &lt; DATE_SUB(NOW(), INTERVAL 15 MINUTE)
     </update>
     <update id="modifyMealOrderStatus">
         update meal_order
         set order_status = #{status},
             updated_at   = now()
-        where id = #{id}
-          and is_deleted = 0
+        where id = #{id} and order_status = #{originalStatus} and is_deleted = 0
+    </update>
+
+    <update id="cancelMealOrder">
+        update meal_order set order_status = 3, updated_at = now()
+        where id = #{id} and user_id = #{userId} and order_status = 0 and is_deleted = 0
+    </update>
+
+    <insert id="ensureTaskLock">
+        insert ignore into scheduler_task_lock (task_name) values (#{taskName})
+    </insert>
+
+    <update id="claimTaskLock">
+        update scheduler_task_lock set last_run = now(), owner = #{owner}
+        where task_name = #{taskName}
+          and (last_run is null or last_run &lt; DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:00'))
     </update>
 
     <select id="getMealOrdersByDate" resultType="com.winniethepooh.hotelsystembackend.entity.MealOrder">
@@ -137,10 +183,14 @@
         </where>
     </select>
 
-    <select id="getAllRoomOrderList" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
-        select *
-        from room_order
-        where is_deleted = 0
+    <select id="getAllRoomOrderList" resultType="com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO">
+        select o.id, coalesce(u.name, i.name) as name, coalesce(u.phone, i.phone) as phone,
+               coalesce(u.id_card_number, i.id_card_number) as idCard, r.room_number,
+               o.checkin_time as checkInTime, o.checkout_time as checkOutTime, o.status, o.comment, o.comment_star
+        from room_order o left join user u on u.id = o.user_id
+            left join individual i on i.id = o.individual_id left join room r on r.id = o.room_id
+        where o.is_deleted = 0
+        order by o.id
         limit #{offset}, #{limit}
     </select>
 
@@ -225,8 +275,8 @@
         from room_order
         where is_deleted = 0
           and status = 0
-          and pay_status = 1
-          and checkout_time &lt; #{now}
+          and (pay_status = 1 or user_id is null)
+          and checkout_time &lt;= #{now}
     </select>
 
     <select id="getIndividualByRoomIdAndDate"
@@ -254,8 +304,8 @@
         where room_id = #{roomId}
           and is_deleted = 0
           and checkin_time &lt;= #{now}
-          and checkout_time &gt;= #{now}
-          and pay_status = 1
+          and checkout_time &gt; #{now}
+          and (pay_status = 1 or user_id is null)
           and status = 0
     </select>
 
@@ -264,8 +314,9 @@
         from room_order
         where is_deleted = 0
           and status = 0
-          and pay_status = 1
+          and (pay_status = 1 or user_id is null)
           and #{now} &gt;= checkin_time
+          and #{now} &lt; checkout_time
     </select>
 
     <select id="getRoomOrderByRoomIdAndTime"
@@ -275,8 +326,8 @@
         where room_id = #{id}
           and is_deleted = 0
           and checkin_time &lt;= #{now}
-          and checkout_time &gt;= #{now}
-          and pay_status = 1
+          and checkout_time &gt; #{now}
+          and (pay_status = 1 or user_id is null)
           and status = 0
     </select>
     <select id="getRoomOrderById" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">

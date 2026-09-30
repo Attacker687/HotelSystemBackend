@@ -37,16 +37,18 @@ class ErrorResponseIT extends IntegrationTestBase {
     }
 
     @Test
-    void c1_plainRuntimeMessageIsNoLongerSwallowed() {
+    void tc127_emptyMealOrderReturnsSpecific400AndWritesNothing() {
         String token = login(base.userA());
 
         Map<String, Object> body = Fixtures.mealOrderBody();
-        body.put("totalAmount", 1);
+        // S5 忽略客户端金额；空明细才是实际非法请求。
+        body.put("itemList", java.util.List.of());
 
         Resp r = post("/order/meal-order", token, body);
 
         assertThat(r.status()).isEqualTo(400);
-        assertThat(r.msg()).isEqualTo("订单金额校验失败");
+        assertThat(r.code()).isEqualTo(1);
+        assertThat(r.msg()).isEqualTo("订单明细不能为空");
         assertThat(fx.count("meal_order")).isZero();
         assertThat(fx.count("meal_order_item")).isZero();
     }

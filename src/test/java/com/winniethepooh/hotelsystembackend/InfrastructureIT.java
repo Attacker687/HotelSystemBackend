@@ -135,7 +135,7 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_sqlCounterSeesStatementsRunOnTomcatThreads() {
+    void tc117_sqlCounterSeesRoomQueryRunOnTomcatThreads() {
         String token = login(base.manager());
         sql.reset();
 
@@ -144,7 +144,7 @@ class InfrastructureIT extends IntegrationTestBase {
         assertThat(r.status()).isEqualTo(200);
         assertThat(r.code()).isZero();
         assertThat(r.data().path("total").asInt()).isEqualTo(10);
-        assertThat(sql.statements()).anyMatch(s -> s.startsWith("select * from room"));
+        assertThat(sql.statements()).anyMatch(s -> s.matches("(?i)^select\\b.*\\bfrom room(?:\\s|$).*"));
     }
 
     @Test

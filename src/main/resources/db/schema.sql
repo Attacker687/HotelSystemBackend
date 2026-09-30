@@ -2,7 +2,7 @@
 -- 表和列以 src/main/resources/mapper/*.xml 的 SQL 与 entity 为准；可重复执行（IF NOT EXISTS），不含 CREATE DATABASE / USE。
 -- 用法：先建库 CREATE DATABASE HotelSystem DEFAULT CHARACTER SET utf8mb4; 再 mysql -uroot -p HotelSystem < schema.sql
 -- 状态取值见 constant 包；is_deleted：0 正常、1 已删除（软删除）。
--- INSERT 语句不写、依赖默认值的列：is_deleted（默认 0）、room_order.total_amount（默认 NULL）、meal_order_item.total_price（默认 NULL）。
+-- INSERT 语句不写的 is_deleted 默认 0；订单金额和逐晚价格由服务端写入。
 
 -- 住客账号
 CREATE TABLE IF NOT EXISTS user
@@ -186,3 +186,12 @@ CREATE TABLE IF NOT EXISTS category
     updated_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '菜品分类';
+
+-- 退房任务在事务内抢占这一行；同一分钟只允许一个实例执行，失败回滚后允许重试。
+CREATE TABLE IF NOT EXISTS scheduler_task_lock
+(
+    task_name VARCHAR(64) NOT NULL,
+    last_run DATETIME NULL,
+    owner VARCHAR(36) NULL,
+    PRIMARY KEY (task_name)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '定时任务互斥';

@@ -15,4 +15,5 @@ public class InsertRoomOrderDTO {
     private LocalDateTime checkInTime;
     @NotNull(message = "离店时间不能为空")
     private LocalDateTime checkOutTime;
+    private Boolean paid;
 }

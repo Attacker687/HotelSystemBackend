@@ -2,6 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.RoomMapper">
+    <select id="lockRoomByNumber" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
+        select * from room where room_number = #{roomNumber} and is_deleted = 0 for update
+    </select>
+    <select id="lockRoomById" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
+        select * from room where id = #{id} and is_deleted = 0 for update
+    </select>
+    <update id="enableAvailableRoom">
+        update room set status = 1, updated_at = now() where id = #{id} and status = 0 and is_deleted = 0
+    </update>
+    <update id="releaseOccupiedRoom">
+        update room set status = 2, updated_at = now() where id = #{id} and status = 1 and is_deleted = 0
+    </update>
     <insert id="insertRoom">
         insert into room (room_number, room_type, status, floor, capacity, description, is_deleted,
                           created_at, updated_at, image)
@@ -19,7 +31,7 @@
 
     <update id="modifyRoomStatus">
         update room
-        set status = #{status}
+        set status = #{status}, updated_at = now()
         where id = #{id}
           and is_deleted = 0
     </update>
@@ -96,22 +108,65 @@
           and is_deleted = 0
     </select>
     <select id="queryRooms" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
-        select * from room
+        select r.*
+        <if test="date != null">
+            , coalesce(p.price, case r.room_type when 0 then 199 when 1 then 299 when 2 then 499 end) as price
+        </if>
+        from room r
+        <if test="date != null">
+            left join price_calendar p on p.room_type = r.room_type and p.date = #{date} and p.is_deleted = 0
+        </if>
         <where>
             <if test="roomNumber != null">
-                and room_number = #{roomNumber}
+                and r.room_number = #{roomNumber}
             </if>
             <if test="roomType != null">
-                and room_type = #{roomType}
+                and r.room_type = #{roomType}
             </if>
             <if test="status != null">
-                and status = #{status}
+                and r.status = #{status}
             </if>
-            and is_deleted = 0
+            and r.is_deleted = 0
         </where>
+        order by r.id
         <if test="limit != null and offset != null">
             limit #{limit} offset #{offset}
         </if>
+    </select>
+
+    <resultMap id="roomStatusWall" type="com.winniethepooh.hotelsystembackend.vo.RoomStatusWallVO">
+        <id property="id" column="id"/>
+        <result property="roomNumber" column="room_number"/>
+        <result property="roomType" column="room_type"/>
+        <result property="status" column="status"/>
+        <result property="price" column="price"/>
+        <result property="checkInTime" column="checkin_time"/>
+        <result property="checkOutTime" column="checkout_time"/>
+        <association property="individual" javaType="com.winniethepooh.hotelsystembackend.entity.Individual" columnPrefix="individual_" notNullColumn="id">
+            <id property="id" column="id"/>
+            <result property="name" column="name"/>
+            <result property="phone" column="phone"/>
+            <result property="idCardNumber" column="id_card_number"/>
+        </association>
+    </resultMap>
+    <select id="getRoomStatusWall" resultMap="roomStatusWall">
+        select r.id, r.room_number, r.room_type, r.status,
+               coalesce(p.price, case r.room_type when 0 then 199 when 1 then 299 when 2 then 499 end) as price,
+               c.checkin_time, c.checkout_time, i.id as individual_id, i.name as individual_name,
+               i.phone as individual_phone, i.id_card_number as individual_id_card_number
+        from room r
+            left join price_calendar p on p.room_type = r.room_type and p.date = DATE(#{now}) and p.is_deleted = 0
+            left join (
+                select room_id, min(id) as id from room_order
+                where is_deleted = 0 and checkin_time &lt; DATE(#{now}) + INTERVAL 1 DAY and checkout_time >= DATE(#{now})
+                group by room_id
+            ) today on today.room_id = r.id
+            left join room_order o on o.id = today.id
+            left join room_order c on c.room_id = r.id and r.status = 1 and c.status = 0 and c.is_deleted = 0
+                and (c.pay_status = 1 or c.user_id is null) and c.checkin_time &lt;= #{now} and c.checkout_time &gt; #{now}
+            left join individual i on i.id = o.individual_id
+        where r.is_deleted = 0
+        order by r.id
     </select>
     <select id="queryRoomsCount" resultType="java.lang.Integer">
         select count(*) from room

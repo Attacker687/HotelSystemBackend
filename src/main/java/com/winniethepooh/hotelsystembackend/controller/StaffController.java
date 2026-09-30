@@ -16,6 +16,8 @@ import com.winniethepooh.hotelsystembackend.vo.LoginVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.StaffVO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -86,7 +88,8 @@ public class StaffController {
 
     @RoleRequired({RoleConstant.MANAGER})
     @GetMapping("/list")
-    public Result getStaffListController(@RequestParam Integer page, @RequestParam Integer pageSize,
+    public Result getStaffListController(@RequestParam @Min(value = 1, message = "page 必须大于等于1") Integer page,
+                                         @RequestParam @Min(value = 1, message = "pageSize 必须在1到100之间") @Max(value = 100, message = "pageSize 必须在1到100之间") Integer pageSize,
                                          @RequestParam(required = false) Integer role,
                                          @RequestParam(required = false) String account) {
         PageBean<StaffVO> pageBean = staffService.getStaffListService(page, pageSize, role, account);

@@ -327,7 +327,7 @@ class BusinessStatsIT extends IntegrationTestBase {
     }
 
     @Test
-    void p4_statusWallShowsGuestUntilCheckoutDay() {
+    void tc007_statusWallShowsGuestUntilCheckoutDay() {
         LocalDateTime now = LocalDateTime.now();
         long leaving = guest("P1");
         long future = guest("P2");
