@@ -44,7 +44,7 @@ public class UploadController {
         }
         boolean ok = switch (ext) {
             case "png" -> head.startsWith("\u0089PNG\r\n\u001a\n");
-            case "jpg", "jpeg" -> head.startsWith("ÿØÿ");
+            case "jpg", "jpeg" -> head.startsWith("\u00ff\u00d8\u00ff");
             case "gif" -> head.startsWith("GIF87a") || head.startsWith("GIF89a");
             case "webp" -> head.startsWith("RIFF") && head.startsWith("WEBP", 8);
             default -> false;

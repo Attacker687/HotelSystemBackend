@@ -103,6 +103,24 @@ class UploadImageIT extends IntegrationTestBase {
         assertThat(putObjectCalls()).isZero();
     }
 
+    /** 白名单内其他格式按各自魔数放行；扩展名大小写不敏感。只校验文件头，内容用最短的合法文件头即可。 */
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"a.jpg", "a.jpeg", "a.gif", "a.webp", "A.PNG"})
+    void s10_otherWhitelistedFormatsAccepted(String name) throws Exception {
+        byte[] head = switch (name) {
+            case "a.jpg", "a.jpeg" -> new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
+            case "a.gif" -> "GIF89a\1\0\1\0".getBytes(StandardCharsets.ISO_8859_1);
+            case "a.webp" -> "RIFF\0\0\0\0WEBPVP8 ".getBytes(StandardCharsets.ISO_8859_1);
+            default -> png(0);
+        };
+
+        Resp r = upload(login(base.manager()), name, head, MediaType.APPLICATION_OCTET_STREAM);
+
+        assertThat(r.status()).isEqualTo(200);
+        assertThat(r.data().asText()).endsWith(name.substring(name.lastIndexOf('.')));
+        assertThat(putObjectCalls()).isEqualTo(1);
+    }
+
     private Resp upload(String token, String filename, byte[] content, MediaType type) {
         MultipartBodyBuilder b = new MultipartBodyBuilder();
         b.part("file", new ByteArrayResource(content)).filename(filename).contentType(type);
