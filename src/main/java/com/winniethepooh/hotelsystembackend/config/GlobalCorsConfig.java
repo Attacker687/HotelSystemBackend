@@ -1,31 +1,34 @@
 package com.winniethepooh.hotelsystembackend.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 
-import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 public class GlobalCorsConfig {
     @Bean
-    public FilterRegistrationBean<CorsFilter> corsFilter() {
+    public FilterRegistrationBean<CorsFilter> corsFilter(@Value("${hotel.cors.allowed-origins:}") String[] allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true); // 允许携带 Cookie 或 Token
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
-        // 允许动态来源的前端域名，设置为 * 会被 Spring 拒绝，所以此处不加 Origin 限制
-        config.setAllowedOriginPatterns(List.of("*")); // Spring Boot 2.4+ 支持 setAllowedOriginPatterns 替代 addAllowedOrigin("*")
+        // 只允许按环境配置的前端域名（hotel.cors.allowed-origins / CORS_ALLOWED_ORIGINS，逗号分隔），未配置时不允许跨域
+        config.setAllowedOrigins(Arrays.stream(allowedOrigins).map(String::trim).filter(s -> !s.isEmpty()).toList());
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-        return new FilterRegistrationBean<>(new CorsFilter(source));
+        FilterRegistrationBean<CorsFilter> registration = new FilterRegistrationBean<>(new CorsFilter(source));
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE); // 先于 LoginFilter：跨域预检不带 token
+        return registration;
     }
 }
-
 
