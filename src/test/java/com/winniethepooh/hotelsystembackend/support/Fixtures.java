@@ -11,11 +11,13 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,15 @@ public class Fixtures {
 
     /** 基础数据里所有账号的明文密码，符合注册密码规则。 */
     public static final String PASSWORD = "Test@1234";
+
+    /** S11：测试 JVM 运行时生成的 256 位随机 JWT 密钥（hex），不写入仓库；IntegrationTestBase 注入为 hotel.jwt.secret。 */
+    public static final String JWT_SECRET = HexFormat.of().formatHex(randomBytes(32));
+
+    private static byte[] randomBytes(int n) {
+        byte[] b = new byte[n];
+        new SecureRandom().nextBytes(b);
+        return b;
+    }
 
     /** 账号：login 是住客手机号或员工账号，role 取 RoleConstant。 */
     public record Account(int id, String login, String password, int role) {}

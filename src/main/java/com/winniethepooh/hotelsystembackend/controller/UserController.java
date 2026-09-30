@@ -33,6 +33,8 @@ public class UserController {
     private RedisService redisService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @PostMapping("/register")
     public Result registerController(@Valid @RequestBody RegisterDTO registerDTO) {
@@ -47,7 +49,7 @@ public class UserController {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
         claims.put("role", RoleConstant.USER);
-        String token = JwtUtils.generateJwt(claims);
+        String token = jwtUtils.generateJwt(claims);
 
         redisService.deleteKeysByValue(RoleConstant.convertToStringConstant(RoleConstant.USER) + "_" + user.getId());
         ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();

@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend;
 
+import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,7 @@ class DevProfileDemoDataIT {
         r.add("spring.data.redis.host", IntegrationTestBase.REDIS::getHost);
         r.add("spring.data.redis.port", () -> IntegrationTestBase.REDIS.getMappedPort(6379));
         r.add("hotel.scheduler.enabled", () -> "false");
+        r.add("hotel.jwt.secret", () -> Fixtures.JWT_SECRET);
     }
 
     @Autowired

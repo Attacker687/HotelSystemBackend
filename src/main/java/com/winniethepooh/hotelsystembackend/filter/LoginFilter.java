@@ -22,6 +22,8 @@ import java.io.IOException;
 public class LoginFilter implements Filter {
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
@@ -46,7 +48,7 @@ public class LoginFilter implements Filter {
             String info = ops.get(tokenGotFromRequest);
             if (info == null) throw new RuntimeException();
 
-            claims = JwtUtils.parseJWT(tokenGotFromRequest);
+            claims = jwtUtils.parseJWT(tokenGotFromRequest);
             Integer id = (Integer) claims.get("id");
             Integer role = (Integer) claims.get("role");
             if (id != null) BaseContext.setCurrentId(id);

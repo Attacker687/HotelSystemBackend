@@ -18,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 
@@ -53,6 +55,12 @@ public abstract class IntegrationTestBase {
     static {
         MYSQL.start();
         REDIS.start();
+    }
+
+    /** S11：JWT 密钥由测试进程运行时生成（Fixtures.JWT_SECRET），不写进任何配置文件。 */
+    @DynamicPropertySource
+    static void jwtSecret(DynamicPropertyRegistry registry) {
+        registry.add("hotel.jwt.secret", () -> Fixtures.JWT_SECRET);
     }
 
     private static final ObjectMapper JSON = new ObjectMapper();

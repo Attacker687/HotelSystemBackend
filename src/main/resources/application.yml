@@ -30,6 +30,9 @@ springdoc:
 hotel:
   scheduler:
     enabled: ${HOTEL_SCHEDULER_ENABLED:true}
+  jwt:
+    # 必填：至少 256 位的随机密钥，缺失时应用拒绝启动
+    secret: ${JWT_SECRET:}
 
 aliyun:
   endpoint: ${ALIYUN_OSS_ENDPOINT:https://oss-cn-chengdu.aliyuncs.com}

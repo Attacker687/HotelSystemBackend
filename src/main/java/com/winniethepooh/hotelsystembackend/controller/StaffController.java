@@ -33,6 +33,8 @@ public class StaffController {
     private RedisService redisService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @PostMapping("/login")
     public Result staffLoginController(@RequestBody StaffLoginDTO staffLoginDTO) {
@@ -40,7 +42,7 @@ public class StaffController {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", staff.getId());
         claims.put("role", staff.getRole());
-        String token = JwtUtils.generateJwt(claims);
+        String token = jwtUtils.generateJwt(claims);
 
         redisService.deleteKeysByValue(RoleConstant.convertToStringConstant
                 (staff.getRole()) + staff.getId());
