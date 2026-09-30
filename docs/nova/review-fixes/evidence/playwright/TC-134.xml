@@ -1,0 +1,11 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="3.969865">
+<testsuite name="hotel.spec.js" timestamp="2026-09-30T15:32:25.553Z" hostname="" tests="1" failures="0" skipped="0" time="3.156" errors="0">
+<testcase name="TC-134 两张餐饮单取消一张，另一张推进、评价并计入 Top10" classname="hotel.spec.js" time="3.156">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|artifacts\TC-134\hotel-TC-134-两张餐饮单取消一张，另一张推进、评价并计入-Top10\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

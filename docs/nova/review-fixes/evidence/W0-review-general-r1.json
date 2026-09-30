@@ -1,0 +1,86 @@
+{
+  "lens": "general",
+  "round": 1,
+  "target": "C:\\t\\hsb\\.nova\\worktrees\\W0（290ee01..nova/review-fixes-W0，d15f28a / baa08f9 / 8b895da）",
+  "verdict": "changes_requested",
+  "summary": "TC-124～TC-131 的测试与实现逐条对得上，没有放宽断言。schema.sql 的列名、类型与 5 个 mapper XML 和实体一致，没有发现会让现有 SQL 或后续修复（B5 写 total_amount、P3 按 (room_type,date) 批量写入、S8 BCrypt 60 位）失败的约束。C3 的单字段提示文案与原实现逐字一致（已核对 hutool 5.8.24 字节码：PhoneUtil.isMobile 用 PatternPool.MOBILE，Validator.isEmail 用 PatternPool.EMAIL 且带 CASE_INSENSITIVE）。有两处必须改：一是演示数据挂在 dev profile 上，而 dev 仍是默认 profile，与 conventions §2「默认=生产」冲突；二是测试基建的基础数据没有照 strategy.data 写，W1/W4/W5 正在这套基础数据上开发。另有一处参数错误仍返回 500。",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "high",
+      "axis": "consistent",
+      "kind": "fix",
+      "where": "src/main/resources/application.yml:5 / src/main/resources/application-dev.yml:4-9 / src/main/resources/db/demo-data.sql:5-8",
+      "problem": "默认 profile 仍是 dev，而本批把自动建表和加载演示数据挂在 dev 上。结果是任何不设 SPRING_PROFILES_ACTIVE 的启动（按 conventions 就是生产）都会自动写入演示数据，其中包括密码已公开的演示经理 admin。",
+      "evidence": "application.yml:5 为 `active: ${SPRING_PROFILES_ACTIVE:dev}`；application-dev.yml:4-9 配了 `spring.sql.init.mode: always`，并执行 schema.sql 和 demo-data.sql；demo-data.sql:5-6 插入 (1,'admin',md5('Admin@123'),role=1)，README.md:268 公布了这个密码。conventions.md §2（第 16-17 行）的 profile 表写的是「（默认）| 生产」「dev | 本地开发 | 加载演示数据」；test-plan.md 环境第 3 条（第 22 行）写明 dev 只在 TC-060、TC-136 中显式激活。GAP-23（test-plan.md:443，Swagger 只在开发 profile 开放）和 S11（生产必须提供 JWT_SECRET）也都以「默认≠dev」为前提。反例：只设 DB_URL 就 `java -jar` 连空的生产库，启动后 staff 表出现 admin，任何人都能用 README 上的密码以经理身份登录；连接已有旧库时，如果列与 schema.sql 不同，演示 INSERT 会报 Unknown column，应用直接起不来（implement-r1.md 遗留 8 已自述）。HotelSystemBackendApplicationTests 不得不加 @ActiveProfiles(\"test\")，也是这个默认值带来的副作用。",
+      "suggestion": "把 application.yml:5 改为 `${SPRING_PROFILES_ACTIVE:}`，默认不激活 dev，与 conventions §2 一致；README.md:261 的快速开始改为「本地开发请设 SPRING_PROFILES_ACTIVE=dev」。如果主会话决定保留 dev 为默认，就要改 conventions §2，并把演示数据改成显式开关（如 HOTEL_DEMO_DATA=true），这属于待决策。",
+      "verify": "不设 SPRING_PROFILES_ACTIVE、连空库启动（可以仿照 DevProfileDemoDataIT 去掉 @ActiveProfiles(\"dev\")）：Environment.getActiveProfiles() 为空，staff 表 0 行。显式激活 dev 的 DevProfileDemoDataIT 仍然通过。"
+    },
+    {
+      "id": "F2",
+      "severity": "high",
+      "axis": "consistent",
+      "kind": "fix",
+      "where": "src/test/java/com/winniethepooh/hotelsystembackend/support/Fixtures.java:70-88",
+      "problem": "每条 TC 的前置条件都是「恢复为 strategy.data 的基础数据」，但 seedBase 写入的账号、房间、菜品与 strategy.data 不一致：值不同，id 不同，还缺了多项数据。代码注释和自检测试却都声称两者一致。",
+      "evidence": "strategy.data 的规定（test-plan.md「数据」节第 29-55 行）如下。住客 A 为 phone=17000000001、测试住客甲（第 31 行）；另有住客 C（旧 MD5）和 L1～L6（第 33-34 行）。员工为 it_manager、it_front、it_restaurant、it_to_delete、it_to_disable、it_legacy_md5（第 36-41 行）。房间共 10 间：D1 id=1 room_number=1001；R1 id=101 room_number=1101 单人间……；R6 占用、R7 清洁中、R8 维修中（第 43-54 行）。分类 id=1，菜品 X/Y/Z 的 id 为 1/2/3、价格 38/28/18（第 55 行）。Fixtures.java:71-86 的实际写入是：13800000001；manager/front/restaurant 三个员工；101～503 共 15 间房，全部空闲，capacity=type+1；菜品 id 自增，价格 38/20/25。Fixtures.java:24、:37 的注释写的是「构造 strategy.data 里的数据」，InfrastructureIT.java:34-43 名为 infra_baseDataMatchesStrategy，断言的却是 15 间房、3 个员工。另外 reset 用 DELETE（Fixtures.java:62），不会重置 AUTO_INCREMENT。反例：TC-127、TC-028 的请求体写的是 dishId: 1，但从第二个测试起菜品 X 的 id 就不再是 1。TC-107 按 R1、R2（单人）、R4（双人）、S1（套房）给出期望「单人间 398.00」，后续批次如果按 Fixtures 房号类推把 R2 对到 \"102\"（在 Fixtures 里是双人间），期望值会算错。TC-108 要用的 D1 id=1、TC-116 的 it_to_disable、TC-050 的 L1～L6 都不在基础数据里。worktrees.json 显示 W1/W4/W5 已在 W0 合入后的基线上开工。",
+      "suggestion": "按 test-plan.md 第 29-55 行改写 seedBase：账号、房间（含 D1 和 R6～R8 的状态）、分类和菜品都使用计划里的显式 id 与取值，密码仍然经 Fixtures.hash 写入。Base 的记录按计划命名（r1…r8、d1、s1、dishX/dishY/dishZ）。自增表在 reset 时改用 TRUNCATE，或者 seed 时写显式 id。如果主会话决定保留现有数据，就要同步修改 testplan.json 的 strategy.data 并通知在建批次（待决策）。",
+      "verify": "把 infra_baseDataMatchesStrategy 改为逐项断言 strategy.data：user 9 行、staff 6 行、room 10 行，并核对各行的 id、room_number、status，dish 的 id 为 1/2/3。连续运行两个测试后，菜品 X 的 id 仍为 1。"
+    },
+    {
+      "id": "F3",
+      "severity": "medium",
+      "axis": "correct",
+      "kind": "fix",
+      "where": "src/main/java/com/winniethepooh/hotelsystembackend/utils/LocalDateUtil.java:12-13 / src/main/java/com/winniethepooh/hotelsystembackend/exception/GlobalExceptionHandler.java:38-41",
+      "problem": "「开始日期晚于结束日期」属于参数错误，但共享工具抛的是 IllegalArgumentException。改造后它落进兜底处理器，返回 HTTP 500，不符合 C1「参数错误返回 400」。",
+      "evidence": "LocalDateUtil.java:13 在 start>end 时抛 IllegalArgumentException。调用方有两类：BusinessServiceImpl.java:88、124、153、198（revenue/trend、occupancy/heatmap、detail、GET calendar，参数直接来自 BusinessController.java:34-35 等处的 @RequestParam），以及 OrderServiceImpl.java:138（住客下单，离店与入住同一天就会触发）。这个异常既不是 BusinessException，也不是 Spring MVC 异常，最终走 handleUnexpected：返回 HTTP 500「操作失败，请联系管理员」，并以 ERROR 级别打印堆栈。反例：经理调 GET /business/revenue/trend?startDate=2026-10-10&endDate=2026-10-01，得到 500。",
+      "suggestion": "在共享函数里改一处即可：LocalDateUtil.java:13 改为抛 ArgumentInvalidException(\"开始日期不能在结束日期之后\")，文案与 BusinessController.java:72 相同，6 个调用方一起变成 400。住客下单同日离店的专门提示（关键字「离店」）留给对应的 B 类批次。",
+      "verify": "新增一条 IT：经理调 GET /business/revenue/trend，开始日期晚于结束日期，期望 HTTP 400、msg 为「开始日期不能在结束日期之后」。"
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "axis": "robust",
+      "kind": "fix",
+      "where": "src/main/java/com/winniethepooh/hotelsystembackend/dto/InsertMealOrderDTO.java / src/main/java/com/winniethepooh/hotelsystembackend/dto/DynamicUpdatePriceDTO.java / src/main/resources/db/schema.sql:27",
+      "problem": "本批已给这几个 DTO 加了注解，但 Service 会直接解引用的字段、以及 schema 新定的 NOT NULL 和长度上限，都没有对应的约束。这些参数错误仍然以 500 返回。",
+      "evidence": "OrderServiceImpl.java:184 执行 `item.getUnitPrice().multiply(...)`，:188 执行 `total.compareTo(insertMealOrderDTO.getTotalAmount())`，unitPrice 或 totalAmount 为 null 时抛 NPE。DynamicUpdatePriceDTO.roomType 为 null 时，insertPriceCalendar 违反 schema.sql:75 的 `room_type INT NOT NULL`。individual.name 为 VARCHAR(32)（schema.sql:27），但 InsertRoomOrderDTO.name 没有长度约束，超长时 MySQL 8 严格模式报 Data too long。以上情况都经 GlobalExceptionHandler.java:38-41 变成 500。",
+      "suggestion": "给 InsertMealOrderDTO.totalAmount、DynamicUpdatePriceDTO.roomType 加 @NotNull；MealOrderItem.unitPrice 也加 @NotNull，S5 改为服务端取价后可以删掉。InsertRoomOrderDTO.name 加 @Size(max=32)，或者放宽列宽。",
+      "verify": "分别发送 totalAmount=null 的餐饮下单、roomType=null 的价格日历、33 字入住人姓名的下单，都应返回 HTTP 400，库表无变化。"
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "axis": "consistent",
+      "kind": "fix",
+      "where": "src/main/java/com/winniethepooh/hotelsystembackend/exception/GlobalExceptionHandler.java:51-53 / src/main/java/com/winniethepooh/hotelsystembackend/dto/RegisterDTO.java:14-27",
+      "problem": "多个字段同时非法时，返回哪条提示不再固定，不再沿用原来「姓名→身份证→手机号→邮箱→密码」只报第一条的顺序。改密码时，提示的先后也从「先报原密码错」变成了「先报新密码格式」。",
+      "evidence": "原实现按固定顺序逐项校验（290ee01 版 UserServiceImpl.java:33-43、74-80，即问题清单 C3 列出的位置）。现在 Hibernate Validator 把违规放进无序集合，messageOf 取 errors.get(0)，取到哪条由哈希决定。反例：注册时 name 为 17 个空格，同时违反 @NotBlank 和 @Size，返回的文案不固定。原密码错误、同时新密码只有 7 位时，原来返回「原密码错误，操作失败」，现在返回「密码不得少于8位」。本批用例每次只改一个字段，所以测不出来（implement-r1.md 遗留 3 已自述）。",
+      "suggestion": "messageOf 按 DTO 字段的声明顺序挑第一条 FieldError，可以用反射拿字段顺序后排序，也可以用 @GroupSequence；改密码的顺序变化在 conventions 里记一笔即可。",
+      "verify": "注册时 name 超长且 phone 非法，重复请求 20 次，msg 始终为「用户姓名不能超过16个字」。"
+    },
+    {
+      "id": "F6",
+      "severity": "low",
+      "axis": "decision",
+      "kind": "decide",
+      "where": "src/main/java/com/winniethepooh/hotelsystembackend/controller/BusinessController.java:70 / src/main/java/com/winniethepooh/hotelsystembackend/aspect/RoleCheckAspect.java:31",
+      "problem": "@Valid 在参数解析阶段执行，早于 RoleCheckAspect。无权角色只要发送非法请求体，拿到的就是 400 和校验提示，而不是 403。",
+      "evidence": "RoleCheckAspect 包在控制器 bean 方法外面，而参数解析（含 @Valid）在调用这个方法之前完成。反例：W1 让类注解生效后，住客带 `{}` 调 POST /business/calendar，会得到 400「开始日期不能为空」。C1 要求权限不足返回 403。implement-r1.md 遗留 2 已自述，目前 TC-011 用的是合法请求体，所以不受影响。",
+      "suggestion": "有两种做法，需要主会话拍板：一是 W1 修 S1 时把角色检查挪到 HandlerInterceptor.preHandle（在参数解析之前执行）；二是在 conventions 里写明「请求体非法时优先返回 400」，让后续用例一致。",
+      "verify": "如果选挪到拦截器：住客带 `{}` 调 POST /business/calendar，返回 403「无权限访问该资源」。"
+    },
+    {
+      "id": "F7",
+      "severity": "low",
+      "axis": "maintainable",
+      "kind": "fix",
+      "where": "pom.xml:33 / pom.xml:185-186 / README.md:279-280 / src/test/java/com/winniethepooh/hotelsystembackend/support/IntegrationTestBase.java:51",
+      "problem": "Docker API 版本写死为 1.44，只在 pom 注释里说明了覆盖方法，README 没写。测试用的 Redis 版本也与测试方案不一致。",
+      "evidence": "pom.xml:33 固定 docker.api.version=1.44。Docker Engine 25 以下最高只支持 API 1.43，mvn verify 会被拒绝，而 README.md:279-280 的「运行测试」只写了 `mvn verify`。IntegrationTestBase.java:51 用的是 redis:7-alpine，测试方案各 TC 的前置条件写的是「MySQL 8 与 Redis 6」（testplan.json TC-124 等）。",
+      "suggestion": "README「运行测试」补一行：旧版 Docker 用 `mvn verify -Ddocker.api.version=1.43`。Redis 镜像改为 redis:6-alpine，或者在 conventions 里记录选 7 的理由。",
+      "verify": "照 README 在 Docker 24 上执行带覆盖参数的 mvn verify，能够通过。"
+    }
+  ]
+}

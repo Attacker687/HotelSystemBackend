@@ -12,6 +12,9 @@ import com.winniethepooh.hotelsystembackend.service.OrderService;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,22 +40,22 @@ public class OrderController {
 
     @RoleRequired({RoleConstant.USER})
     @PostMapping("/user/comment")
-    public Result commentOrderController(@RequestBody CommentOrderDTO commentOrderDTO) {
+    public Result commentOrderController(@Valid @RequestBody CommentOrderDTO commentOrderDTO) {
         orderService.commentOrderService(commentOrderDTO);
         return Result.success();
     }
 
     @RoleRequired({RoleConstant.MANAGER, RoleConstant.FRONT})
     @GetMapping("/query")
-    public Result getAllRoomOrderController(@RequestParam(required = false, defaultValue = "1") Integer page,
-                                            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+    public Result getAllRoomOrderController(@RequestParam(required = false, defaultValue = "1") @Min(value = 1, message = "page 必须大于等于1") Integer page,
+                                            @RequestParam(required = false, defaultValue = "10") @Min(value = 1, message = "limit 必须在1到100之间") @Max(value = 100, message = "limit 必须在1到100之间") Integer limit) {
         PageBean<GetAllRoomOrderVO> pageBean = orderService.getAllRoomOrderService(page, limit);
         return Result.success(pageBean);
     }
 
     @PostMapping
     @RoleRequired({RoleConstant.FRONT, RoleConstant.USER})
-    public Result insertRoomOrderController(@RequestBody InsertRoomOrderDTO insertRoomOrderDTO) {
+    public Result insertRoomOrderController(@Valid @RequestBody InsertRoomOrderDTO insertRoomOrderDTO) {
         if (BaseContext.getCurrentRole() == RoleConstant.USER) {
             Long id = orderService.insertRoomOrderByUserService(insertRoomOrderDTO);
             return Result.success(id);
@@ -76,14 +79,14 @@ public class OrderController {
     }
 
     @RoleRequired({RoleConstant.USER})
-    @GetMapping("/pay")
+    @PostMapping("/pay")
     public Result payRoomOrderController(@RequestParam Long id) {
         orderService.payRoomOrderService(id);
         return Result.success();
     }
 
     @RoleRequired({RoleConstant.USER})
-    @GetMapping("/cancel")
+    @PostMapping("/cancel")
     public Result cancelRoomOrderController(@RequestParam Long id) {
         orderService.cancelRoomOrderService(id);
         return Result.success();
@@ -91,8 +94,15 @@ public class OrderController {
 
     @RoleRequired({RoleConstant.USER})
     @PostMapping("/meal-order")
-    public Result insertMealOrderController(@RequestBody InsertMealOrderDTO insertMealOrderDTO) {
+    public Result insertMealOrderController(@Valid @RequestBody InsertMealOrderDTO insertMealOrderDTO) {
         orderService.insertMealOrderService(insertMealOrderDTO);
+        return Result.success();
+    }
+
+    @RoleRequired({RoleConstant.USER})
+    @PutMapping("/meal-order/{id}/cancel")
+    public Result cancelMealOrderController(@PathVariable Integer id) {
+        orderService.cancelMealOrderService(id);
         return Result.success();
     }
 

@@ -2,99 +2,56 @@ package com.winniethepooh.hotelsystembackend.exception;
 
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.nio.file.AccessDeniedException;
+import java.util.List;
 
+/**
+ * 统一错误响应：HTTP 状态表达错误类别，响应体仍是 Result（code=1，msg 为具体原因）。
+ * <ul>
+ *   <li>业务异常（BusinessException 及子类）：按异常自带的状态返回；</li>
+ *   <li>Spring MVC 自身的异常（参数校验失败、请求体无法解析、方法不支持等）：沿用 Spring 的状态码，
+ *       参数校验取第一条约束注解上的提示；</li>
+ *   <li>其他未预期的异常：500，提示「操作失败，请联系管理员」，细节只进日志。</li>
+ * </ul>
+ */
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Result> handleBusiness(BusinessException e) {
+        return ResponseEntity.status(e.getStatus()).body(Result.error(e.getMessage()));
+    }
 
     @ExceptionHandler(Exception.class)
-    public Result otherHandler(Exception e) {
-        e.printStackTrace();
-        return Result.error("操作失败，请联系管理员");
+    public ResponseEntity<Result> handleUnexpected(Exception e) {
+        log.error("未处理的异常", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Result.error("操作失败，请联系管理员"));
     }
 
-    @ExceptionHandler(UserNameInvalidException.class)
-    public Result UserNameInvalidHandler(UserNameInvalidException exception) {
-        return Result.error(exception.getMessage());
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,
+                                                             HttpStatusCode status, WebRequest request) {
+        return ResponseEntity.status(status).headers(headers).body(Result.error(messageOf(ex, body)));
     }
 
-    @ExceptionHandler(UserIDCardInvalidException.class)
-    public Result UserIDCardInvalidHandler(UserIDCardInvalidException exception) {
-        return Result.error(exception.getMessage());
+    private static String messageOf(Exception ex, Object body) {
+        List<? extends MessageSourceResolvable> errors = ex instanceof BindException b ? b.getAllErrors()
+                : ex instanceof HandlerMethodValidationException v ? v.getAllErrors() : List.of();
+        if (!errors.isEmpty()) return errors.get(0).getDefaultMessage();
+        if (body instanceof ProblemDetail pd && pd.getDetail() != null) return pd.getDetail();
+        return ex.getMessage();
     }
-
-    @ExceptionHandler(UserPhoneInvalidException.class)
-    public Result UserPhoneInvalidHandler(UserPhoneInvalidException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(UserEmailInvalidException.class)
-    public Result UserEmailInvalidHandler(UserEmailInvalidException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(UserPasswordInvalidException.class)
-    public Result UserPasswordInvalidHandler(UserPasswordInvalidException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(DuplicatedException.class)
-    public Result UserDuplicatedHandler(DuplicatedException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(UserNotFoundException.class)
-    public Result UserNotFoundHandler(UserNotFoundException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(PasswordIncorrectException.class)
-    public Result PasswordIncorrectHandler(PasswordIncorrectException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(UnknownException.class)
-    public Result UnknownSituationHandler(UnknownException exception) {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(UnknownOrderTypeException.class)
-    public Result UnknownOrderTypeExceptionHandler(UnknownOrderTypeException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(RoomNumberDuplicatedException.class)
-    public Result RoomNumberDuplicatedExceptionHandler(RoomNumberDuplicatedException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(UnknownRoomTypeException.class)
-    public Result UnknownRoomTypeExceptionHandler(UnknownRoomTypeException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(MismatchException.class)
-    public Result MismatchExceptionHandler(MismatchException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(CategoryNameDuplicatedException.class)
-    public Result CategoryNameDuplicatedExceptionHandler(CategoryNameDuplicatedException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public Result AccessDeniedExceptionHandler(AccessDeniedException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
-    @ExceptionHandler(ArgumentInvalidException.class)
-    public Result ArgumentInvalidExceptionHandler(ArgumentInvalidException exception)  {
-        return Result.error(exception.getMessage());
-    }
-
 }

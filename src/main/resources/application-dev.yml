@@ -1,0 +1,19 @@
+# 显式激活 dev：启动时执行建表脚本并加载演示数据。
+# 两份脚本都可重复执行（CREATE TABLE IF NOT EXISTS、INSERT IGNORE + 固定主键），重启不会产生重复数据。
+# 其他 profile 不自动执行任何 SQL，生产库请手动执行 db/schema.sql（见 README「快速开始」）。
+spring:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/demo-data.sql
+
+# /swagger-ui.html 由静态页直接返回 200；Springdoc 重定向入口使用独立路径，保留原资源目录。
+springdoc:
+  swagger-ui:
+    path: /swagger-ui-entry.html
+
+# 只在开发 profile 打印 SQL（MyBatis 走 SLF4J，DEBUG 级别含参数）；其他 profile 不输出，避免身份证号、密码哈希进日志。
+logging:
+  level:
+    com.winniethepooh.hotelsystembackend.mapper: debug

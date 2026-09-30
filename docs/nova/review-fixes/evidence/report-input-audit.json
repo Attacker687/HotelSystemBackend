@@ -1,0 +1,70 @@
+{
+  "audited_at": "2026-10-01T00:26:00+08:00",
+  "tested_source_commit": "79e476ead522a034b507c29d939310566063631b",
+  "documentation_commit": "dd67580b372cda690c163d61b320d0f858b2f690",
+  "planned": 137,
+  "executed_case_ids": 137,
+  "groups": {
+    "surefire-reports": {
+      "tests": 27,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failsafe-reports": {
+      "tests": 252,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failsafe-e2e-reports": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "playwright_native_reports": 6,
+  "testplan_sha256": "9feeecec42bf82af6becc90cb2781550336da42154d61a4985bf8b516efb440a",
+  "results_sha256": "de632d23da696d8edcdbd6e55f9cb6dacc57306d13cc00c1e5c50eee883ee7c6",
+  "raw_xml_sha256": {
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.xml": "2829c6da331919679a7abcfa583432b64da562786c109210dc40ce2318c8c3cc",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.config.SchedulingConfigTest.xml": "9adb6c0a004f25a5d90b57c641e0113c9e892e5b28ed38a45e1fdcf1bf156d75",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.exception.GlobalExceptionHandlerTest.xml": "39bca60d5155b4b6baddd2af49a105ecc1ca4d2f94427ec44e95967b89a0ba36",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.xml": "614fd77fc6c34d579972a442146550d82b03e02aa1ebca0e9bd810120eb6b8e6",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.HotelSystemBackendApplicationTests.xml": "7c8c0f8a11dff5ab6e9c8158e1471dea9bbc7e71b2fcfbf40914f07f46b29a74",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.MapperWhereDateTest.xml": "d0513f59d898dd59e9ac0a65b83d9e7bf9680b011016622bb71d990f0717367c",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.NoManualRedisConnectionTest.xml": "f4a8259f66364d28d4492dc06c997e90b7bf1e660e3d5aa5af1ddad709321be8",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.xml": "2cc7b3b942081eeb31f82e6752b15bc2062d7848137474810ef743970ac85770",
+    "surefire-reports/TEST-com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.xml": "8bcb58e73b42e4313bca4d74c2b52a14c4b2fdf65245ee4d9f9dca4e8c6e71fa",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml": "cb3c1f4fc2c83094aa59a508f8bdec4711ed6cdd4f632e1a13f16551a5be86f1",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.AnonymousStaffRegisterIT.xml": "0bfab09f0aadc08946dba237eda088055da20c430f064700b06ee5db7500db1b",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml": "e21ca4c5c2d1e4b834d7d7cf1e1e6b2aa8e8c1896821f25245c09dd7e2f6a587",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.CorsIT.xml": "0fd3fb85620b0fdcbd3c2944119d8497293700d5e4b3b63b69e568ed34967a8b",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.DefaultProfileIT.xml": "553621d025169782e4404769df7b0a93a8bd1b9dd5e608cf2d79fb40467e7749",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.DevProfileDemoDataIT.xml": "de3e0fd62b51fc44fbb491ecb50a84a99ff88e323a2e34d18f187453b701fb02",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.DevSqlLogIT.xml": "db7d9e49f0018d94827ec9d8864179ca4f85d173fb7566d2e694cfa3681742f6",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.ErrorResponseIT.xml": "fefe00e0c573a78c676766056ce3b8391974e8eedb893ffa90668771bc404ca8",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.InfrastructureIT.xml": "a07c020e1d7e946d6024ed250b4831adea73944665041e419a2e280fec77a34d",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.JwtSecretRequiredIT.xml": "fbcf50fe9eb5699d6ebad2ead0ffaa40a9e08340c8a92c330013cb2f5edff9c1",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.LoginFailureIT.xml": "80a62d1859c7b6d25602e919451f6c22ec909fd9c1a81e0700ca8ff3edfdacf8",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.LoginRateLimitIT.xml": "a06e92a45899251024792e33f16beeb4224f5bd9f0410aac713ea639d46f66e6",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml": "efa9f909acaa98d2e9aacf53c8a92b12a88626d6c00d5972c8d55a4716f6a1f7",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml": "0b3fdee9b4cc994c5bdf3510a06723902cf6aa6ddf9e98ffd4bc85b2d71dc133",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.PriceCalendarIT.xml": "9f86f0f21a199cde4bb532e8abfa104f1fe30da9b273e498e4c21c75bca9deff",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml": "5324a734c3a62d416a4b60e8c9b0afeabbafac49598aa5ccf8a3864cf18b17d5",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.SchemaSqlIT.xml": "4e978e9e652df263b934b0f58294f067f782dac03ee3f98207e85b14cb9fe585",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.SqlLogIT.xml": "61af878357ae1f00aa1df60dd3d99cb25de5404cb0ba03e8c81e3ed32a3e8fd7",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml": "7c1d4be9c124b9b7771949080aa249eb714313d73aa7c899d203c9ba982782ee",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml": "8f9b0000774bc60b0a455c4fdd5e99db6a6b030782b293d12016a61bb318b683",
+    "failsafe-reports/TEST-com.winniethepooh.hotelsystembackend.UserInfoIT.xml": "81c9952c0ed4c981286da4b97a6c54637528713f61930c10de60297277712138",
+    "failsafe-e2e-reports/TEST-com.winniethepooh.hotelsystembackend.BrowserE2EIT.xml": "2aabc914f02830162e23d10b1eaa60025fa12befa779164a41d4edb446d8c4a5",
+    "e2e/TC-132.xml": "102b69b045e17fd9fa06bd92877d3133f1a1c3544c4bd8734642d3a740a9b05d",
+    "e2e/TC-133.xml": "b5595ee124d1aca387825eb6695be88bcbc556c2b58d8e64061a286fb9c4edac",
+    "e2e/TC-134.xml": "41876391ec71024a2097e32cee1dfffcaffdee1d56ca14c9f8e5317a0ae2ce99",
+    "e2e/TC-135.xml": "47396b4d65db916be8fef9cfdfebf9626f96057fc5c70393bb5b4e50009c081e",
+    "e2e/TC-136.xml": "5f9ed8d051972d9b54e5de70f16cb8d537eac6ea26a4951f2dce561ed8b6d754",
+    "e2e/TC-137.xml": "6ba0931ed01051496338d63f98a0716bd4c7029ac83c0f2af7bee3630aa2a413"
+  },
+  "note": "核对已有末轮 XML，不是本次重新执行测试；raw JUnit、日志和 trace 保留在主工作区。"
+}

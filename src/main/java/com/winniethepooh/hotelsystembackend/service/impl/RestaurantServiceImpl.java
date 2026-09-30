@@ -5,6 +5,8 @@ import com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
 import com.winniethepooh.hotelsystembackend.entity.MealOrderItem;
 import com.winniethepooh.hotelsystembackend.exception.MismatchException;
+import com.winniethepooh.hotelsystembackend.exception.BusinessException;
+import org.springframework.http.HttpStatus;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.service.RestaurantService;
 import com.winniethepooh.hotelsystembackend.vo.LiveMealOrderVO;
@@ -25,7 +27,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             throw new MismatchException("不能修改已完成或已取消的订单");
         }
 
-        if (newStatus != originalStatus + 1) {
+        if (newStatus == null || (newStatus != originalStatus + 1 && !(originalStatus == MealOrderStatusConstant.NEW_ORDER && newStatus == MealOrderStatusConstant.CANCELLED))) {
             throw new MismatchException("订单状态修改不合法，只能按顺序推进");
         }
     }
@@ -51,7 +53,9 @@ public class RestaurantServiceImpl implements RestaurantService {
     @Override
     public void modifyMealOrderStatusService(Integer id, Integer status) {
         MealOrder mealOrder = orderMapper.getMealOrderByOrderId(id);
+        if (mealOrder == null) throw new BusinessException(HttpStatus.NOT_FOUND, "餐饮订单不存在");
         modifyStatusCheck(mealOrder.getOrderStatus(), status);
-        orderMapper.modifyMealOrderStatus(id, status);
+        if (orderMapper.modifyMealOrderStatus(id, status, mealOrder.getOrderStatus()) == 0)
+            throw new MismatchException("餐饮订单状态已变更");
     }
 }

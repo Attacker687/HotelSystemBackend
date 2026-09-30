@@ -1,283 +1,297 @@
 # HotelSystemBackend
 
-<div align="center">
-  <p><strong>面向酒店预订、前台履约、餐饮服务与经营分析的一体化后端</strong></p>
-  <p>
-    <img alt="Java 17" src="https://img.shields.io/badge/Java-17-E76F00?logo=openjdk&logoColor=white">
-    <img alt="Spring Boot 3.3.4" src="https://img.shields.io/badge/Spring%20Boot-3.3.4-6DB33F?logo=springboot&logoColor=white">
-    <img alt="MyBatis 3" src="https://img.shields.io/badge/MyBatis-3-C00000">
-    <img alt="MySQL" src="https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white">
-    <img alt="Redis" src="https://img.shields.io/badge/Redis-Session-DC382D?logo=redis&logoColor=white">
-    <img alt="V2 Design Ready" src="https://img.shields.io/badge/V2%20Design-Concurrency%20%26%20Idempotency-6F42C1">
-  </p>
-  <p>
-    <a href="#项目定位">项目定位</a> ·
-    <a href="#核心能力">核心能力</a> ·
-    <a href="#系统架构">系统架构</a> ·
-    <a href="#快速开始">快速开始</a> ·
-    <a href="#设计文档">设计文档</a>
-  </p>
-  <p><strong>4 类业务角色 · 7 个领域服务 · 45 个 REST API · 3 个自动调度任务</strong></p>
-</div>
+酒店预订与管理系统，包含 Spring Boot 后端和同源的原生 HTML/CSS/JavaScript 页面。住客、经理、前台和餐厅使用同一套服务，完成预订、订单、房态、餐饮和经营统计流程。
 
-## 项目定位
+本文对应 **`nova/review-fixes` 分支**。该分支已合入本轮行为修复、四角色前端和 Playwright 端到端测试。最近一次完整测试记录为 **137/137 条用例通过、285 次执行通过**；测试报告结论为**有条件通过**，保留 4 项低严重度遗留。
 
-HotelSystemBackend 是一个以酒店真实业务链路为背景的 Spring Boot 后端项目。系统围绕“用户预订 - 支付 - 入住 - 退房”主流程，延伸出员工权限、房态管理、动态价格、餐饮订单和经营看板等模块。
+[快速演示](#快速演示windows) · [手动启动](#手动启动) · [配置](#配置与-profile) · [运行测试](#运行测试) · [测试报告](docs/nova/review-fixes/test-report.md) · [API 文档](docs/api-overview.md)
 
-项目重点不是接口数量，而是把分散的 CRUD 组织成一条可解释的业务闭环：
+## 当前功能
 
-- 用户能够查询房态、提交订单、支付、取消和评价；
-- 前台能够管理订单、办理入住并维护实时房态；
-- 餐厅能够处理送餐订单及状态流转；
-- 管理员能够管理员工、房间、价格日历并查看经营指标；
-- 定时任务自动处理未支付订单、入住生效和退房释放。
-
-> 当前公开分支保留了核心业务实现。针对高并发预订、请求幂等和缓存一致性的生产化方案，单独记录在[《并发预订与幂等设计》](docs/booking-consistency.md)中，便于区分“现有实现”和“演进设计”。
-
-## 核心能力
-
-| 能力 | 实现方式 | 业务价值 |
-| --- | --- | --- |
-| 多角色认证授权 | JWT 表达身份，Redis 保存有效登录态，过滤器统一鉴权，AOP 注解校验角色 | 同时支持用户、管理员、前台和餐厅四类角色 |
-| 房间全生命周期 | 房态、客房订单和定时任务协同推进预订、入住、退房及超时取消 | 避免订单状态与实际房态长期脱节 |
-| 日期价格日历 | 按房型和日期维护价格；下单时逐日取价，缺省时回退至房型基础价 | 支持周末、节假日和旺季差异化定价 |
-| 服务端金额计算 | 根据入住区间逐日累计房价，餐饮订单校验主单与明细金额 | 降低客户端篡改金额带来的风险 |
-| 事务一致性 | 使用 Spring 事务管理房态变更、员工写入、价格批量更新和餐饮主从单写入 | 异常时统一回滚，避免只写入部分数据 |
-| 经营分析 | 聚合营收、入住率、平均房价、房型收入、楼层热力图和菜品 Top 10 | 将业务数据转化为运营决策指标 |
-| 统一异常处理 | 业务异常集中映射为统一响应结构 | 降低 Controller 重复判断，便于前后端联调 |
-| 并发防超卖（V2 设计） | 按“客房 + 入住日期”维护每日库存，唯一键约束冲突，事务内逐日条件更新 | 保证跨日订单全部成功或全部回滚 |
-| 下单幂等（V2 设计） | `requestId` 唯一索引配合幂等状态记录，重复请求返回原订单 | 防止重复点击、网络重试产生重复订单 |
-
-### V2 并发预订方案
-
-针对基础订单模型在高并发场景下可能出现的区间重叠和重复下单问题，项目已经完成 V2 技术方案设计，代码实现计划在后续版本合并：
-
-- **每日库存建模**：以 `(room_id, stay_date)` 唯一键定义最小库存冲突单元；
-- **事务内条件更新**：按固定日期顺序逐日执行 `available = 1 -> 0`，任一日期失败则整体回滚；
-- **请求幂等**：使用 `requestId` 唯一索引选出唯一执行者，并记录 `PROCESSING / SUCCESS / FAILED` 状态；
-- **服务端计价**：库存抢占成功后按价格日历复算总金额，再写入订单主表和明细；
-- **缓存边界**：Cache Aside 只用于客房详情和可售展示，数据库更新后删除缓存，并通过随机 TTL 分散集中失效风险；最终库存仍以数据库更新结果为准；
-- **索引验证**：围绕库存与订单查询设计联合索引，并使用 `EXPLAIN` 检查访问类型、命中索引与预估扫描行数；
-- **并发验收**：设计 50 个请求同时抢占单份库存的测试，验收目标为 1 个成功订单、49 个库存冲突、0 个重复订单和 0 个负库存。
-
-```mermaid
-flowchart LR
-    Request["requestId + 入住区间"] --> Idempotency{"抢占幂等键"}
-    Idempotency -->|重复请求| Existing["返回原订单 / 当前状态"]
-    Idempotency -->|首次请求| Inventory["按日期顺序条件更新每日库存"]
-    Inventory --> Check{"全部日期成功?"}
-    Check -->|否| Rollback["事务回滚并返回库存冲突"]
-    Check -->|是| Price["服务端复算总金额"]
-    Price --> Order["创建订单并绑定 requestId"]
-    Order --> Commit["提交事务"]
-```
-
-完整的数据模型、SQL、死锁规避、缓存策略和测试方法见[《并发预订与幂等设计》](docs/booking-consistency.md)。
-
-## 业务全景
-
-```mermaid
-flowchart LR
-    Guest["用户"] --> Search["查询房间与日期价格"]
-    Search --> Booking["创建客房订单"]
-    Booking --> Payment{"限时支付"}
-    Payment -->|已支付| CheckIn["到店 / 入住生效"]
-    Payment -->|超时| Cancel["订单自动取消"]
-    CheckIn --> Stay["住宿与餐饮服务"]
-    Stay --> CheckOut["退房并释放房间"]
-    CheckOut --> Review["订单评价"]
-
-    Manager["管理员"] --> Price["价格日历"]
-    Manager --> Dashboard["经营看板"]
-    Front["前台"] --> Booking
-    Front --> CheckIn
-    Restaurant["餐厅"] --> Stay
-```
-
-## 系统架构
-
-```mermaid
-flowchart TB
-    Client["Web / Mobile Client"]
-    Nginx["Nginx / API Gateway"]
-
-    subgraph Application["Spring Boot Application"]
-        Filter["LoginFilter\nJWT + Redis Session"]
-        AOP["RoleCheckAspect\n角色级权限"]
-        Controller["REST Controller"]
-        Service["Domain Service\n事务与业务编排"]
-        Scheduler["Scheduled Tasks\n订单与房态推进"]
-        Mapper["MyBatis Mapper"]
-        Handler["Global Exception Handler"]
-    end
-
-    MySQL[("MySQL\n业务数据")]
-    Redis[("Redis\n登录态")]
-    OSS[("Aliyun OSS\n图片资源")]
-
-    Client --> Nginx --> Filter
-    Filter <--> Redis
-    Filter --> AOP --> Controller --> Service --> Mapper --> MySQL
-    Scheduler --> Mapper
-    Controller -.异常.-> Handler
-    Service --> OSS
-```
-
-更完整的模块边界、数据关系和关键时序见[《系统设计》](docs/architecture.md)。
-
-## 角色与权限
-
-| 角色 | 主要权限 |
+| 角色 | 页面与主要操作 |
 | --- | --- |
-| 用户 `USER` | 注册登录、查询房间、创建/支付/取消订单、餐饮下单、查看历史和评价 |
-| 管理员 `MANAGER` | 员工管理、客房管理、价格日历、订单管理、经营分析 |
-| 前台 `FRONT` | 线下开单、订单调整、房态墙和入住退房处理 |
-| 餐厅 `RESTAURANT` | 查看实时餐饮订单、更新制作及配送状态 |
+| 住客 `USER` | 注册与登录、按日期查询房间、预订、支付和取消、我的订单、点餐、取消新餐饮订单、评价 |
+| 经理 `MANAGER` | 价格日历、经营分析、员工创建与启停、客房查询、客房订单总览 |
+| 前台 `FRONT` | 线下开单、订单改期与换房、房态墙、确认清洁完成 |
+| 餐厅 `RESTAURANT` | 实时餐饮订单、菜品明细、订单状态推进 |
 
-权限校验分为两层：
+后端还提供客房、菜品和分类维护，以及经理图片上传接口；接口权限和参数入口见 [API 与权限概览](docs/api-overview.md)。
 
-1. `LoginFilter` 校验请求头中的 token，并从 Redis 确认登录态是否仍然有效；
-2. `@RoleRequired` 与 `RoleCheckAspect` 对具体接口执行角色级授权。
+关键业务规则：
 
-## 技术栈
+- **预订冲突**：事务内先锁房间行，再检查 `[入住时刻, 离店时刻)` 是否重叠；冲突返回 HTTP 409。
+- **客房计价**：服务端按每晚价格计算金额，优先取房型价格日历，缺省价为单人间 199、双人间 299、套房 499 元；金额写入订单，并逐晚写入 `room_order_night`。
+- **餐饮计价**：单价取数据库中的菜品价格，忽略客户端金额；不存在或已下架的菜品不能下单。
+- **支付与取消**：通过条件更新约束订单状态和归属。已支付的客房订单在入住前取消时，支付状态置为“已退款”。当前支付、退款只记录本地业务状态，未连接真实支付渠道。
+- **房态推进**：三个任务每分钟运行。住客未支付订单满 15 分钟自动取消，前台未收款单不参与超时取消；到店订单推进房态，退房后房间进入清洁中，再由前台确认空闲。
+- **经营统计**：客房营收按订单间夜汇总，取消或删除的订单不计入；提供营收、入住率、平均房价、房型收入、楼层热力图与菜品 Top 10 等查询。
 
-| 分类 | 技术 |
+## 技术与环境
+
+| 用途 | 技术或要求 |
 | --- | --- |
-| 核心框架 | Java 17、Spring Boot 3.3.4、Spring MVC |
-| 数据访问 | MyBatis 3、MySQL |
-| 状态与鉴权 | Redis、JWT、Servlet Filter、Spring AOP |
-| 工程能力 | Maven、Lombok、Spring Transaction、Scheduled Tasks |
-| 接口文档 | SpringDoc OpenAPI / Swagger UI |
-| 对象存储 | Aliyun OSS |
+| 应用 | Java 17+、Spring Boot 3.3.4、Spring MVC |
+| 数据访问 | MyBatis 3.0.3、MySQL 8.0 |
+| 登录态与权限 | Redis、JWT、Servlet Filter、角色注解与 AOP、BCrypt |
+| 前端 | Spring Boot 静态资源，原生 HTML/CSS/JavaScript |
+| 构建 | Maven；本分支验证版本为 3.9.9 |
+| 测试 | JUnit 5、Mockito、Testcontainers 1.20.3、Playwright 1.63.0 / Chromium |
+| 图片上传 | 阿里云 OSS，仅上传功能需要配置 |
 
-## 模块划分
+验证环境使用 JDK 21、Maven 3.9.9、Docker Desktop、MySQL 8.0、Redis 7-alpine、Node 24 和 npm 11。`pom.xml` 的 Java 编译目标为 17。
 
-```text
-src/main/java/com/winniethepooh/hotelsystembackend
-├── annotation       # 角色权限注解
-├── aspect           # AOP 权限校验
-├── config           # Web 与跨域配置
-├── constant         # 角色、房态、订单状态常量
-├── context          # 当前请求上下文
-├── controller       # REST API 入口
-├── dto              # 写请求数据模型
-├── entity           # 领域实体
-├── exception        # 业务异常与统一异常处理
-├── filter           # JWT + Redis 登录态校验
-├── mapper           # MyBatis 数据访问接口
-├── service          # 业务编排、事务与定时任务
-├── utils            # JWT、日期与 OSS 工具
-└── vo               # 面向页面的响应模型
-```
+运行应用不需要 Node 或前端构建。**完整浏览器测试**另需 Node 20+、npm 和 Chromium；Docker 演示及集成测试需要 Docker Desktop 正常运行。
 
-### 业务模块
-
-| 模块 | 代表能力 |
-| --- | --- |
-| 用户与员工 | 注册登录、资料维护、员工启停、角色授权、单端登录态替换 |
-| 客房 | 条件分页、房态墙、房间维护、按日期动态取价 |
-| 客房订单 | 用户/前台双入口、服务端计价、支付、取消、评价、超时关闭 |
-| 餐饮 | 分类与菜品维护、主从订单写入、实时订单及状态流转 |
-| 经营分析 | 营收同比、月度趋势、入住率、平均房价、楼层热力图、菜品排行 |
-| 调度任务 | 未支付订单关闭、到店订单生效、离店房间释放 |
-
-## 关键设计
-
-### 1. 登录态为什么同时使用 JWT 和 Redis
-
-JWT 负责携带用户 ID 与角色信息，减少每次请求的数据库查询；Redis 负责保存“当前仍然有效”的 token，使退出登录、账号停用和重复登录挤下线能够立即生效。相比完全无状态的 JWT，这种组合更适合后台管理系统。
-
-### 2. 为什么采用价格日历
-
-客房价格不是房间的静态属性。系统以“房型 + 日期”查询当天价格，找不到配置时回退到房型默认价；下单时遍历入住日期并由服务端计算总金额，从而支持节假日和旺季定价，并减少客户端金额不可信的问题。
-
-### 3. 如何推进订单与房态
-
-订单状态和房间状态分别建模：订单描述交易生命周期，房态描述酒店当前可运营状态。定时任务负责将时间条件转换为状态变化，包括未支付订单超时关闭、已支付订单到期生效以及退房后释放房间。
-
-### 4. 餐饮主从订单如何保证一致
-
-餐饮订单先写入主单并回填主键，再逐项写入明细，最后校验汇总金额。整个过程位于同一事务中；明细为空、主键回填失败或金额不一致都会抛出异常并整体回滚。
-
-## API 概览
-
-| 路径前缀 | 模块 | 典型接口 |
-| --- | --- | --- |
-| `/user` | 用户 | 注册、登录、资料查询与修改 |
-| `/staff` | 员工 | 登录、退出、注册、启停与列表 |
-| `/rooms` | 客房 | 条件查询、维护、房态更新与房态墙 |
-| `/order` | 订单 | 查询、创建、支付、取消、评价与餐饮下单 |
-| `/food` | 菜品 | 分类与菜品管理 |
-| `/restaurant` | 餐厅 | 实时订单与状态更新 |
-| `/business` | 经营分析 | 营收、入住率、趋势、热力图、排行与价格日历 |
-| `/upload` | 文件 | 图片上传至对象存储 |
-
-接口权限和状态编码详见[《API 与权限概览》](docs/api-overview.md)。
-
-## 快速开始
-
-### 环境要求
-
-- JDK 17+
-- Maven 3.8+
-- MySQL 8+
-- Redis 6+
-
-### 启动步骤
+## 获取本分支
 
 ```bash
-git clone https://github.com/Attacker687/HotelSystemBackend.git
+git clone --branch nova/review-fixes --single-branch https://github.com/Attacker687/HotelSystemBackend.git
 cd HotelSystemBackend
 ```
 
-默认配置连接本机的 `HotelSystem` 数据库与 Redis。也可以通过环境变量覆盖连接信息：
+以下命令均在仓库根目录执行。Windows 建议使用较短的目录路径，避免依赖和测试产物触发路径长度限制。
 
-```bash
-export DB_URL='jdbc:mysql://localhost:3306/HotelSystem?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai'
-export DB_USERNAME='root'
-export DB_PASSWORD='your-password'
-export REDIS_HOST='localhost'
-export REDIS_PORT='6379'
-```
+## 快速演示（Windows）
 
-PowerShell：
+准备 JDK、Maven 和 Docker Desktop，然后在 PowerShell 执行：
 
 ```powershell
-$env:DB_URL='jdbc:mysql://localhost:3306/HotelSystem?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai'
-$env:DB_USERNAME='root'
-$env:DB_PASSWORD='your-password'
-$env:REDIS_HOST='localhost'
-$env:REDIS_PORT='6379'
+$hotelMaven = 'mvn'
+# Maven 未加入 PATH 时，改为实际路径。本次维护环境为：
+# $hotelMaven = 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd'
+
+& $hotelMaven -B -DskipTests package
+powershell -NoProfile -File scripts/demo.ps1 -Port 8080
 ```
 
-只有使用图片上传功能时才需要设置 `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_SECRET_KEY` 和 `ALIYUN_BUCKET_NAME`。敏感信息不要提交到公开仓库。
+看到 `Started HotelSystemBackendApplication` 后打开 [http://localhost:8080/](http://localhost:8080/)。端口被占用时，将 `-Port 8080` 改为其他空闲端口，例如 `8081`。
+
+演示脚本会创建独立的临时 MySQL 8 和 Redis 7 容器，自动生成数据库密码与 JWT 密钥，以 `dev` 启动并加载演示数据。按 `Ctrl+C` 停止后清理本次临时容器；再次启动得到新的演示数据。
+
+| 登录入口 | 角色 | 账号 | 密码 |
+| --- | --- | --- | --- |
+| 员工登录 | 经理 | `admin` | `Admin@123` |
+| 员工登录 | 前台 | `front` | `Front@123` |
+| 员工登录 | 餐厅 | `kitchen` | `Kitchen@123` |
+| 住客登录 | 住客 | `13900000000` | `User@1234` |
+
+这些账号来自 [demo-data.sql](src/main/resources/db/demo-data.sql)，只用于本地演示。也可以在页面注册新的住客。演示数据与自动化测试的 Fixtures 数据分别维护。
+
+建议按下面的顺序体验：
+
+1. 用住客登录，预订明天的一间单人房，在“我的订单”支付后取消，查看“已取消 / 已退款”。
+2. 在住客页面点餐，再用餐厅账号查看菜品明细，将新订单推进为“待完成”和“已完成”。
+3. 用前台账号开单、查看房态墙，确认清洁完成。
+4. 用经理账号查看经营分析，维护价格日历和员工状态。
+
+`-DskipTests package` 只用于构建演示 jar，不能代替完整测试。
+
+## 手动启动
+
+已有 MySQL 和 Redis 时，可以直接连接自己的开发环境。
+
+先在 MySQL 中创建数据库：
+
+```sql
+CREATE DATABASE IF NOT EXISTS HotelSystem DEFAULT CHARACTER SET utf8mb4;
+```
+
+在 PowerShell 中配置连接和随机密钥：
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE = 'dev'
+$env:DB_URL = 'jdbc:mysql://localhost:3306/HotelSystem?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai'
+$env:DB_USERNAME = 'root'
+$env:DB_PASSWORD = '替换为数据库密码'
+$env:REDIS_HOST = 'localhost'
+$env:REDIS_PORT = '6379'
+$env:REDIS_PASSWORD = ''
+
+$hotelSecretBytes = New-Object byte[] 32
+$hotelRandom = [Security.Cryptography.RandomNumberGenerator]::Create()
+$hotelRandom.GetBytes($hotelSecretBytes)
+$hotelRandom.Dispose()
+$env:JWT_SECRET = [BitConverter]::ToString($hotelSecretBytes).Replace('-', '')
+
+$hotelMaven = 'mvn'
+# Maven 未加入 PATH 时，使用实际的 mvn.cmd 路径。
+& $hotelMaven -B -DskipTests package
+java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSHOT.jar
+```
+
+`dev` 启动时会自动执行 [schema.sql](src/main/resources/db/schema.sql) 和 [demo-data.sql](src/main/resources/db/demo-data.sql)。脚本使用 `CREATE TABLE IF NOT EXISTS` 和固定主键的 `INSERT IGNORE`，可以重复执行；已有数据不会因此被重置。
+
+JVM、JDBC 和 MySQL 时区应保持一致：本分支约定 `Asia/Shanghai`，MySQL 时区为 `+08:00`。演示脚本和自动化测试已设置相应参数，手动启动时也需检查数据库时区。
+
+### 使用默认配置部署
+
+默认不激活任何 profile，不加载演示数据，也不自动初始化 MySQL。部署时先在目标数据库执行 `schema.sql`，配置连接和 `JWT_SECRET`，清除开发 profile 后启动：
+
+```powershell
+Remove-Item Env:SPRING_PROFILES_ACTIVE -ErrorAction SilentlyContinue
+java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSHOT.jar
+```
+
+`schema.sql` 是建表脚本，不是已有数据库的版本迁移或历史订单回填脚本；使用旧库时需要另外处理表结构变化和订单间夜数据。
+
+## 配置与 profile
+
+应用配置见 [application.yml](src/main/resources/application.yml)。
+
+| 环境变量 | 默认或要求 | 用途 |
+| --- | --- | --- |
+| `SERVER_PORT` | `8080` | HTTP 端口 |
+| `DB_URL` | 本机 MySQL 的 `HotelSystem` 库 | JDBC URL，显式配置 `serverTimezone=Asia/Shanghai` |
+| `DB_USERNAME` / `DB_PASSWORD` | `root` / 空 | 数据库账号与密码 |
+| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Redis 连接 |
+| `REDIS_PASSWORD` | 空 | Redis 密码 |
+| `JWT_SECRET` | 必填，无默认值 | 至少 32 字节的随机签名密钥；缺失或过短时拒绝启动 |
+| `SPRING_PROFILES_ACTIVE` | 不激活任何 profile | 开发设为 `dev` |
+| `HOTEL_SCHEDULER_ENABLED` | `true` | 设为 `false` 关闭定时任务的 cron 触发 |
+| `CORS_ALLOWED_ORIGINS` | 空 | 允许跨域的来源列表，逗号分隔；同源静态页无需配置 |
+| `ALIYUN_OSS_ENDPOINT` | 成都地域 OSS 地址 | 上传服务地址 |
+| `ALIYUN_ACCESS_KEY_ID` / `ALIYUN_SECRET_KEY` | 空 | OSS 上传凭证 |
+| `ALIYUN_BUCKET_NAME` | `hotelsystem` | OSS bucket |
+
+| Profile | 用途 | SQL 初始化 | 定时任务 |
+| --- | --- | --- | --- |
+| 默认 | 部署配置 | 不自动初始化 | 开启 |
+| `dev` | 本地演示、开发和 Swagger | 自动建表并加载演示数据 | 开启 |
+| `test` | API / 数据库集成测试 | 测试基类通过容器建库与恢复 Fixtures | 关闭 cron，由用例调用任务 |
+| `e2e` | 浏览器端到端测试 | JUnit 管理独立容器及数据 | 使用真实每分钟 cron |
+
+`test`、`e2e` 的配置位于测试资源目录，由测试运行器管理。`dev` 会输出 MyBatis SQL 参数日志；默认配置不输出这些参数。
+
+## 登录与接口约定
+
+前端与 REST API 同源，页面自动携带登录态。直接调用受保护接口时，在请求头传入：
+
+```http
+token: <登录接口返回的 JWT>
+```
+
+- 登录态由 JWT 和 Redis 共同校验，住客与员工 token 有效期均为 3 小时。
+- 员工退出、停用或删除，住客改密码，以及同一账号再次登录会撤销相关旧 token。
+- 员工退出接口为 `POST /staff/logout`。住客页面退出清除当前浏览器会话，当前没有住客服务端退出接口。
+- 类和方法上的 `@RoleRequired` 都会校验角色；方法注解优先。每次请求结束会清理线程上下文。
+- 住客注册、住客/员工登录及指定静态资源允许匿名访问；`/staff/register` 需要经理身份。
+- 默认登录失败阈值为同一账号或 IP 在 15 分钟内失败 5 次，随后限制 15 分钟。
+
+业务成功返回 `code=0`，失败返回 `code=1` 与具体提示；参数、认证、权限、不存在和冲突分别使用 HTTP 400、401、403、404、409。接口清单、响应结构和状态编码见 [API 与权限概览](docs/api-overview.md)。
+
+### Swagger
+
+`dev` 环境可匿名访问 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) 和 `/v3/api-docs`；其他 profile 需要有效 token。Swagger 的页面、资源和 OpenAPI 在 TC-136 中验证。
+
+### 图片上传
+
+`POST /upload/image` 仅允许经理调用。允许扩展名与文件头匹配的 PNG、JPEG、GIF、WebP 图片，单文件最大 5 MB；超限返回 413。使用上传功能前配置 OSS；其他功能启动不依赖 OSS 凭证。
+
+## 运行测试
+
+单元测试文件为 `*Test` / `*Tests`，由 Surefire 执行；集成测试文件为 `*IT`，由 Failsafe 执行。API 与浏览器测试使用独立的 MySQL 8.0、Redis 7-alpine 容器。
+
+先准备浏览器测试依赖：
 
 ```bash
-mvn spring-boot:run
+npm ci
+npx playwright install chromium
 ```
 
-服务启动后可通过 Swagger UI 查看接口定义。实际路径和端口以当前激活的 Spring Profile 为准。
+在 Docker Desktop 运行的情况下执行完整验证：
 
-## 设计文档
+```bash
+mvn -B clean verify
+```
 
-- [系统设计：模块边界、关键时序与数据模型](docs/architecture.md)
-- [并发预订与幂等：从业务版到生产化订单链路](docs/booking-consistency.md)
-- [API 与权限概览：角色矩阵、接口分组与状态编码](docs/api-overview.md)
+本次维护环境 Maven 不在 PATH，完整命令为：
 
-## 项目边界与演进方向
+```powershell
+& 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd' -B clean verify
+```
 
-该项目以业务建模和后端工程实践为主要目标，不直接等同于生产级酒店 PMS。生产化仍需进一步完善：
+按层定位问题时可以分别运行：
 
-- [x] 完成“客房 + 入住日期”每日库存、条件更新与事务回滚方案设计；
-- [x] 完成 `requestId` 唯一约束、幂等状态机与重复请求返回方案设计；
-- [x] 完成 Cache Aside 边界与 50 并发请求验收标准设计；
-- [ ] 将并发库存与幂等方案合并至主分支代码；
-- 为热点查询增加 Cache Aside，并设计更新后的失效策略；
-- 补齐集成测试、并发测试、可观测性与数据库版本迁移；
-- 使用 Docker Compose 固化 MySQL、Redis 与应用运行环境。
+```bash
+mvn test                              # 单元测试，不需要 Docker
+mvn -B verify -DskipBrowserTests=true   # 单元 + API，不跑浏览器
+mvn -B verify -DskipApiTests=true       # 单元 + 浏览器，不跑 API 集成
+```
 
-对应的约束、SQL 思路和验收方法已整理在[并发预订设计文档](docs/booking-consistency.md)中。
+这些选择性命令不等同于完整验收。浏览器测试由 `BrowserE2EIT` 启动应用、准备 Fixtures 并向 Playwright 注入地址和测试桥参数，完整执行应通过 Maven 入口。
 
-## License
+测试 Docker API 默认固定为 `1.44`。如果 Docker Engine 不支持该版本，可先用 `docker version` 确认服务端支持的 API，再通过 `-Ddocker.api.version=兼容版本` 覆盖，例如兼容 API 1.43 的环境：
 
-本仓库用于学习与技术交流。若需要在其他项目中使用，请先与仓库作者确认授权方式。
+```bash
+mvn -B clean verify -Ddocker.api.version=1.43
+```
+
+测试方法名包含用例编号，如 `tc012_...`；测试数据由 Fixtures 别名取得，如 `base.user("A")`、`base.room("R1")`。浏览器用例 TC-132 至 TC-137 覆盖预订与入住退房、前台开单、餐饮、员工停用、dev 启动与 Swagger、取消退款及再次预订。涉及定时任务的流程等待真实 cron，TC-133 对前台未收款订单观察不少于 70 秒。
+
+### 测试结果与证据
+
+最近一次记录的完整测试于 **2026-09-30** 通过，源码基线为 `79e476e`：
+
+| 执行层 | 次数 | 失败 | 错误 | 跳过 |
+| --- | ---: | ---: | ---: | ---: |
+| Surefire 单元 | 27 | 0 | 0 | 0 |
+| Failsafe API / 数据库集成 | 252 | 0 | 0 | 0 |
+| Failsafe 浏览器端到端 | 6 | 0 | 0 | 0 |
+| 合计 | **285** | **0** | **0** | **0** |
+
+285 包含参数化和补充回归，对应定稿方案的 **137 条用例**。六份原生 Playwright 报告与 Java 浏览器测试包装器对应，不能再次加总计数。
+
+| 产物 | 位置 |
+| --- | --- |
+| 本轮单元报告 | `target/surefire-reports/` |
+| 本轮 API 集成报告 | `target/failsafe-reports/` |
+| 本轮浏览器包装器报告 | `target/failsafe-e2e-reports/` |
+| Playwright XML、日志、截图和 trace | `target/e2e/` |
+| 已留存的末轮统计与证据 | [docs/nova/review-fixes/evidence/](docs/nova/review-fixes/evidence/) |
+
+查看浏览器 trace：`npx playwright show-trace 路径/trace.zip`。
+
+- [测试报告](docs/nova/review-fixes/test-report.md)：范围、结论、执行结果与遗留。
+- [逐用例结果](docs/nova/review-fixes/results.json) / [缺陷清单](docs/nova/review-fixes/defects.json)。
+- [测试方案](docs/nova/review-fixes/test-plan.md) / [测试方案 JSON](docs/nova/review-fixes/testplan.json)。
+- [飞书测试报告](https://mcn7m001m9qm.feishu.cn/wiki/KykSw5vXIi06CNkcDQVcIOVoneh)。
+
+## 已知遗留与演进
+
+测试报告按 nova 固定规则判为“有条件通过”：全部用例通过，但以下 4 项原评审低严重度问题尚未整体关闭。
+
+| 编号 | 遗留 |
+| --- | --- |
+| F4 | 部分 DTO 的必填值和数据库长度边界尚未完整补齐 |
+| F5 | 多个字段同时非法时首条提示的顺序不固定 |
+| F6 | 错误角色携带非法请求体时，参数校验可能先返回 400 |
+| F7 | 定稿方案的 Redis 版本文字仍与实际测试环境有差异；当前实际使用 Redis 7-alpine |
+
+此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。后续批次按用户决定跳过独立代码评审，自动化测试和人工浏览器检查不代表完成了代码评审。
+
+当前并发预订使用**房间行锁与时段重叠检查**。每日库存、`requestId` 幂等、热点缓存及定时任务失败自动重试仍是演进项，尚未实现；相关设计见 [并发预订与幂等设计](docs/booking-consistency.md)。
+
+## 目录与文档
+
+```text
+src/main/java/com/winniethepooh/hotelsystembackend/
+  controller/                 REST 接口
+  service/                    业务事务与定时任务
+  mapper/                     MyBatis 接口
+  filter/、aspect/、config/    登录、权限与配置
+  dto/、entity/、vo/           请求、实体与响应模型
+src/main/resources/
+  static/                     原生前端页面
+  mapper/                     MyBatis XML
+  db/                         建表与 dev 演示数据
+src/test/java/                单元、集成与浏览器测试入口
+src/test/e2e/                 Playwright 流程
+src/test/resources/           test / e2e 配置
+scripts/demo.ps1              Windows 隔离演示
+docs/                         API、设计、代码地图与测试报告
+```
+
+- [系统设计](docs/architecture.md)：模块边界、数据模型与业务时序。
+- [API 与权限概览](docs/api-overview.md)：接口、角色与状态编码。
+- [代码地图](docs/codemap/hotelsystembackend/README.md)：入口、数据、流程和业务规则索引。
+- [并发预订与幂等设计](docs/booking-consistency.md)：后续演进的数据模型与验收方案。

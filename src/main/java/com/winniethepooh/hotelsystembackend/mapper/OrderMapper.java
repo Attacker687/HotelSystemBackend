@@ -1,21 +1,23 @@
 package com.winniethepooh.hotelsystembackend.mapper;
 
+import com.winniethepooh.hotelsystembackend.dto.DailyGuestDTO;
+import com.winniethepooh.hotelsystembackend.dto.DailyRevenueDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertMealOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO;
-import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.TimeCheckDTO;
 import com.winniethepooh.hotelsystembackend.entity.Individual;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
 import com.winniethepooh.hotelsystembackend.entity.MealOrderItem;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.vo.DishTop10VO;
-import com.winniethepooh.hotelsystembackend.vo.RevenueStatsVO;
+import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface OrderMapper {
@@ -24,31 +26,37 @@ public interface OrderMapper {
 
     List<RoomOrder> getRoomOrdersByDate(LocalDate startDate, LocalDate endDate, Integer id);
 
-    void insertRoomComment(Integer id, String comment, Integer commentStar);
+    int insertRoomComment(Integer id, String comment, Integer commentStar, Integer userId);
 
-    void insertMealComment(Integer id, String comment, Integer commentStar);
+    int insertMealComment(Integer id, String comment, Integer commentStar, Integer userId);
 
-    List<RoomOrder> getAllRoomOrderList(Integer offset, Integer limit);
+    List<GetAllRoomOrderVO> getAllRoomOrderList(Integer offset, Integer limit);
 
     void insertRoomOrderV1(RoomOrder roomOrder);
 
-    void modifyRoomOrder(Integer id, ModifyRoomOrderDTO modifyRoomOrderDTO);
+    int modifyRoomOrder(RoomOrder order);
+
+    RoomOrder getRoomOrderByIdForUpdate(Long id);
+
+    Long findOverlappingOrder(Long roomId, LocalDateTime checkin, LocalDateTime checkout, Long excludeId);
+
+    void insertRoomOrderNights(Long orderId, Map<LocalDate, BigDecimal> nights);
+
+    void deleteRoomOrderNights(Long orderId);
 
     void deleteRoomOrder(Integer id);
 
-    BigDecimal getTodayStats(LocalDate date);
-
-    BigDecimal getThisMonthStats(LocalDate date);
-
-    BigDecimal getTodayAvgRoomPrice(LocalDate date);
+    /** 区间内每晚的营收与售出间夜数（按晚拆分，只计已支付、未取消、未删除的订单）。 */
+    List<DailyRevenueDTO> getNightRevenueByDate(LocalDate startDate, LocalDate endDate);
 
     BigDecimal getThisTypeRoomRevenueDuringTheTime(int roomType, LocalDate startDate, LocalDate endDate);
 
     List<DishTop10VO> getTop10Dishes(LocalDate startDate, LocalDate endDate);
 
-    Integer getTodayOccupiedRoomCount(LocalDate date);
+    /** 在 [startDate, endDate] 内至少占用一天的有效订单（已支付、未取消、未删除），只含 id、room_id、入住和离店时间。 */
+    List<RoomOrder> getOccupyingRoomOrders(LocalDate startDate, LocalDate endDate);
 
-    Integer getRoomsOccupiedOnAFloor(Integer floor, LocalDate date);
+    List<DailyGuestDTO> getCheckinGuestCountByDate(LocalDate startDate, LocalDate endDate);
 
     List<RoomOrder> findRoomOrdersToRelease(LocalDateTime now);
 
@@ -66,7 +74,13 @@ public interface OrderMapper {
 
     RoomOrder getRoomOrderByRoomIdAndTime(Integer id, LocalDateTime now);
 
-    void modifyRoomOrderPayStatus(Long id, int status);
+    int payRoomOrder(Long id, Integer userId);
+
+    int cancelRoomOrder(Long id, Integer userId, LocalDateTime now);
+
+    void ensureTaskLock(String taskName);
+
+    int claimTaskLock(String taskName, String owner);
 
     void flushExpiredRoomOrders();
 
@@ -80,7 +94,9 @@ public interface OrderMapper {
 
     MealOrder getMealOrderByOrderId(Integer mealOrderId);
 
-    void modifyMealOrderStatus(Integer id, Integer status);
+    int modifyMealOrderStatus(Integer id, Integer status, Integer originalStatus);
+
+    int cancelMealOrder(Integer id, Integer userId);
 
     void insertMealOrder(InsertMealOrderDTO insertMealOrderDTO);
 

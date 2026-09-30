@@ -1,0 +1,54 @@
+{
+  "feature": "review-fixes",
+  "source": "W0 通用评审及 followups.md；沿用原评审严重程度，不人为降级或关闭",
+  "defects": [
+    {
+      "id": "F4",
+      "title": "部分 DTO 必填值和长度边界尚未整体补齐",
+      "severity": "low",
+      "status": "open",
+      "cases": [],
+      "steps": "原评审补充边界，非本轮失败用例；详见证据和当前代码。",
+      "expected": "补齐剩余必填值和数据库长度边界，以超长姓名等非法输入验证 HTTP 400 且不落库。",
+      "actual": "原评审中的餐饮客户端价格信任和价格日历 roomType 缺失已随修复补齐，但 InsertRoomOrderDTO 的姓名等字段仍没有完整的长度约束，F4 尚未整体复测关闭。",
+      "evidence": "evidence/W0-review-general-r1.json#F4；.nova/review-fixes/build/followups.md；当前实现代码",
+      "original_where": "src/main/java/com/winniethepooh/hotelsystembackend/dto/InsertMealOrderDTO.java / src/main/java/com/winniethepooh/hotelsystembackend/dto/DynamicUpdatePriceDTO.java / src/main/resources/db/schema.sql:27"
+    },
+    {
+      "id": "F5",
+      "title": "多个字段同时非法时首条提示顺序不固定",
+      "severity": "low",
+      "status": "open",
+      "cases": [],
+      "steps": "原评审补充边界，非本轮失败用例；详见证据和当前代码。",
+      "expected": "确定统一提示规则后增加多字段组合复测。",
+      "actual": "现有用例验证各单字段非法输入；多字段同时非法时的首条提示顺序仍未固定。",
+      "evidence": "evidence/W0-review-general-r1.json#F5；.nova/review-fixes/build/followups.md；当前实现代码",
+      "original_where": "src/main/java/com/winniethepooh/hotelsystembackend/exception/GlobalExceptionHandler.java:51-53 / src/main/java/com/winniethepooh/hotelsystembackend/dto/RegisterDTO.java:14-27"
+    },
+    {
+      "id": "F6",
+      "title": "非法请求体的参数校验可能早于角色鉴权",
+      "severity": "low",
+      "status": "open",
+      "cases": [],
+      "steps": "原评审补充边界，非本轮失败用例；详见证据和当前代码。",
+      "expected": "继续明确并记录 400 与 403 的优先级，涉及策略改变时再复测。",
+      "actual": "错误角色携带非法请求体时可能先返回 400；历史裁定默认保持现状，未将此项标为已修复或不修。",
+      "evidence": "evidence/W0-review-general-r1.json#F6；.nova/review-fixes/build/followups.md；当前实现代码",
+      "original_where": "src/main/java/com/winniethepooh/hotelsystembackend/controller/BusinessController.java:70 / src/main/java/com/winniethepooh/hotelsystembackend/aspect/RoleCheckAspect.java:31"
+    },
+    {
+      "id": "F7",
+      "title": "测试环境版本与方案文字尚未完全同步",
+      "severity": "low",
+      "status": "open",
+      "cases": [],
+      "steps": "原评审补充边界，非本轮失败用例；详见证据和当前代码。",
+      "expected": "同步测试环境文档，并在需要支持旧版 Docker 时验证 API 覆盖参数。",
+      "actual": "当前测试使用 Docker API 1.44 和 Redis 7-alpine；测试方案文字仍写 Redis 6，旧版 Docker 的覆盖操作还需统一说明。",
+      "evidence": "evidence/W0-review-general-r1.json#F7；.nova/review-fixes/build/followups.md；当前实现代码",
+      "original_where": "pom.xml:33 / pom.xml:185-186 / README.md:279-280 / src/test/java/com/winniethepooh/hotelsystembackend/support/IntegrationTestBase.java:51"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="177.792652">
+<testsuite name="hotel.spec.js" timestamp="2026-09-30T15:34:06.574Z" hostname="" tests="1" failures="0" skipped="0" time="176.791" errors="0">
+<testcase name="TC-133 前台未收款单经历 70 秒超时检查、入住、退房、清洁完成" classname="hotel.spec.js" time="176.791">
+<system-out>
+<![CDATA[timeout cron 检查 5015ms: 前台单保持 status=0
+timeout cron 检查 10032ms: 前台单保持 status=0
+timeout cron 检查 15047ms: 前台单保持 status=0
+timeout cron 检查 20075ms: 前台单保持 status=0
+timeout cron 检查 25090ms: 前台单保持 status=0
+timeout cron 检查 30114ms: 前台单保持 status=0
+timeout cron 检查 35124ms: 前台单保持 status=0
+timeout cron 检查 40141ms: 前台单保持 status=0
+timeout cron 检查 45165ms: 前台单保持 status=0
+timeout cron 检查 50185ms: 前台单保持 status=0
+timeout cron 检查 55206ms: 前台单保持 status=0
+timeout cron 检查 60233ms: 前台单保持 status=0
+timeout cron 检查 65248ms: 前台单保持 status=0
+timeout cron 检查 70014ms: 前台单保持 status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=0, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=1, order.status=0
+cron R2: room.status=2, order.status=1
+
+[[ATTACHMENT|artifacts\TC-133\hotel-TC-133-前台未收款单经历-70-秒超时检查、入住、退房、清洁完成\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

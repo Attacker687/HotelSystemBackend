@@ -1,0 +1,11 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="3.520697">
+<testsuite name="hotel.spec.js" timestamp="2026-09-30T15:37:09.048Z" hostname="" tests="1" failures="0" skipped="0" time="2.358" errors="0">
+<testcase name="TC-137 住客支付后取消退款，经理概览为零，另一住客重订同房" classname="hotel.spec.js" time="2.358">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|artifacts\TC-137\hotel-TC-137-住客支付后取消退款，经理概览为零，另一住客重订同房\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

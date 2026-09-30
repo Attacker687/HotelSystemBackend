@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UnknownOrderTypeException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UnknownOrderTypeException extends BusinessException {
     public UnknownOrderTypeException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }

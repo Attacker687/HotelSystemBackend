@@ -11,6 +11,8 @@ import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.RoomStatusWallVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,8 +24,9 @@ public class RoomController {
     private RoomService roomService;
 
     @GetMapping
-    public Result queryRoomsController(@RequestParam(required = false, defaultValue = "1") Integer page, @RequestParam(required = false, defaultValue = "100") Integer pageSize,
-                                       @RequestParam(required = false) Integer roomNumber, @RequestParam(required = false) Integer roomType,
+    public Result queryRoomsController(@RequestParam(required = false, defaultValue = "1") @Min(value = 1, message = "page 必须大于等于1") Integer page,
+                                       @RequestParam(required = false, defaultValue = "100") @Min(value = 1, message = "pageSize 必须在1到100之间") @Max(value = 100, message = "pageSize 必须在1到100之间") Integer pageSize,
+                                       @RequestParam(required = false) String roomNumber, @RequestParam(required = false) Integer roomType,
                                        @RequestParam(required = false) Integer status, @RequestParam(required = false) LocalDate date) {
         if (date == null) date = LocalDate.now();
         PageBean<QueryRoomsVO> pageBean = roomService.queryRoomsService(page, pageSize, roomNumber, roomType, status, date);

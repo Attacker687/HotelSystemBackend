@@ -1,19 +1,21 @@
 package com.winniethepooh.hotelsystembackend.service;
 
 import com.winniethepooh.hotelsystembackend.constant.RoomOrderStatusConstant;
-import com.winniethepooh.hotelsystembackend.constant.RoomStatusConstant;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class CustomTaskScheduler {
+    private final String owner = UUID.randomUUID().toString();
 
     @Autowired
     private OrderMapper orderMapper;
@@ -25,27 +27,32 @@ public class CustomTaskScheduler {
      * 每分钟执行一次，检查超时房间
      */
     @Scheduled(cron = "0 * * * * ?")
+    @Transactional
     public void releaseExpiredRooms() {
+        // ponytail: 整批退房持有一行锁；批次变大时改为每张订单抢占并提交。
+        orderMapper.ensureTaskLock("releaseExpiredRooms");
+        if (orderMapper.claimTaskLock("releaseExpiredRooms", owner) == 0) return;
         LocalDateTime now = LocalDateTime.now();
         List<RoomOrder> expiredOrders = orderMapper.findRoomOrdersToRelease(now);
 
         for (RoomOrder order : expiredOrders) {
-            roomMapper.modifyRoomStatus(Math.toIntExact(order.getRoomId()), RoomStatusConstant.AVAILABLE);
+            roomMapper.releaseOccupiedRoom(Math.toIntExact(order.getRoomId()));
             orderMapper.modifyRoomOrderStatus(order.getId(), RoomOrderStatusConstant.DONE);
-            System.out.println("释放房间ID: " + order.getRoomId());
         }
     }
 
     @Scheduled(cron = "1 * * * * *")
+    @Transactional
     public void flushRoomStatus() {
         LocalDateTime now = LocalDateTime.now();
         List<RoomOrder> ordersNeedTobeEnable = orderMapper.findRoomOrdersToEnable(now);
         for (RoomOrder roomOrder : ordersNeedTobeEnable) {
-            roomMapper.modifyRoomStatus(Math.toIntExact(roomOrder.getRoomId()), RoomStatusConstant.OCCUPIED);
+            roomMapper.enableAvailableRoom(Math.toIntExact(roomOrder.getRoomId()));
         }
     }
 
     @Scheduled(cron = "2 * * * * *")
+    @Transactional
     public void flushExpiredRoomOrders() {
         orderMapper.flushExpiredRoomOrders();
     }

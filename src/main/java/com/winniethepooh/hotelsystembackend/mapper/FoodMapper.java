@@ -28,4 +28,6 @@ public interface FoodMapper {
     List<DishVO> getAllDishes();
 
     void deleteCategory(String id);
+
+    Dish getDishById(Long id);
 }

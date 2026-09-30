@@ -1,0 +1,10 @@
+# 测试 profile：数据源和 Redis 由 Testcontainers 的 @ServiceConnection 注入（见 IntegrationTestBase）。
+# 定时任务不按 cron 触发，测试里直接调用 CustomTaskScheduler 的方法推进。
+hotel:
+  scheduler:
+    enabled: false
+  login:
+    # 集成测试会反复输错密码，调高阈值避免互相影响；限流用例（LoginRateLimitIT）改回 5
+    max-failures: 1000
+  cors:
+    allowed-origins: https://front.test.example

@@ -1,0 +1,11 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="3.1546720000000006">
+<testsuite name="hotel.spec.js" timestamp="2026-09-30T15:32:42.597Z" hostname="" tests="1" failures="0" skipped="0" time="2.486" errors="0">
+<testcase name="TC-136 空库脚本和 dev 启动、演示经理登录、匿名 Swagger UI" classname="hotel.spec.js" time="2.486">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|artifacts\TC-136\hotel-TC-136-空库脚本和-dev-启动、演示经理登录、匿名-Swagger-UI\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
