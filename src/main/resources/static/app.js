@@ -357,7 +357,7 @@ function mealCard(order) {
   const card = el('article', null, { class: 'card', 'data-testid': `meal-order-${order.id}` });
   card.append(el('h3', `餐饮订单 #${order.id}`), el('p', mealStates[order.orderStatus], { class: 'badge' }),
     el('p', `¥${money(order.totalAmount)}`, { class: 'amount' }), el('p', `送餐：${order.address}`), el('p', `备注：${order.remarks || '无'}`));
-  for (const item of order.itemList || []) card.append(el('p', `${item.dishName || '菜品'} × ${item.quantity} · ¥${money(item.totalPrice)}`));
+  for (const item of order.itemList || []) card.append(el('p', `${item.name || '菜品'} × ${item.quantity} · ¥${money(item.totalPrice)}`));
   return card;
 }
 async function mealsView() {
