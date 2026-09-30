@@ -294,7 +294,7 @@ powershell -NoProfile -File scripts/demo.ps1 -Port 8080
 
 ### 运行测试
 
-完整验证另需 Node 24+、npm 11+；Playwright 固定为 `@playwright/test` 1.63.0。先安装测试依赖和 Chromium：
+完整验证另需 Node 20+ 和 npm（本机使用 Node 24、npm 11）；Playwright 固定为 `@playwright/test` 1.63.0。先安装测试依赖和 Chromium：
 
 ```bash
 npm ci

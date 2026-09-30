@@ -125,7 +125,7 @@ token: <JWT_TOKEN>
 
 | Method | Path | 权限 | 说明 |
 | --- | --- | --- | --- |
-| POST | `/upload/image` | 登录用户 | 上传图片至对象存储 |
+| POST | `/upload/image` | MANAGER | 上传图片至对象存储 |
 
 ## 4. 状态编码
 
