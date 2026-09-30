@@ -146,7 +146,7 @@ sequenceDiagram
     A-->>C: 放行或拒绝
 ```
 
-这种组合保留 JWT 解析效率，同时拥有服务端主动撤销能力。登录时删除同一主体的旧 token，可以实现受控的单端登录效果。
+这种组合保留 JWT 解析效率，同时拥有服务端主动撤销能力。登录时通过 `session:{ROLE}_{id}` 撤销旧 token；重复登录、员工退出/停用/删除、住客改密码立即失效旧会话。住客、员工 token 都有 3 小时有效期。网页住客退出仅清除本浏览器会话，当前没有住客服务端退出接口。
 
 ### 5.2 用户客房订单
 
@@ -160,20 +160,20 @@ sequenceDiagram
     participant T as Scheduler
 
     U->>O: 提交房号与入住区间
-    O->>R: 查询房间与房型
+    O->>R: 事务内锁定房间行并查询房型
+    O->>D: 检查有效订单的入住时刻区间冲突
+    O->>R: 一次查询区间价格日历
     loop 入住区间内每一天
-        O->>R: 查询房型当天价格
-        R-->>O: 日历价格或空值
         O->>O: 空值回退默认价并累计
     end
-    O->>D: 创建未支付订单
+    O->>D: 创建未支付订单及按晚价格明细
     D-->>U: orderId
     U->>D: 支付订单
     T->>D: 定期关闭超时未支付订单
-    T->>R: 到店时标记占用，离店后释放
+    T->>R: 到店时标记占用，离店后置清洁中
 ```
 
-当前流程解决了日期计价和基础状态推进。跨日期并发占用与重复请求控制属于生产化演进范围，见[《并发预订与幂等设计》](booking-consistency.md)。
+当前流程在数据库事务内用房间行锁与 `[checkin, checkout)` 冲突检查防止重叠预订，金额和按晚明细一起落库。每日库存与 `requestId` 幂等仅设计完成，尚未实现，见[《并发预订与幂等设计》](booking-consistency.md)。前台订单按 `paid` 设置收款状态，未收款前台单不参与超时取消，仍由入住/退房任务推进。
 
 ### 5.3 餐饮主从订单事务
 
@@ -185,18 +185,17 @@ sequenceDiagram
     participant M as OrderMapper
     participant DB as MySQL
 
-    C->>S: 主单信息 + itemList + totalAmount
-    S->>S: 校验明细非空
+    C->>S: 送餐信息 + itemList
+    S->>S: 校验菜品/数量，按库中价格计算主单与明细金额
     S->>M: 写入 meal_order
     M->>DB: INSERT 主单并回填 ID
     loop 每个餐品明细
         S->>M: 写入 meal_order_item
         M->>DB: INSERT 明细
-        S->>S: 累计金额
     end
-    alt 汇总金额一致
+    alt 数据库写入成功
         S-->>C: 提交事务
-    else 金额不一致或写入异常
+    else 写入异常
         S-->>DB: 回滚主单及全部明细
         S-->>C: 返回明确失败
     end
@@ -210,7 +209,8 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> AVAILABLE
     AVAILABLE --> OCCUPIED: 入住生效
-    OCCUPIED --> CLEANING: 办理退房
+    OCCUPIED --> CLEANING: 定时退房
+    OCCUPIED --> AVAILABLE: 前台手工置空闲并结束订单
     CLEANING --> AVAILABLE: 清扫完成
     AVAILABLE --> REPAIRING: 报修
     REPAIRING --> AVAILABLE: 维修完成
@@ -297,7 +297,7 @@ erDiagram
 
 ```mermaid
 flowchart LR
-    RoomOrder[("room_order")] --> Aggregate["SQL 聚合"]
+    RoomOrder[("room_order + room_order_night")] --> Aggregate["SQL 聚合"]
     Room[("room")] --> Aggregate
     User[("user / individual")] --> Aggregate
     Meal[("meal_order / item")] --> Aggregate
@@ -315,6 +315,8 @@ flowchart LR
 
 当前实现采用查询时聚合，适合数据量较小的教学与演示场景。数据量增大后，可按指标时效性拆分为实时查询、Redis 短缓存和离线汇总表。
 
+客房营收按 `room_order_night.night/price` 拆分，只计已支付且未取消订单；ADR 为营收除以间夜数，离店当天不计入住。菜品 Top10 排除已取消餐饮订单。
+
 ## 9. 关键取舍
 
 | 决策 | 当前选择 | 原因 | 进一步演进 |
@@ -324,15 +326,15 @@ flowchart LR
 | 价格 | 房型日期日历 | 满足节假日和旺季定价 | 规则引擎、套餐与促销叠加 |
 | 调度 | 单体内 `@Scheduled` | 实现简单，适合单实例 | 分布式锁、任务表与失败补偿 |
 | 经营统计 | 请求时实时聚合 | 数据新鲜、实现直接 | 汇总表、缓存和异步计算 |
-| 库存 | 当前以订单和房态表达 | 满足基础业务演示 | 每日库存表、条件更新与幂等请求 |
+| 库存 | 房间行锁 + 有效订单的时刻区间冲突检查 | 防止重叠预订 | 每日库存表、条件更新与幂等请求（仅设计完成） |
 
 ## 10. 工程化改进清单
 
 - [ ] 为客房预订增加每日库存记录和唯一约束；
 - [ ] 引入 `requestId` 唯一索引及幂等状态机；
-- [ ] 将配置中的密钥全部改为环境变量或密钥管理服务；
+- [x] JWT/OSS 等敏感配置使用环境变量，JWT 随机密钥缺失时拒绝启动；
 - [ ] 补充 Flyway/Liquibase 数据库迁移脚本；
-- [ ] 建立 Service 集成测试与并发场景测试；
+- [x] 建立 API 集成、并发及六条 Playwright 端到端回归测试；
 - [ ] 为定时任务增加多实例互斥和失败重试；
 - [ ] 增加请求日志、慢查询和核心业务指标监控；
 - [ ] 使用 Docker Compose 提供一键本地环境。

@@ -5,6 +5,8 @@ import com.winniethepooh.hotelsystembackend.constant.StaffStatusConstant;
 import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
 
@@ -65,6 +67,44 @@ class PasswordHashingIT extends IntegrationTestBase {
         String stored = userPassword(a.id());
         assertThat(Fixtures.isBcryptOf(stored, NEW_PASSWORD)).as(stored).isTrue();
         assertThat(stored).isNotEqualTo(Fixtures.legacyMd5(NEW_PASSWORD));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"originPassword", "passwordToChange"})
+    void tc041_incompletePasswordChangeReturns400WithoutMutation(String field) {
+        Fixtures.Account a = base.userA();
+        String token = login(a);
+        String password = userPassword(a.id());
+        String sessionKey = "session:USER_" + a.id();
+        String tokenValue = redis.opsForValue().get(token);
+
+        Resp r = post("/user/change", token, Map.of("phone", a.login(), field,
+                field.equals("originPassword") ? a.password() : NEW_PASSWORD));
+
+        assertThat(r.status()).isEqualTo(400);
+        assertThat(r.code()).isEqualTo(1);
+        assertThat(r.msg()).contains("密码");
+        assertThat(userPassword(a.id())).isEqualTo(password);
+        assertThat(redis.opsForValue().get(token)).isEqualTo(tokenValue);
+        assertThat(redis.opsForValue().get(sessionKey)).isEqualTo(token);
+        assertThat(get("/rooms", token).code()).isZero();
+    }
+
+    @Test
+    void tc041_emailOnlyChangePreservesPasswordAndSession() {
+        Fixtures.Account a = base.userA();
+        String token = login(a);
+        String password = userPassword(a.id());
+        String email = "updated@example.test";
+
+        Resp r = post("/user/change", token, Map.of("phone", a.login(), "emailToChange", email));
+
+        assertThat(r.status()).isEqualTo(200);
+        assertThat(r.code()).isZero();
+        assertThat(jdbc.queryForObject("select email from user where id=?", String.class, a.id())).isEqualTo(email);
+        assertThat(userPassword(a.id())).isEqualTo(password);
+        assertThat(redis.opsForValue().get("session:USER_" + a.id())).isEqualTo(token);
+        assertThat(get("/rooms", token).code()).isZero();
     }
 
     @Test

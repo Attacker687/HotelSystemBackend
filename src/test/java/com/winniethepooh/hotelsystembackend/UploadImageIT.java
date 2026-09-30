@@ -106,7 +106,7 @@ class UploadImageIT extends IntegrationTestBase {
     /** 白名单内其他格式按各自魔数放行；扩展名大小写不敏感。只校验文件头，内容用最短的合法文件头即可。 */
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"a.jpg", "a.jpeg", "a.gif", "a.webp", "A.PNG"})
-    void s10_otherWhitelistedFormatsAccepted(String name) throws Exception {
+    void tc053_s10_otherWhitelistedFormatsAccepted(String name) throws Exception {
         byte[] head = switch (name) {
             case "a.jpg", "a.jpeg" -> new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
             case "a.gif" -> "GIF89a\1\0\1\0".getBytes(StandardCharsets.ISO_8859_1);

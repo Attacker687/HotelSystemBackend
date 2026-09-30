@@ -147,7 +147,7 @@ class BusinessStatsIT extends IntegrationTestBase {
     // ---------- D4 已取消订单 ----------
 
     @Test
-    void d4_paidThenCancelledOrderExcludedFromRevenueAndOccupancy() {
+    void tc137_d4_paidThenCancelledOrderExcludedFromRevenueAndOccupancy() {
         order(room("R1"), guest, d, 1, 2, "199");
 
         Resp stats = ok(get("/business/revenue/stats?date=" + d, manager));
@@ -216,7 +216,7 @@ class BusinessStatsIT extends IntegrationTestBase {
     // ---------- D6 菜品 Top10 ----------
 
     @Test
-    void d6_top10IncludesEndDateAndExcludesCancelledMealOrders() {
+    void tc134_d6_top10IncludesEndDateAndExcludesCancelledMealOrders() {
         long ok = fx.mealOrder(base.userA().id(), new BigDecimal("76.00"), 2);
         fx.mealOrderItem(ok, base.dish("X").id(), 2, new BigDecimal("38.00"));
         long cancelled = fx.mealOrder(base.userA().id(), new BigDecimal("190.00"), 3);
@@ -311,7 +311,7 @@ class BusinessStatsIT extends IntegrationTestBase {
     // ---------- P4 改写后的日期条件与原语义一致（回归保护） ----------
 
     @Test
-    void p4_userOrderQueryStillIncludesEndDate() {
+    void tc132_p4_userOrderQueryStillIncludesEndDate() {
         LocalDate today = LocalDate.now();
         long roomOrderId = paidOrder(room("R1"), guest, d, "199");
         long meal = fx.mealOrder(base.userA().id(), new BigDecimal("38.00"), 0);

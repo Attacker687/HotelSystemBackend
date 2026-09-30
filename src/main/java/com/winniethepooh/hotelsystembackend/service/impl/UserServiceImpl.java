@@ -15,6 +15,7 @@ import com.winniethepooh.hotelsystembackend.service.UserService;
 import com.winniethepooh.hotelsystembackend.utils.PasswordUtils;
 import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -53,6 +54,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void changeInfoService(UserInfoChangeDTO userInfoChangeDTO) {
+        if ((userInfoChangeDTO.getOriginPassword() == null) != (userInfoChangeDTO.getPasswordToChange() == null))
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "修改密码必须同时提供原密码和新密码");
         boolean passwordChanged = false;
         User current = userMapper.findUserById(BaseContext.getCurrentId());
         if (!current.getPhone().equals(userInfoChangeDTO.getPhone()))

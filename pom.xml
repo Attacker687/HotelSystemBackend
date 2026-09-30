@@ -31,6 +31,8 @@
 		<!-- 1.20.x 使用本地已有的 ryuk 0.8.1 镜像；Boot 3.3.4 默认管理的是 1.19.8 -->
 		<testcontainers.version>1.20.3</testcontainers.version>
 		<docker.api.version>1.44</docker.api.version>
+		<skipApiTests>false</skipApiTests>
+		<skipBrowserTests>false</skipBrowserTests>
 		<!-- surefire / failsafe 默认读取 argLine：测试 JVM 时区与数据库一致（conventions.md 第 1 节） -->
 		<argLine>-Duser.timezone=Asia/Shanghai</argLine>
 	</properties>
@@ -185,6 +187,25 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>default</id>
+						<configuration>
+							<skipITs>${skipApiTests}</skipITs>
+							<excludes><exclude>**/BrowserE2EIT.java</exclude></excludes>
+						</configuration>
+					</execution>
+					<execution>
+						<id>browser-e2e</id>
+						<goals><goal>integration-test</goal><goal>verify</goal></goals>
+						<configuration>
+							<skipITs>${skipBrowserTests}</skipITs>
+							<includes><include>**/BrowserE2EIT.java</include></includes>
+							<reportsDirectory>${project.build.directory}/failsafe-e2e-reports</reportsDirectory>
+							<summaryFile>${project.build.directory}/failsafe-e2e-reports/failsafe-summary.xml</summaryFile>
+						</configuration>
+					</execution>
+				</executions>
 				<configuration>
 					<systemPropertyVariables>
 						<!-- Docker Engine 29 起最低 API 为 1.44，testcontainers 1.20 默认用 1.32 会被拒；

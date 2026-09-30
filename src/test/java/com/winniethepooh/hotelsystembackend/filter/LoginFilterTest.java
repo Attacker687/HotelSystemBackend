@@ -72,6 +72,25 @@ class LoginFilterTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "dev", "test", "e2e"})
+    void tc132_staticAssetsAreAnonymousWithoutOpeningSiblingApiPaths(String profile) throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        if (!profile.isEmpty()) env.setActiveProfiles(profile);
+        LoginFilter filter = new LoginFilter(mock(StringRedisTemplate.class), mock(JwtUtils.class), env);
+        for (String path : new String[]{"/", "/index.html", "/app.js", "/style.css", "/app.js/extra",
+                "/rooms/app.js", "/static/app.js", "/rooms", "/staff/register"}) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/hotel" + path);
+            request.setContextPath("/hotel");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            FilterChain chain = mock(FilterChain.class);
+            filter.doFilter(request, response, chain);
+            boolean allowed = java.util.Set.of("/", "/index.html", "/app.js", "/style.css").contains(path);
+            assertThat(response.getStatus()).as("%s %s", profile, path).isEqualTo(allowed ? 200 : 401);
+            verify(chain, times(allowed ? 1 : 0)).doFilter(request, response);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "dev", "test", "e2e"})
     void tc136_swaggerWhitelistRespectsProfileAndPathBoundaries(String profile) throws Exception {
         MockEnvironment env = new MockEnvironment();
         if (!profile.isEmpty()) env.setActiveProfiles(profile);

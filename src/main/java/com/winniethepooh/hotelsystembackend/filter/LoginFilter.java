@@ -24,6 +24,7 @@ import java.util.Set;
 public class LoginFilter implements Filter {
     /** 不需要登录的接口，按完整路径精确匹配 */
     private static final Set<String> PUBLIC_PATHS = Set.of("/user/login", "/user/register", "/staff/login");
+    private static final Set<String> STATIC_PATHS = Set.of("/", "/index.html", "/app.js", "/style.css");
 
     private final StringRedisTemplate redisTemplate;
     private final JwtUtils jwtUtils;
@@ -76,7 +77,9 @@ public class LoginFilter implements Filter {
 
     private boolean isPublic(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return PUBLIC_PATHS.contains(path) || (devProfile && (path.equals("/swagger-ui.html")
+        return PUBLIC_PATHS.contains(path) || (STATIC_PATHS.contains(path)
+                && (request.getMethod().equals("GET") || request.getMethod().equals("HEAD")))
+                || (devProfile && (path.equals("/swagger-ui.html")
                 || path.startsWith("/swagger-ui/") || path.equals("/v3/api-docs")
                 || path.startsWith("/v3/api-docs/")));
     }

@@ -27,7 +27,7 @@ class InfrastructureIT extends IntegrationTestBase {
     private RoomMapper roomMapper;
 
     @Test
-    void infra_allBaseAccountsCanLoginAndTokenStoredInRedis() {
+    void tc132_infra_allBaseAccountsCanLoginAndTokenStoredInRedis() {
         for (String alias : List.of("A", "B", "C", "L1", "L2", "L3", "L4", "L5", "L6")) {
             String token = login(base.user(alias));
             assertThat(redis.hasKey(token)).as("token of user %s in redis", alias).isTrue();
@@ -38,7 +38,7 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_baseDataMatchesStrategyDataTable() {
+    void tc132_infra_baseDataMatchesStrategyDataTable() {
         // 账号：住客 A/B/C、L1～L6 各带一条同名入住人；员工 6 个
         assertThat(jdbc.queryForList("select phone from user order by id", String.class)).containsExactly(
                 "17000000001", "17000000002", "17000000003",
@@ -84,7 +84,7 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_resetRestartsAutoIncrement() {
+    void tc132_infra_resetRestartsAutoIncrement() {
         long first = fx.roomOrder(base.user("A").id(), 1, base.room("R1").id(), LocalDateTime.now().plusDays(1),
                 LocalDateTime.now().plusDays(2), null, 0, 0);
         login(base.user("A"));
@@ -103,7 +103,7 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_standardRequestBodiesAreAcceptedByCurrentApi() {
+    void tc132_infra_standardRequestBodiesAreAcceptedByCurrentApi() {
         String token = login(base.user("A"));
         LocalDate d = LocalDate.now().plusDays(10);
 
@@ -120,13 +120,13 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_unknownAliasFailsFast() {
+    void tc132_infra_unknownAliasFailsFast() {
         assertThatThrownBy(() -> base.room("R9"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("R9");
     }
 
     @Test
-    void infra_sqlCounterCountsEachStatementOnce() {
+    void tc117_infra_sqlCounterCountsEachStatementOnce() {
         roomMapper.getExistFloors();
         assertThat(sql.statements()).containsExactly("select distinct floor from room where is_deleted = 0");
 
@@ -148,12 +148,12 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_testProfileDisablesSchedulerCron() {
+    void tc132_infra_testProfileDisablesSchedulerCron() {
         assertThat(scheduledTasks.stream().flatMap(h -> h.getScheduledTasks().stream())).isEmpty();
     }
 
     @Test
-    void infra_databaseAndJvmUseShanghaiClock() {
+    void tc132_infra_databaseAndJvmUseShanghaiClock() {
         assertThat(ZoneId.systemDefault()).isEqualTo(ZoneId.of("Asia/Shanghai"));
         assertThat(jdbc.queryForObject("select @@session.time_zone", String.class)).isEqualTo("+08:00");
         LocalDateTime db = jdbc.queryForObject("select now()", LocalDateTime.class);
@@ -161,7 +161,7 @@ class InfrastructureIT extends IntegrationTestBase {
     }
 
     @Test
-    void infra_createdMinutesAgoUsesDatabaseClock() {
+    void tc133_infra_createdMinutesAgoUsesDatabaseClock() {
         long order = fx.roomOrder(base.user("A").id(), 1, base.room("R1").id(), LocalDateTime.now().plusDays(1),
                 LocalDateTime.now().plusDays(2), null, 0, 0);
 
