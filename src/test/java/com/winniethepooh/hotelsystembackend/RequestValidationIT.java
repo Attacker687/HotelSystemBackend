@@ -45,6 +45,18 @@ class RequestValidationIT extends IntegrationTestBase {
     }
 
     @Test
+    void c1_reversedDateRangeFromSharedDateUtilReturns400() {
+        String token = login(base.manager());
+        LocalDate d = LocalDate.now().plusDays(10);
+
+        Resp r = get("/business/revenue/trend?startDate=" + d + "&endDate=" + d.minusDays(9), token);
+
+        assertThat(r.status()).isEqualTo(400);
+        assertThat(r.code()).isEqualTo(1);
+        assertThat(r.msg()).isEqualTo("开始日期不能在结束日期之后");
+    }
+
+    @Test
     void tc125_registerWithNullNameReturns400BeforeService() {
         int users = fx.count("user"), individuals = fx.count("individual");
         Map<String, Object> body = Fixtures.registration("N");
