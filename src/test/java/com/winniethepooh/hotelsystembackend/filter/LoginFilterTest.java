@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,7 +39,7 @@ class LoginFilterTest {
         ValueOperations<String, String> ops = mock(ValueOperations.class);
         when(redis.opsForValue()).thenReturn(ops);
         when(ops.get(token)).thenReturn("MANAGER_5");
-        LoginFilter filter = new LoginFilter(redis, jwt);
+        LoginFilter filter = new LoginFilter(redis, jwt, new MockEnvironment());
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/business/revenue/stats");
         request.addHeader("token", token);
@@ -64,5 +65,28 @@ class LoginFilterTest {
         assertThat(seenRole.get()).isEqualTo(1);
         assertThat(BaseContext.getCurrentId()).isNull();
         assertThat(BaseContext.getCurrentRole()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "dev", "test", "e2e"})
+    void tc136_swaggerWhitelistRespectsProfileAndPathBoundaries(String profile) throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        if (!profile.isEmpty()) env.setActiveProfiles(profile);
+        LoginFilter filter = new LoginFilter(mock(StringRedisTemplate.class), mock(JwtUtils.class), env);
+        for (String path : new String[]{"/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/swagger-ui.css",
+                "/swagger-ui/swagger-ui-bundle.js", "/swagger-ui/swagger-initializer.js",
+                "/v3/api-docs", "/v3/api-docs/swagger-config", "/swagger-ui.html/extra",
+                "/swagger-ui-extra", "/v3/api-docs-extra", "/rooms/swagger-ui/index.html"}) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/hotel" + path);
+            request.setContextPath("/hotel");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            FilterChain chain = mock(FilterChain.class);
+
+            filter.doFilter(request, response, chain);
+
+            boolean allowed = profile.equals("dev") && !path.endsWith("extra") && !path.startsWith("/rooms/");
+            assertThat(response.getStatus()).as("%s %s", profile, path).isEqualTo(allowed ? 200 : 401);
+            verify(chain, times(allowed ? 1 : 0)).doFilter(request, response);
+        }
     }
 }

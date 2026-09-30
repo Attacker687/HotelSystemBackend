@@ -5,6 +5,7 @@ import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -47,6 +48,8 @@ class DefaultProfileIT {
     private Environment env;
     @Autowired
     private JdbcTemplate jdbc;
+    @Autowired
+    private TestRestTemplate rest;
 
     @Test
     void e1_defaultProfileIsProductionWithoutSchemaOrDemoData() {
@@ -54,5 +57,14 @@ class DefaultProfileIT {
         assertThat(jdbc.queryForObject("select database()", String.class)).isEqualTo(DB);
         assertThat(jdbc.queryForObject("select count(*) from information_schema.tables where table_schema = ?",
                 Integer.class, DB)).isZero();
+    }
+
+    @Test
+    void tc136_defaultProfileSwaggerRequiresToken() {
+        for (String path : new String[]{"/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/swagger-ui.css",
+                "/swagger-ui/swagger-ui-bundle.js", "/swagger-ui/swagger-initializer.js",
+                "/v3/api-docs", "/v3/api-docs/swagger-config"}) {
+            assertThat(rest.getForEntity(path, String.class).getStatusCode().value()).as(path).isEqualTo(401);
+        }
     }
 }

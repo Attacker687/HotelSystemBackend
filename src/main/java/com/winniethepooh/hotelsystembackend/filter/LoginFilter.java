@@ -8,6 +8,8 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -25,10 +27,12 @@ public class LoginFilter implements Filter {
 
     private final StringRedisTemplate redisTemplate;
     private final JwtUtils jwtUtils;
+    private final boolean devProfile;
 
-    public LoginFilter(StringRedisTemplate redisTemplate, JwtUtils jwtUtils) {
+    public LoginFilter(StringRedisTemplate redisTemplate, JwtUtils jwtUtils, Environment environment) {
         this.redisTemplate = redisTemplate;
         this.jwtUtils = jwtUtils;
+        this.devProfile = environment.acceptsProfiles(Profiles.of("dev"));
     }
 
     @Override
@@ -72,6 +76,8 @@ public class LoginFilter implements Filter {
 
     private boolean isPublic(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return PUBLIC_PATHS.contains(path);
+        return PUBLIC_PATHS.contains(path) || (devProfile && (path.equals("/swagger-ui.html")
+                || path.startsWith("/swagger-ui/") || path.equals("/v3/api-docs")
+                || path.startsWith("/v3/api-docs/")));
     }
 }
