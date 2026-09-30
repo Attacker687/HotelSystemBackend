@@ -16,9 +16,9 @@ public interface UserMapper {
 
     User findUserByPhone(String phone);
 
-    User findUserByPhoneAndPassword(String phone, String password);
-
     void updateLastLoginTime(int id);
+
+    void updatePassword(Integer id, String password);
 
     User findUserById(Integer id);
 

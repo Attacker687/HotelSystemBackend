@@ -14,6 +14,12 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updatePassword">
+        UPDATE staff
+        SET password = #{password}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
     <update id="deleteStaff">
         UPDATE staff
         SET is_deleted = 1, updated_at = NOW()
@@ -26,10 +32,10 @@
         WHERE account = #{account}
     </select>
 
-    <select id="getStaffByAccountAndPassword" resultType="com.winniethepooh.hotelsystembackend.entity.Staff">
+    <select id="getActiveStaffByAccount" resultType="com.winniethepooh.hotelsystembackend.entity.Staff">
         SELECT *
         FROM staff
-        WHERE account = #{account} AND password = #{password} AND is_deleted = 0 AND status = 1
+        WHERE account = #{account} AND is_deleted = 0 AND status = 1
     </select>
     <select id="getStaffById" resultType="com.winniethepooh.hotelsystembackend.entity.Staff">
         SELECT *

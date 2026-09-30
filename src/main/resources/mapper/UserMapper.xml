@@ -20,6 +20,12 @@
         where id = #{id}
     </update>
 
+    <update id="updatePassword">
+        update user
+        set password = #{password}, updated_at = now()
+        where id = #{id}
+    </update>
+
     <update id="modifyUserInfo">
         update user
         <set>
@@ -43,13 +49,6 @@
         select *
         from user
         where phone = #{phone}
-    </select>
-
-    <select id="findUserByPhoneAndPassword" resultType="com.winniethepooh.hotelsystembackend.entity.User">
-        select *
-        from user
-        where phone = #{phone}
-        and password = #{password}
     </select>
 
     <select id="findUserById" resultType="com.winniethepooh.hotelsystembackend.entity.User">

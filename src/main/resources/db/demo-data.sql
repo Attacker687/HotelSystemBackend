@@ -1,5 +1,5 @@
 -- 演示数据：只在 dev profile 下自动加载（application-dev.yml），也可以在执行 schema.sql 后手动导入。
--- 固定主键 + INSERT IGNORE，可重复执行。密码字段是 MD5（与当前登录校验一致），明文见注释，仅用于本地演示。
+-- 固定主键 + INSERT IGNORE，可重复执行。密码字段是旧的 MD5 哈希（登录时兼容，首次登录成功后自动迁移为 BCrypt），明文见注释，仅用于本地演示。
 
 -- 员工：admin / Admin@123（经理），front / Front@123（前台），kitchen / Kitchen@123（餐厅）
 INSERT IGNORE INTO staff (id, account, password, role, status)

@@ -11,9 +11,9 @@ import com.winniethepooh.hotelsystembackend.exception.UserNotFoundException;
 import com.winniethepooh.hotelsystembackend.mapper.StaffMapper;
 import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.StaffService;
+import com.winniethepooh.hotelsystembackend.utils.PasswordUtils;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.StaffVO;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,9 +32,12 @@ public class StaffServiceImpl implements StaffService {
     public Staff staffLoginService(StaffLoginDTO staffLoginDTO) {
         if (!staffMapper.existStaffByAccount(staffLoginDTO.getAccount()))
             throw new UserNotFoundException("此账号未注册");
-        staffLoginDTO.setPassword(DigestUtils.md5Hex(staffLoginDTO.getPassword()));
-        Staff staff = staffMapper.getStaffByAccountAndPassword(staffLoginDTO);
-        if (staff == null) throw new PasswordIncorrectException("密码错误，请重新输入");
+        Staff staff = staffMapper.getActiveStaffByAccount(staffLoginDTO.getAccount());
+        if (staff == null || !PasswordUtils.matches(staffLoginDTO.getPassword(), staff.getPassword()))
+            throw new PasswordIncorrectException("密码错误，请重新输入");
+        // 旧 MD5 哈希在登录成功时迁移为 BCrypt
+        if (PasswordUtils.isLegacy(staff.getPassword()))
+            staffMapper.updatePassword(staff.getId(), PasswordUtils.hash(staffLoginDTO.getPassword()));
         return staff;
     }
 
@@ -42,7 +45,7 @@ public class StaffServiceImpl implements StaffService {
     public void staffRegisterService(StaffRegisterDTO staffRegisterDTO) {
         if (staffMapper.existStaffByAccount(staffRegisterDTO.getAccount()))
             throw new DuplicatedException("此账号已注册");
-        staffRegisterDTO.setPassword(DigestUtils.md5Hex(staffRegisterDTO.getPassword()));
+        staffRegisterDTO.setPassword(PasswordUtils.hash(staffRegisterDTO.getPassword()));
         staffMapper.createStaff(staffRegisterDTO);
     }
 

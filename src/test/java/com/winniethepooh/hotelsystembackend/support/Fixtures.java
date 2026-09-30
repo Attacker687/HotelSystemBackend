@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
@@ -21,11 +22,12 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 测试数据工具：直接写库构造 strategy.data 里的数据，返回自增 id。
  * 通用入口是 {@link #insert(String, Map)}；常用实体有具名方法，后续批次按需补充。
- * 密码统一经 {@link #hash(String)} 入库（当前与生产代码一致为 MD5，S8 改哈希时只改这里）。
+ * 密码统一经 {@link #hash(String)} 入库（BCrypt，与生产代码一致）；旧 MD5 账号用 {@link #md5(String)} 构造。
  */
 public class Fixtures {
 
@@ -133,8 +135,21 @@ public class Fixtures {
         return n == null ? 0 : n;
     }
 
+    private static final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
+    private static final Map<String, String> HASHES = new ConcurrentHashMap<>();
+
+    /** 密码入库哈希（S8：BCrypt）。同一明文复用一个哈希，免得每个测试都花时间重算。 */
     public static String hash(String rawPassword) {
+        return HASHES.computeIfAbsent(rawPassword, BCRYPT::encode);
+    }
+
+    /** S8 之前的旧哈希（不加盐 MD5），用来构造待迁移账号。 */
+    public static String md5(String rawPassword) {
         return DigestUtils.md5Hex(rawPassword);
+    }
+
+    public static boolean isBcryptOf(String stored, String rawPassword) {
+        return stored != null && stored.matches("^\\$2[aby]\\$.{56}$") && BCRYPT.matches(rawPassword, stored);
     }
 
     /** 生成校验位正确的 18 位测试身份证号（110101 东城区，1990-01-01 出生，seq 为 3 位顺序码）。 */
