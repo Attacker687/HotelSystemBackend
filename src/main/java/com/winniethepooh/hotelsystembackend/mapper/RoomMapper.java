@@ -4,17 +4,29 @@ import com.winniethepooh.hotelsystembackend.dto.InsertRoomDTO;
 import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
 import com.winniethepooh.hotelsystembackend.entity.Room;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
+import com.winniethepooh.hotelsystembackend.vo.RoomStatusWallVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
 public interface RoomMapper {
 
-    List<Room> queryRooms(Integer limit, Integer offset, Integer roomNumber, Integer roomType, Integer status);
+    List<Room> queryRooms(Integer limit, Integer offset, String roomNumber, Integer roomType, Integer status, LocalDate date);
+
+    Room lockRoomByNumber(String roomNumber);
+
+    Room lockRoomById(Integer id);
+
+    int enableAvailableRoom(Integer id);
+
+    int releaseOccupiedRoom(Integer id);
+
+    List<RoomStatusWallVO> getRoomStatusWall(LocalDateTime now);
 
     void modifyRoomStatus(Integer id, Integer status);
 
@@ -39,7 +51,7 @@ public interface RoomMapper {
 
     BigDecimal getRoomPriceByTypeAndDate(Integer roomType, LocalDate date);
 
-    int queryRoomsCount(Integer roomNumber, Integer roomType, Integer status);
+    int queryRoomsCount(String roomNumber, Integer roomType, Integer status);
 
     Room getRoomByRoomNumber(String roomNumber);
 }

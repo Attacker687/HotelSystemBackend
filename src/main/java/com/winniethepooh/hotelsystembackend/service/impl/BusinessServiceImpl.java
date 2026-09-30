@@ -110,7 +110,7 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     private List<Room> allRooms() {
-        return roomMapper.queryRooms(null, null, null, null, null);
+        return roomMapper.queryRooms(null, null, null, null, null, null);
     }
 
     @Override

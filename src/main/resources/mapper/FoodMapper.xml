@@ -2,6 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.FoodMapper">
+    <select id="getDishById" resultType="com.winniethepooh.hotelsystembackend.entity.Dish">
+        select * from dish where id = #{id} and is_deleted = 0
+    </select>
     <insert id="createFoodCategory">
         insert into category
         set name       = #{name},

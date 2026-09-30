@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class RoomStatusWallVO {
     private Integer id;
-    private Integer roomNumber;
+    private String roomNumber;
     private Integer roomType;
     private Integer status;
     private Individual individual;

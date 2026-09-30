@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 @Data
 public class QueryRoomsVO {
     private Integer id;
-    private Integer roomNumber;
+    private String roomNumber;
     private Integer roomType;
     private Integer status;
     private String image;

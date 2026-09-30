@@ -21,5 +21,5 @@ public interface RoomService {
 
     List<RoomStatusWallVO> getRoomStatusWallService();
 
-    PageBean<QueryRoomsVO> queryRoomsService(Integer page, Integer pageSize, Integer roomNumber, Integer roomType, Integer status, LocalDate date);
+    PageBean<QueryRoomsVO> queryRoomsService(Integer page, Integer pageSize, String roomNumber, Integer roomType, Integer status, LocalDate date);
 }

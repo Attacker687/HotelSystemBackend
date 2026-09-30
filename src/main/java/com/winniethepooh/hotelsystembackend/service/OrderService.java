@@ -32,4 +32,6 @@ public interface OrderService {
     void cancelRoomOrderService(Long id);
 
     void insertMealOrderService(InsertMealOrderDTO insertMealOrderDTO);
+
+    void cancelMealOrderService(Integer id);
 }

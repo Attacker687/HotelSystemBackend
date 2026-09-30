@@ -4,20 +4,20 @@ import com.winniethepooh.hotelsystembackend.dto.DailyGuestDTO;
 import com.winniethepooh.hotelsystembackend.dto.DailyRevenueDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertMealOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO;
-import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.TimeCheckDTO;
 import com.winniethepooh.hotelsystembackend.entity.Individual;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
 import com.winniethepooh.hotelsystembackend.entity.MealOrderItem;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.vo.DishTop10VO;
-import com.winniethepooh.hotelsystembackend.vo.RevenueStatsVO;
+import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface OrderMapper {
@@ -26,15 +26,23 @@ public interface OrderMapper {
 
     List<RoomOrder> getRoomOrdersByDate(LocalDate startDate, LocalDate endDate, Integer id);
 
-    void insertRoomComment(Integer id, String comment, Integer commentStar);
+    int insertRoomComment(Integer id, String comment, Integer commentStar, Integer userId);
 
-    void insertMealComment(Integer id, String comment, Integer commentStar);
+    int insertMealComment(Integer id, String comment, Integer commentStar, Integer userId);
 
-    List<RoomOrder> getAllRoomOrderList(Integer offset, Integer limit);
+    List<GetAllRoomOrderVO> getAllRoomOrderList(Integer offset, Integer limit);
 
     void insertRoomOrderV1(RoomOrder roomOrder);
 
-    void modifyRoomOrder(Integer id, ModifyRoomOrderDTO modifyRoomOrderDTO);
+    int modifyRoomOrder(RoomOrder order);
+
+    RoomOrder getRoomOrderByIdForUpdate(Long id);
+
+    Long findOverlappingOrder(Long roomId, LocalDateTime checkin, LocalDateTime checkout, Long excludeId);
+
+    void insertRoomOrderNights(Long orderId, Map<LocalDate, BigDecimal> nights);
+
+    void deleteRoomOrderNights(Long orderId);
 
     void deleteRoomOrder(Integer id);
 
@@ -66,7 +74,13 @@ public interface OrderMapper {
 
     RoomOrder getRoomOrderByRoomIdAndTime(Integer id, LocalDateTime now);
 
-    void modifyRoomOrderPayStatus(Long id, int status);
+    int payRoomOrder(Long id, Integer userId);
+
+    int cancelRoomOrder(Long id, Integer userId, LocalDateTime now);
+
+    void ensureTaskLock(String taskName);
+
+    int claimTaskLock(String taskName, String owner);
 
     void flushExpiredRoomOrders();
 
@@ -80,7 +94,9 @@ public interface OrderMapper {
 
     MealOrder getMealOrderByOrderId(Integer mealOrderId);
 
-    void modifyMealOrderStatus(Integer id, Integer status);
+    int modifyMealOrderStatus(Integer id, Integer status, Integer originalStatus);
+
+    int cancelMealOrder(Integer id, Integer userId);
 
     void insertMealOrder(InsertMealOrderDTO insertMealOrderDTO);
 
