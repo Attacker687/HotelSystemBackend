@@ -1,0 +1,649 @@
+{
+  "commit": "79e476ead522a034b507c29d939310566063631b",
+  "worktree": "C:\\t\\hsb\\.nova\\worktrees\\_integration",
+  "log": "C:\\t\\hsb\\.nova\\review-fixes\\build\\W6\\verify-integration-name.log",
+  "groups": {
+    "surefire-reports": {
+      "tests": 27,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failsafe-reports": {
+      "tests": 252,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failsafe-e2e-reports": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "summaries": {
+    "failsafe-reports": {
+      "completed": 252,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeout": false
+    },
+    "failsafe-e2e-reports": {
+      "completed": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timeout": false
+    }
+  },
+  "playwright": {
+    "TC-132": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 78.234
+    },
+    "TC-133": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 176.791
+    },
+    "TC-134": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 3.156
+    },
+    "TC-135": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 2.318
+    },
+    "TC-136": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 2.486
+    },
+    "TC-137": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 2.358
+    }
+  },
+  "case_methods": {
+    "TC-003": {
+      "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc003_missingRoleIsRejected": 1
+    },
+    "TC-010": {
+      "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc010_classAnnotationAppliesWhenMethodHasNone": 1,
+      "com.winniethepooh.hotelsystembackend.exception.GlobalExceptionHandlerTest.tc010_c1_forbiddenExceptionReturns403": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[5]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[6]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[7]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[8]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[9]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[10]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[11]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[12]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[13]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[14]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[15]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[16]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[17]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[18]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[19]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[20]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc010_nonManagerCannotQueryBusiness(String, String)[21]": 1,
+      "com.winniethepooh.hotelsystembackend.ErrorResponseIT.tc010_c1_insufficientRoleReturns403": 1
+    },
+    "TC-001": {
+      "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc001_methodAnnotationWinsOverClassAnnotation_frontAllowed": 1
+    },
+    "TC-002": {
+      "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc002_methodAnnotationWinsOverClassAnnotation_managerRejected": 1
+    },
+    "TC-133": {
+      "com.winniethepooh.hotelsystembackend.config.SchedulingConfigTest.tc133_schedulingDisabledWhenPropertyFalse": 1,
+      "com.winniethepooh.hotelsystembackend.config.SchedulingConfigTest.tc133_schedulingEnabledByDefault": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc133_infra_createdMinutesAgoUsesDatabaseClock": 1,
+      "com.winniethepooh.hotelsystembackend.BrowserE2EIT.tc133_unpaidFrontOrderSurvivesTimeoutAndRoomIsCleaned": 1
+    },
+    "TC-127": {
+      "com.winniethepooh.hotelsystembackend.exception.GlobalExceptionHandlerTest.tc127_c1_unexpectedExceptionReturns500WithGenericMessage": 1,
+      "com.winniethepooh.hotelsystembackend.ErrorResponseIT.tc127_emptyMealOrderReturnsSpecific400AndWritesNothing": 1,
+      "com.winniethepooh.hotelsystembackend.ErrorResponseIT.tc127_c1_businessExceptionCarriesItsStatusAndMessage": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc127_mealOrderItemWithZeroQuantityReturns400BeforeService": 1
+    },
+    "TC-136": {
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc136_swaggerWhitelistRespectsProfileAndPathBoundaries(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc136_swaggerWhitelistRespectsProfileAndPathBoundaries(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc136_swaggerWhitelistRespectsProfileAndPathBoundaries(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc136_swaggerWhitelistRespectsProfileAndPathBoundaries(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.HotelSystemBackendApplicationTests.tc136_contextLoads": 1,
+      "com.winniethepooh.hotelsystembackend.DefaultProfileIT.tc136_defaultProfileSwaggerRequiresToken": 1,
+      "com.winniethepooh.hotelsystembackend.DefaultProfileIT.tc136_e1_defaultProfileIsProductionWithoutSchemaOrDemoData": 1,
+      "com.winniethepooh.hotelsystembackend.DevProfileDemoDataIT.tc136_e1_devProfileLoadsSchemaAndDemoDataAndDemoManagerCanLogin": 1,
+      "com.winniethepooh.hotelsystembackend.DevProfileDemoDataIT.tc136_devProfileSwaggerLoadsWithoutToken": 1,
+      "com.winniethepooh.hotelsystembackend.BrowserE2EIT.tc136_emptyDatabaseDevBootDemoLoginAndSwagger": 1
+    },
+    "TC-004": {
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc004_baseContextIsClearedAfterRequest(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc004_baseContextIsClearedAfterRequest(String)[2]": 1
+    },
+    "TC-132": {
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc132_staticAssetsAreAnonymousWithoutOpeningSiblingApiPaths(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc132_staticAssetsAreAnonymousWithoutOpeningSiblingApiPaths(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc132_staticAssetsAreAnonymousWithoutOpeningSiblingApiPaths(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc132_staticAssetsAreAnonymousWithoutOpeningSiblingApiPaths(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc132_p4_userOrderQueryStillIncludesEndDate": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_databaseAndJvmUseShanghaiClock": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_baseDataMatchesStrategyDataTable": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_allBaseAccountsCanLoginAndTokenStoredInRedis": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_standardRequestBodiesAreAcceptedByCurrentApi": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_testProfileDisablesSchedulerCron": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_resetRestartsAutoIncrement": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc132_infra_unknownAliasFailsFast": 1,
+      "com.winniethepooh.hotelsystembackend.BrowserE2EIT.tc132_guestRegistrationBookingPaymentRevenueAndCheckout": 1
+    },
+    "TC-007": {
+      "com.winniethepooh.hotelsystembackend.MapperWhereDateTest.tc007_mapperWhereClausesDoNotWrapColumnsInDate": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc007_statusWallShowsGuestUntilCheckoutDay": 1
+    },
+    "TC-006": {
+      "com.winniethepooh.hotelsystembackend.NoManualRedisConnectionTest.tc006_sourceNeverFetchesRedisConnectionManually": 1
+    },
+    "TC-008": {
+      "com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.tc008_twoUploadsReuseTheSameOssClient": 1
+    },
+    "TC-009": {
+      "com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.tc009_inputStreamClosedWhetherPutObjectSucceedsOrFails(boolean)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.tc009_inputStreamClosedWhetherPutObjectSucceedsOrFails(boolean)[2]": 1
+    },
+    "TC-035": {
+      "com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.tc035_tokensForSameClaimsAreDistinct": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc035_userReLoginInvalidatesPreviousToken": 1
+    },
+    "TC-058": {
+      "com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.tc058_secretShorterThan256BitsIsRejected": 1,
+      "com.winniethepooh.hotelsystembackend.JwtSecretRequiredIT.tc058_applicationRefusesToStartWithoutJwtSecret": 1
+    },
+    "TC-005": {
+      "com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.tc005_tokenSignedWithLegacyHardcodedKeyIsRejected": 1
+    },
+    "TC-012": {
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc012_nonRestaurantCannotReadLiveOrders(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc012_nonRestaurantCannotReadLiveOrders(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc012_nonRestaurantCannotReadLiveOrders(String)[3]": 1
+    },
+    "TC-015": {
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc015_userCannotDeleteOrder": 1
+    },
+    "TC-011": {
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc011_nonManagerCannotUpdatePriceCalendar(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc011_nonManagerCannotUpdatePriceCalendar(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc011_nonManagerCannotUpdatePriceCalendar(String)[3]": 1
+    },
+    "TC-014": {
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc014_frontCannotRegisterStaff": 1
+    },
+    "TC-017": {
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc017_pathsOutsideWhitelistRequireToken(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc017_pathsOutsideWhitelistRequireToken(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc017_pathsOutsideWhitelistRequireToken(String)[3]": 1
+    },
+    "TC-013": {
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc013_nonRestaurantCannotChangeMealOrderStatus(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc013_nonRestaurantCannotChangeMealOrderStatus(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.AccessControlIT.tc013_nonRestaurantCannotChangeMealOrderStatus(String)[3]": 1
+    },
+    "TC-016": {
+      "com.winniethepooh.hotelsystembackend.AnonymousStaffRegisterIT.tc016_anonymousStaffRegisterOnManagersThreadIsRejected": 1
+    },
+    "TC-114": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc114_repeatCustomerRateIsShareOfTodaysGuestsWithEarlierStay": 1
+    },
+    "TC-109": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc109_crossMonthOrderRevenueSplitsByNight": 1
+    },
+    "TC-108": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc108_suiteWithRoomIdOneCountsOnlyAsSuite": 1
+    },
+    "TC-134": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc134_d6_top10IncludesEndDateAndExcludesCancelledMealOrders": 1,
+      "com.winniethepooh.hotelsystembackend.BrowserE2EIT.tc134_mealCancellationCompletionReviewAndTop10": 1
+    },
+    "TC-120": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc120_statsSqlCountIndependentOfDaysAndFloors(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc120_statsSqlCountIndependentOfDaysAndFloors(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc120_statsSqlCountIndependentOfDaysAndFloors(String)[3]": 1
+    },
+    "TC-119": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[5]": 1
+    },
+    "TC-111": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc111_threeNightOrderAvgPriceIsNightlyPrice": 1
+    },
+    "TC-113": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc113_heatmapDoesNotCountCheckoutDayAsOccupied": 1
+    },
+    "TC-112": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc112_detailDoesNotCountCheckoutDayAsOccupied": 1
+    },
+    "TC-110": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc110_avgPriceIsRevenuePerRoomNight": 1
+    },
+    "TC-137": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc137_d4_paidThenCancelledOrderExcludedFromRevenueAndOccupancy": 1,
+      "com.winniethepooh.hotelsystembackend.BrowserE2EIT.tc137_paidCancellationRefundAndRoomRebooking": 1
+    },
+    "TC-107": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc107_roomTypeRevenueSumsByRoomsRoomType": 1
+    },
+    "TC-118": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[5]": 1
+    },
+    "TC-115": {
+      "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc115_liveOrderCountExcludesDeletedMealOrders": 1
+    },
+    "TC-061": {
+      "com.winniethepooh.hotelsystembackend.CorsIT.tc061_preflightFromUnlistedOriginGetsNoAllowOrigin": 1
+    },
+    "TC-062": {
+      "com.winniethepooh.hotelsystembackend.CorsIT.tc062_preflightFromListedOriginIsAllowedWithCredentials": 1
+    },
+    "TC-060": {
+      "com.winniethepooh.hotelsystembackend.DevSqlLogIT.tc060_devProfileLogsMapperSqlAtDebug": 1
+    },
+    "TC-125": {
+      "com.winniethepooh.hotelsystembackend.ErrorResponseIT.tc125_c1_springMvcErrorsKeepTheirOwnStatus": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc125_registerWithNullNameReturns400BeforeService": 1
+    },
+    "TC-117": {
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc117_sqlCounterSeesRoomQueryRunOnTomcatThreads": 1,
+      "com.winniethepooh.hotelsystembackend.InfrastructureIT.tc117_infra_sqlCounterCountsEachStatementOnce": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc117_listSqlCountDoesNotGrowWithRows(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc117_listSqlCountDoesNotGrowWithRows(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc117_listSqlCountDoesNotGrowWithRows(String)[3]": 1
+    },
+    "TC-047": {
+      "com.winniethepooh.hotelsystembackend.LoginFailureIT.tc047_staffLoginUnknownAccountAndWrongPasswordLookTheSame": 1
+    },
+    "TC-046": {
+      "com.winniethepooh.hotelsystembackend.LoginFailureIT.tc046_userLoginUnknownAccountAndWrongPasswordLookTheSame": 1
+    },
+    "TC-050": {
+      "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc050_fiveFailuresFromOneIpAcrossAccountsLockTheIp": 1
+    },
+    "TC-049": {
+      "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc049_fiveFailuresLockTheAccount(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc049_fiveFailuresLockTheAccount(String)[2]": 1
+    },
+    "TC-051": {
+      "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc051_loginAllowedAgainAfterLockExpires": 1
+    },
+    "TC-048": {
+      "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc048_fourFailuresStillAllowCorrectPassword(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc048_fourFailuresStillAllowCorrectPassword(String)[2]": 1
+    },
+    "TC-068": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc068_20SimultaneousBookingsHaveOneWinnerInEachOf10Rounds": 1
+    },
+    "TC-026": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc026_500CharacterCommentIsWritten": 1
+    },
+    "TC-081": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc081_missingRoomIsRejectedBeforeAnyWrite": 1
+    },
+    "TC-066": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc066_exactTouchingIntervalsAreAllowed(boolean)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc066_exactTouchingIntervalsAreAllowed(boolean)[2]": 1
+    },
+    "TC-123": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[5]": 1
+    },
+    "TC-097": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc097_nightRewriteFailureRollsBackModificationAndOriginalNights": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc097_extensionRepricesAndRewritesNights": 1
+    },
+    "TC-094": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc094_twoInstancesReleaseEachOrderOnlyOnce": 1
+    },
+    "TC-087": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc087_pricing30NightsSelectsCalendarOnce": 1
+    },
+    "TC-071": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc071_paidOrderCannotBePaidAgain": 1
+    },
+    "TC-030": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc030_deletedDishIsRejected": 1
+    },
+    "TC-079": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc079_cannotCancelAnotherUsersRoomOrder": 1
+    },
+    "TC-031": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc031_disabledDishIsRejected": 1
+    },
+    "TC-067": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc067_frontOverlapCannotChangeRoomOrWriteOrder": 1
+    },
+    "TC-065": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc065_unpaidOverlapIsRejected(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc065_unpaidOverlapIsRejected(int)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc065_unpaidOverlapIsRejected(int)[3]": 1
+    },
+    "TC-082": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc082_yesterdaysCheckinIs400": 1
+    },
+    "TC-078": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc078_startedOrderCannotBeCancelledRegardlessOfRoomStatus(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc078_startedOrderCannotBeCancelledRegardlessOfRoomStatus(int)[2]": 1
+    },
+    "TC-064": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc064_paidOverlapIsRejected(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc064_paidOverlapIsRejected(int)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc064_paidOverlapIsRejected(int)[3]": 1
+    },
+    "TC-093": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc093_successfulReleaseNeedsCleaningBeforeAvailable": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc093_releaseFailureRollsBackRoomAndOrder": 1
+    },
+    "TC-086": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc086_31NightsAre400": 1
+    },
+    "TC-028": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc028_mealPricesComeFromDatabase": 1
+    },
+    "TC-076": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc076_unpaidFutureOrderCanBeCancelled": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc076_paidFutureCancellationRefundsAndExcludesRevenue": 1
+    },
+    "TC-063": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc063_getCannotChangeOrder(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc063_getCannotChangeOrder(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc063_getStaffLogoutCannotRevokeSessionButPostDoes": 1
+    },
+    "TC-090": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc090_occupiedRoomWithoutOrderCanBecomeAvailable": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc090_emptyRoomCanBeMarkedCleaningOrRepair(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc090_emptyRoomCanBeMarkedCleaningOrRepair(int)[2]": 1
+    },
+    "TC-075": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc075_concurrentPaymentAndCancellationNeverLeaveCancelledPaidIn50Rounds": 1
+    },
+    "TC-098": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc098_moveToSuiteRepricesNights": 1
+    },
+    "TC-080": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc080_nightInsertFailureRollsBackGuestOrderAndNights": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc080_orderWriteFailureRollsBackNewGuest": 1
+    },
+    "TC-091": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_invalidRoomStatusRejectedAtEveryWriteEntry(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_invalidRoomStatusRejectedAtEveryWriteEntry(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_invalidRoomStatusRejectedAtEveryWriteEntry(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_missingRoomStatusChangeHasSpecificFailure": 1
+    },
+    "TC-088": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc088_paidFrontOrderHasAmountAndTwoNights": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc088_unpaidFrontOrderIsNotExpiredAfter15Minutes": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc088_unpaidFrontOrderIsEnabledAndReleasedByTime": 1
+    },
+    "TC-024": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[4]": 1
+    },
+    "TC-022": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc022_cannotCommentOngoingRoomOrder": 1
+    },
+    "TC-104": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc104_restaurantCanCancelNewMealOrder": 1
+    },
+    "TC-096": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc096_invalidModificationDatesAre400": 1
+    },
+    "TC-122": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc122_pageSize100Works": 1
+    },
+    "TC-100": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[5]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[6]": 1
+    },
+    "TC-027": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc027_501CharacterCommentIs400AndUnchanged": 1
+    },
+    "TC-092": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc092_checkinTaskPreservesManualRoomStatus(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc092_checkinTaskPreservesManualRoomStatus(int)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc092_expiredOrderCannotBeEnabled": 1
+    },
+    "TC-021": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc021_cannotCommentAnotherUsersCompletedMealOrder": 1
+    },
+    "TC-099": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc099_terminalOrderCannotBeModified(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc099_terminalOrderCannotBeModified(int)[2]": 1
+    },
+    "TC-083": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc083_todayCanBeBookedAndAmountAndNightArePersisted": 1
+    },
+    "TC-089": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc089_manualCheckoutEndsCurrentOrder": 1
+    },
+    "TC-095": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc095_moveToOverlappingRoomIsRejected": 1
+    },
+    "TC-105": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc105_userCannotCancelProgressedMealOrder": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc105_userCanCancelOwnNewMealOrderOnlyOnce": 1
+    },
+    "TC-029": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc029_missingDishIsRejected": 1
+    },
+    "TC-106": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc106_userCannotCancelOthersNewMealOrder": 1
+    },
+    "TC-020": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc020_cannotCommentAnotherUsersCompletedRoomOrder": 1
+    },
+    "TC-085": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc085_30NightsAreAllowed": 1
+    },
+    "TC-023": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc023_cannotCommentNewMealOrder": 1
+    },
+    "TC-072": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc072_paymentDeadlineIsCheckedWithoutScheduler": 1
+    },
+    "TC-070": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc070_cancelledOrderCannotBePaid": 1
+    },
+    "TC-069": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc069_timeoutCancelledOrderCannotBePaid": 1
+    },
+    "TC-084": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc084_nonPositiveNightsAre400(boolean)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc084_nonPositiveNightsAre400(boolean)[2]": 1
+    },
+    "TC-025": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc025_validStarBoundariesAreWritten(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc025_validStarBoundariesAreWritten(int)[2]": 1
+    },
+    "TC-073": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc073_ownershipIsCheckedBeforePaymentStatus": 1
+    },
+    "TC-074": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc074_missingOrderHasSpecificPaymentFailure": 1
+    },
+    "TC-077": {
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc077_terminalRoomOrdersCannotBeCancelled(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc077_terminalRoomOrdersCannotBeCancelled(int)[2]": 1
+    },
+    "TC-040": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc040_staffCreatedByManagerHasBcryptPassword": 1
+    },
+    "TC-041": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_emailOnlyChangePreservesPasswordAndSession": 1,
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_changedUserPasswordIsBcrypt": 1,
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_incompletePasswordChangeReturns400WithoutMutation(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_incompletePasswordChangeReturns400WithoutMutation(String)[2]": 1
+    },
+    "TC-039": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc039_registeredUserPasswordIsBcrypt": 1
+    },
+    "TC-045": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc045_userStillOnLegacyHashCanChangePassword": 1
+    },
+    "TC-044": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc044_legacyUserIsNotMigratedOnWrongPassword": 1
+    },
+    "TC-042": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc042_legacyUserIsMigratedToBcryptOnSuccessfulLogin": 1
+    },
+    "TC-043": {
+      "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc043_legacyStaffIsMigratedToBcryptOnSuccessfulLogin": 1
+    },
+    "TC-121": {
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc121_batchPriceIsOneUpsertWithOneRowPerDate": 1,
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc121_getCalendarReturnsOneEntryPerDateWithNullForUnsetDays": 1
+    },
+    "TC-101": {
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc101_nonPositivePriceRejectedWith400(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc101_nonPositivePriceRejectedWith400(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc101_nonPositivePriceRejectedWith400(String)[3]": 1
+    },
+    "TC-103": {
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc103_unknownRoomTypeRejectedWith400(int)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc103_unknownRoomTypeRejectedWith400(int)[2]": 1
+    },
+    "TC-102": {
+      "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc102_smallestPositivePriceIsWritten": 1
+    },
+    "TC-130": {
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc130_validPasswordAcceptedByRegisterAndChange(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc130_validPasswordAcceptedByRegisterAndChange(String)[2]": 1
+    },
+    "TC-124": {
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc124_priceCalendarStartAfterEndReturns400": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc124_c1_reversedDateRangeFromSharedDateUtilReturns400": 1
+    },
+    "TC-129": {
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String, String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String, String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String, String)[3]": 1
+    },
+    "TC-128": {
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[4]": 1
+    },
+    "TC-126": {
+      "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc126_roomOrderWithNullCheckInTimeReturns400BeforeService": 1
+    },
+    "TC-131": {
+      "com.winniethepooh.hotelsystembackend.SchemaSqlIT.tc131_schemaSqlCreatesAllTablesColumnsAndPriceCalendarUniqueKey": 1
+    },
+    "TC-059": {
+      "com.winniethepooh.hotelsystembackend.SqlLogIT.tc059_nonDevProfileDoesNotPrintSqlParameters(CapturedOutput)": 1
+    },
+    "TC-036": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc036_staffLogoutInvalidatesToken": 1
+    },
+    "TC-116": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[5]": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[6]": 1
+    },
+    "TC-038": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc038_staffLoginWritesSessionIndexAndTokenTtl": 1
+    },
+    "TC-033": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc033_disabledStaffTokenIsRevoked": 1,
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc033_deletedStaffTokenIsRevoked": 1
+    },
+    "TC-034": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc034_userPasswordChangeRevokesOldToken": 1
+    },
+    "TC-032": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc032_staffReLoginInvalidatesPreviousToken": 1
+    },
+    "TC-037": {
+      "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc037_userLoginWritesSessionIndex": 1
+    },
+    "TC-053": {
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_pngExtensionWithHtmlContentRejected": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[3]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[4]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[5]": 1
+    },
+    "TC-054": {
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc054_extensionOutsideWhitelistRejected(String, String, String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc054_extensionOutsideWhitelistRejected(String, String, String)[2]": 1
+    },
+    "TC-055": {
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc055_fileNameWithoutDotRejectedWithReason": 1
+    },
+    "TC-052": {
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc052_nonManagerRolesCannotUpload(String)[1]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc052_nonManagerRolesCannotUpload(String)[2]": 1,
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc052_nonManagerRolesCannotUpload(String)[3]": 1
+    },
+    "TC-056": {
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc056_managerUploadsPngOfExactlyTheLimit": 1
+    },
+    "TC-057": {
+      "com.winniethepooh.hotelsystembackend.UploadImageIT.tc057_managerUploadsPngOneByteOverTheLimitGets413": 1
+    },
+    "TC-018": {
+      "com.winniethepooh.hotelsystembackend.UserInfoIT.tc018_userCannotReadAnotherUsersInfo": 1
+    },
+    "TC-019": {
+      "com.winniethepooh.hotelsystembackend.UserInfoIT.tc019_idCardNumberIsMasked": 1
+    },
+    "TC-135": {
+      "com.winniethepooh.hotelsystembackend.BrowserE2EIT.tc135_disabledNewStaffSessionIsImmediatelyRejected": 1
+    }
+  },
+  "total_executions": 285,
+  "unique_cases": 137,
+  "bad_method_names": []
+}

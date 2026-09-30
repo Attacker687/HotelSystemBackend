@@ -1,0 +1,28 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="78.907353">
+<testsuite name="hotel.spec.js" timestamp="2026-09-30T15:32:47.099Z" hostname="" tests="1" failures="0" skipped="0" time="78.234" errors="0">
+<testcase name="TC-132 住客注册、预订、支付、按晚营收和真实 cron 退房" classname="hotel.spec.js" time="78.234">
+<system-out>
+<![CDATA[cron R1: room.status=0, order.status=0
+cron R1: room.status=0, order.status=0
+cron R1: room.status=0, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=1, order.status=0
+cron R1: room.status=2, order.status=1
+
+[[ATTACHMENT|artifacts\TC-132\hotel-TC-132-住客注册、预订、支付、按晚营收和真实-cron-退房\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

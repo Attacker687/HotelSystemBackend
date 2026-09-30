@@ -1,0 +1,11 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="3.4265920000000003">
+<testsuite name="hotel.spec.js" timestamp="2026-09-30T15:37:04.999Z" hostname="" tests="1" failures="0" skipped="0" time="2.318" errors="0">
+<testcase name="TC-135 停用员工与经理并发请求失效后保持员工登录页" classname="hotel.spec.js" time="2.318">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|artifacts\TC-135\hotel-TC-135-停用员工与经理并发请求失效后保持员工登录页\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

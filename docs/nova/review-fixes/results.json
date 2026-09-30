@@ -1,0 +1,1786 @@
+{
+  "cases": {
+    "TC-003": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc003_missingRoleIsRejected"
+      ],
+      "time": 4.19,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-010": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.ErrorResponseIT.tc010_c1_insufficientRoleReturns403"
+      ],
+      "time": 0.305,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.ErrorResponseIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-001": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc001_methodAnnotationWinsOverClassAnnotation_frontAllowed"
+      ],
+      "time": 0.002,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-002": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.tc002_methodAnnotationWinsOverClassAnnotation_managerRejected"
+      ],
+      "time": 0.002,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-133": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "hotel.spec.js.TC-133 前台未收款单经历 70 秒超时检查、入住、退房、清洁完成"
+      ],
+      "time": 176.791,
+      "source": "TC-133.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-127": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc127_mealOrderItemWithZeroQuantityReturns400BeforeService"
+      ],
+      "time": 0.171,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-136": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "hotel.spec.js.TC-136 空库脚本和 dev 启动、演示经理登录、匿名 Swagger UI"
+      ],
+      "time": 2.486,
+      "source": "TC-136.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-004": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc004_baseContextIsClearedAfterRequest(String)[1]",
+        "com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.tc004_baseContextIsClearedAfterRequest(String)[2]"
+      ],
+      "time": 0.358,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-132": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "hotel.spec.js.TC-132 住客注册、预订、支付、按晚营收和真实 cron 退房"
+      ],
+      "time": 78.234,
+      "source": "TC-132.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-007": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc007_statusWallShowsGuestUntilCheckoutDay"
+      ],
+      "time": 0.266,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-006": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.NoManualRedisConnectionTest.tc006_sourceNeverFetchesRedisConnectionManually"
+      ],
+      "time": 0.043,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.NoManualRedisConnectionTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-008": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.tc008_twoUploadsReuseTheSameOssClient"
+      ],
+      "time": 0.051,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-009": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.tc009_inputStreamClosedWhetherPutObjectSucceedsOrFails(boolean)[1]",
+        "com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.tc009_inputStreamClosedWhetherPutObjectSucceedsOrFails(boolean)[2]"
+      ],
+      "time": 0.1,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-035": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc035_userReLoginInvalidatesPreviousToken"
+      ],
+      "time": 0.235,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-058": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.JwtSecretRequiredIT.tc058_applicationRefusesToStartWithoutJwtSecret"
+      ],
+      "time": 0.413,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.JwtSecretRequiredIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-005": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.tc005_tokenSignedWithLegacyHardcodedKeyIsRejected"
+      ],
+      "time": 0.005,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-012": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc012_nonRestaurantCannotReadLiveOrders(String)[1]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc012_nonRestaurantCannotReadLiveOrders(String)[2]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc012_nonRestaurantCannotReadLiveOrders(String)[3]"
+      ],
+      "time": 3.6780000000000004,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-015": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc015_userCannotDeleteOrder"
+      ],
+      "time": 0.197,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-011": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc011_nonManagerCannotUpdatePriceCalendar(String)[1]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc011_nonManagerCannotUpdatePriceCalendar(String)[2]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc011_nonManagerCannotUpdatePriceCalendar(String)[3]"
+      ],
+      "time": 0.654,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-014": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc014_frontCannotRegisterStaff"
+      ],
+      "time": 0.284,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-017": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc017_pathsOutsideWhitelistRequireToken(String)[1]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc017_pathsOutsideWhitelistRequireToken(String)[2]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc017_pathsOutsideWhitelistRequireToken(String)[3]"
+      ],
+      "time": 0.42600000000000005,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-013": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc013_nonRestaurantCannotChangeMealOrderStatus(String)[1]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc013_nonRestaurantCannotChangeMealOrderStatus(String)[2]",
+        "com.winniethepooh.hotelsystembackend.AccessControlIT.tc013_nonRestaurantCannotChangeMealOrderStatus(String)[3]"
+      ],
+      "time": 0.588,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-016": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.AnonymousStaffRegisterIT.tc016_anonymousStaffRegisterOnManagersThreadIsRejected"
+      ],
+      "time": 0.422,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AnonymousStaffRegisterIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-114": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc114_repeatCustomerRateIsShareOfTodaysGuestsWithEarlierStay"
+      ],
+      "time": 0.264,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-109": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc109_crossMonthOrderRevenueSplitsByNight"
+      ],
+      "time": 0.224,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-108": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc108_suiteWithRoomIdOneCountsOnlyAsSuite"
+      ],
+      "time": 0.19,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-134": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "hotel.spec.js.TC-134 两张餐饮单取消一张，另一张推进、评价并计入 Top10"
+      ],
+      "time": 3.156,
+      "source": "TC-134.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-120": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc120_statsSqlCountIndependentOfDaysAndFloors(String)[1]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc120_statsSqlCountIndependentOfDaysAndFloors(String)[2]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc120_statsSqlCountIndependentOfDaysAndFloors(String)[3]"
+      ],
+      "time": 0.73,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-119": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[1]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[2]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[3]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[4]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc119_span366DaysAccepted(String)[5]"
+      ],
+      "time": 1.258,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-111": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc111_threeNightOrderAvgPriceIsNightlyPrice"
+      ],
+      "time": 0.214,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-113": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc113_heatmapDoesNotCountCheckoutDayAsOccupied"
+      ],
+      "time": 0.231,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-112": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc112_detailDoesNotCountCheckoutDayAsOccupied"
+      ],
+      "time": 0.213,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-110": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc110_avgPriceIsRevenuePerRoomNight"
+      ],
+      "time": 0.216,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-137": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "hotel.spec.js.TC-137 住客支付后取消退款，经理概览为零，另一住客重订同房"
+      ],
+      "time": 2.358,
+      "source": "TC-137.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-107": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc107_roomTypeRevenueSumsByRoomsRoomType"
+      ],
+      "time": 0.206,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-118": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[1]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[2]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[3]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[4]",
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc118_span367DaysRejectedWith400(String)[5]"
+      ],
+      "time": 1.015,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-115": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.BusinessStatsIT.tc115_liveOrderCountExcludesDeletedMealOrders"
+      ],
+      "time": 0.268,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-061": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.CorsIT.tc061_preflightFromUnlistedOriginGetsNoAllowOrigin"
+      ],
+      "time": 0.091,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.CorsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-062": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.CorsIT.tc062_preflightFromListedOriginIsAllowedWithCredentials"
+      ],
+      "time": 0.101,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.CorsIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-060": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.DevSqlLogIT.tc060_devProfileLogsMapperSqlAtDebug"
+      ],
+      "time": 0.248,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.DevSqlLogIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-125": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc125_registerWithNullNameReturns400BeforeService"
+      ],
+      "time": 0.125,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-117": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc117_listSqlCountDoesNotGrowWithRows(String)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc117_listSqlCountDoesNotGrowWithRows(String)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc117_listSqlCountDoesNotGrowWithRows(String)[3]"
+      ],
+      "time": 3.4530000000000003,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-047": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.LoginFailureIT.tc047_staffLoginUnknownAccountAndWrongPasswordLookTheSame"
+      ],
+      "time": 0.188,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginFailureIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-046": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.LoginFailureIT.tc046_userLoginUnknownAccountAndWrongPasswordLookTheSame"
+      ],
+      "time": 0.189,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginFailureIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-050": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc050_fiveFailuresFromOneIpAcrossAccountsLockTheIp"
+      ],
+      "time": 0.514,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginRateLimitIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-049": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc049_fiveFailuresLockTheAccount(String)[1]",
+        "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc049_fiveFailuresLockTheAccount(String)[2]"
+      ],
+      "time": 0.925,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginRateLimitIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-051": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc051_loginAllowedAgainAfterLockExpires"
+      ],
+      "time": 2.644,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginRateLimitIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-048": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc048_fourFailuresStillAllowCorrectPassword(String)[1]",
+        "com.winniethepooh.hotelsystembackend.LoginRateLimitIT.tc048_fourFailuresStillAllowCorrectPassword(String)[2]"
+      ],
+      "time": 1.036,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginRateLimitIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-068": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc068_20SimultaneousBookingsHaveOneWinnerInEachOf10Rounds"
+      ],
+      "time": 4.532,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-026": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc026_500CharacterCommentIsWritten"
+      ],
+      "time": 0.516,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-081": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc081_missingRoomIsRejectedBeforeAnyWrite"
+      ],
+      "time": 0.326,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-066": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc066_exactTouchingIntervalsAreAllowed(boolean)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc066_exactTouchingIntervalsAreAllowed(boolean)[2]"
+      ],
+      "time": 0.6479999999999999,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-123": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[3]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[4]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc123_paginationOutOfBoundsIs400(String)[5]"
+      ],
+      "time": 1.2389999999999999,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-097": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc097_nightRewriteFailureRollsBackModificationAndOriginalNights",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc097_extensionRepricesAndRewritesNights"
+      ],
+      "time": 0.888,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-094": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc094_twoInstancesReleaseEachOrderOnlyOnce"
+      ],
+      "time": 3.583,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-087": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc087_pricing30NightsSelectsCalendarOnce"
+      ],
+      "time": 0.202,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-071": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc071_paidOrderCannotBePaidAgain"
+      ],
+      "time": 0.198,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-030": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc030_deletedDishIsRejected"
+      ],
+      "time": 0.235,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-079": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc079_cannotCancelAnotherUsersRoomOrder"
+      ],
+      "time": 0.272,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-031": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc031_disabledDishIsRejected"
+      ],
+      "time": 0.18,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-067": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc067_frontOverlapCannotChangeRoomOrWriteOrder"
+      ],
+      "time": 0.277,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-065": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc065_unpaidOverlapIsRejected(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc065_unpaidOverlapIsRejected(int)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc065_unpaidOverlapIsRejected(int)[3]"
+      ],
+      "time": 0.785,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-082": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc082_yesterdaysCheckinIs400"
+      ],
+      "time": 0.174,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-078": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc078_startedOrderCannotBeCancelledRegardlessOfRoomStatus(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc078_startedOrderCannotBeCancelledRegardlessOfRoomStatus(int)[2]"
+      ],
+      "time": 0.491,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-064": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc064_paidOverlapIsRejected(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc064_paidOverlapIsRejected(int)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc064_paidOverlapIsRejected(int)[3]"
+      ],
+      "time": 0.8150000000000001,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-093": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc093_successfulReleaseNeedsCleaningBeforeAvailable",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc093_releaseFailureRollsBackRoomAndOrder"
+      ],
+      "time": 0.492,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-086": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc086_31NightsAre400"
+      ],
+      "time": 0.171,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-028": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc028_mealPricesComeFromDatabase"
+      ],
+      "time": 0.211,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-076": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc076_unpaidFutureOrderCanBeCancelled",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc076_paidFutureCancellationRefundsAndExcludesRevenue"
+      ],
+      "time": 0.45799999999999996,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-063": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc063_getStaffLogoutCannotRevokeSessionButPostDoes"
+      ],
+      "time": 0.172,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-090": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc090_occupiedRoomWithoutOrderCanBecomeAvailable",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc090_emptyRoomCanBeMarkedCleaningOrRepair(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc090_emptyRoomCanBeMarkedCleaningOrRepair(int)[2]"
+      ],
+      "time": 0.516,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-075": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc075_concurrentPaymentAndCancellationNeverLeaveCancelledPaidIn50Rounds"
+      ],
+      "time": 1.35,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-098": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc098_moveToSuiteRepricesNights"
+      ],
+      "time": 0.199,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-080": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc080_nightInsertFailureRollsBackGuestOrderAndNights",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc080_orderWriteFailureRollsBackNewGuest"
+      ],
+      "time": 0.476,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-091": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_invalidRoomStatusRejectedAtEveryWriteEntry(String)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_invalidRoomStatusRejectedAtEveryWriteEntry(String)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_invalidRoomStatusRejectedAtEveryWriteEntry(String)[3]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc091_missingRoomStatusChangeHasSpecificFailure"
+      ],
+      "time": 0.78,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-088": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc088_paidFrontOrderHasAmountAndTwoNights",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc088_unpaidFrontOrderIsNotExpiredAfter15Minutes",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc088_unpaidFrontOrderIsEnabledAndReleasedByTime"
+      ],
+      "time": 0.655,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-024": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[3]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc024_invalidStarsAre400AndUnchanged(int)[4]"
+      ],
+      "time": 0.839,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-022": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc022_cannotCommentOngoingRoomOrder"
+      ],
+      "time": 0.188,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-104": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc104_restaurantCanCancelNewMealOrder"
+      ],
+      "time": 0.252,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-096": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc096_invalidModificationDatesAre400"
+      ],
+      "time": 0.183,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-122": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc122_pageSize100Works"
+      ],
+      "time": 0.163,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-100": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[3]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[4]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[5]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc100_roomNumbersRemainStrings(String, String)[6]"
+      ],
+      "time": 1.114,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-027": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc027_501CharacterCommentIs400AndUnchanged"
+      ],
+      "time": 0.179,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-092": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc092_checkinTaskPreservesManualRoomStatus(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc092_checkinTaskPreservesManualRoomStatus(int)[2]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc092_expiredOrderCannotBeEnabled"
+      ],
+      "time": 0.7849999999999999,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-021": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc021_cannotCommentAnotherUsersCompletedMealOrder"
+      ],
+      "time": 0.244,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-099": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc099_terminalOrderCannotBeModified(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc099_terminalOrderCannotBeModified(int)[2]"
+      ],
+      "time": 0.369,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-083": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc083_todayCanBeBookedAndAmountAndNightArePersisted"
+      ],
+      "time": 0.259,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-089": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc089_manualCheckoutEndsCurrentOrder"
+      ],
+      "time": 0.268,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-095": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc095_moveToOverlappingRoomIsRejected"
+      ],
+      "time": 0.269,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-105": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc105_userCannotCancelProgressedMealOrder",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc105_userCanCancelOwnNewMealOrderOnlyOnce"
+      ],
+      "time": 0.40800000000000003,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-029": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc029_missingDishIsRejected"
+      ],
+      "time": 0.166,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-106": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc106_userCannotCancelOthersNewMealOrder"
+      ],
+      "time": 0.248,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-020": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc020_cannotCommentAnotherUsersCompletedRoomOrder"
+      ],
+      "time": 0.248,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-085": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc085_30NightsAreAllowed"
+      ],
+      "time": 0.165,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-023": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc023_cannotCommentNewMealOrder"
+      ],
+      "time": 0.27,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-072": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc072_paymentDeadlineIsCheckedWithoutScheduler"
+      ],
+      "time": 0.17,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-070": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc070_cancelledOrderCannotBePaid"
+      ],
+      "time": 0.179,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-069": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc069_timeoutCancelledOrderCannotBePaid"
+      ],
+      "time": 0.179,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-084": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc084_nonPositiveNightsAre400(boolean)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc084_nonPositiveNightsAre400(boolean)[2]"
+      ],
+      "time": 0.42500000000000004,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-025": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc025_validStarBoundariesAreWritten(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc025_validStarBoundariesAreWritten(int)[2]"
+      ],
+      "time": 0.34,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-073": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc073_ownershipIsCheckedBeforePaymentStatus"
+      ],
+      "time": 0.252,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-074": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc074_missingOrderHasSpecificPaymentFailure"
+      ],
+      "time": 0.164,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-077": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc077_terminalRoomOrdersCannotBeCancelled(int)[1]",
+        "com.winniethepooh.hotelsystembackend.OrderWorkflowIT.tc077_terminalRoomOrdersCannotBeCancelled(int)[2]"
+      ],
+      "time": 0.356,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-040": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc040_staffCreatedByManagerHasBcryptPassword"
+      ],
+      "time": 0.289,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-041": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_emailOnlyChangePreservesPasswordAndSession",
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_changedUserPasswordIsBcrypt",
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_incompletePasswordChangeReturns400WithoutMutation(String)[1]",
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc041_incompletePasswordChangeReturns400WithoutMutation(String)[2]"
+      ],
+      "time": 0.985,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-039": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc039_registeredUserPasswordIsBcrypt"
+      ],
+      "time": 0.217,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-045": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc045_userStillOnLegacyHashCanChangePassword"
+      ],
+      "time": 0.301,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-044": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc044_legacyUserIsNotMigratedOnWrongPassword"
+      ],
+      "time": 0.096,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-042": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc042_legacyUserIsMigratedToBcryptOnSuccessfulLogin"
+      ],
+      "time": 0.217,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-043": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PasswordHashingIT.tc043_legacyStaffIsMigratedToBcryptOnSuccessfulLogin"
+      ],
+      "time": 0.326,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-121": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc121_batchPriceIsOneUpsertWithOneRowPerDate",
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc121_getCalendarReturnsOneEntryPerDateWithNullForUnsetDays"
+      ],
+      "time": 0.33399999999999996,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PriceCalendarIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-101": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc101_nonPositivePriceRejectedWith400(String)[1]",
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc101_nonPositivePriceRejectedWith400(String)[2]",
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc101_nonPositivePriceRejectedWith400(String)[3]"
+      ],
+      "time": 0.581,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PriceCalendarIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-103": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc103_unknownRoomTypeRejectedWith400(int)[1]",
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc103_unknownRoomTypeRejectedWith400(int)[2]"
+      ],
+      "time": 0.44000000000000006,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PriceCalendarIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-102": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.PriceCalendarIT.tc102_smallestPositivePriceIsWritten"
+      ],
+      "time": 0.155,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PriceCalendarIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-130": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc130_validPasswordAcceptedByRegisterAndChange(String)[1]",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc130_validPasswordAcceptedByRegisterAndChange(String)[2]"
+      ],
+      "time": 1.109,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-124": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc124_priceCalendarStartAfterEndReturns400",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc124_c1_reversedDateRangeFromSharedDateUtilReturns400"
+      ],
+      "time": 0.326,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-129": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String, String)[1]",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String, String)[2]",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String, String)[3]"
+      ],
+      "time": 0.492,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-128": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[1]",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[2]",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[3]",
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc128_registerValidationKeepsOriginalMessages(String, String, String)[4]"
+      ],
+      "time": 0.47000000000000003,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-126": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.RequestValidationIT.tc126_roomOrderWithNullCheckInTimeReturns400BeforeService"
+      ],
+      "time": 0.166,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-131": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.SchemaSqlIT.tc131_schemaSqlCreatesAllTablesColumnsAndPriceCalendarUniqueKey"
+      ],
+      "time": 0.143,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.SchemaSqlIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-059": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.SqlLogIT.tc059_nonDevProfileDoesNotPrintSqlParameters(CapturedOutput)"
+      ],
+      "time": 0.164,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.SqlLogIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-036": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc036_staffLogoutInvalidatesToken"
+      ],
+      "time": 0.165,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-116": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[1]",
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[2]",
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[3]",
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[4]",
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[5]",
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc116_loginLogoutAndRevocationDoNotScan(String)[6]"
+      ],
+      "time": 1.6189999999999998,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-038": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc038_staffLoginWritesSessionIndexAndTokenTtl"
+      ],
+      "time": 0.164,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-033": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc033_disabledStaffTokenIsRevoked",
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc033_deletedStaffTokenIsRevoked"
+      ],
+      "time": 0.474,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-034": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc034_userPasswordChangeRevokesOldToken"
+      ],
+      "time": 0.305,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-032": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc032_staffReLoginInvalidatesPreviousToken"
+      ],
+      "time": 0.239,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-037": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.TokenSessionIT.tc037_userLoginWritesSessionIndex"
+      ],
+      "time": 0.169,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-053": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_pngExtensionWithHtmlContentRejected",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[1]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[2]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[3]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[4]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc053_s10_otherWhitelistedFormatsAccepted(String)[5]"
+      ],
+      "time": 1.235,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-054": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc054_extensionOutsideWhitelistRejected(String, String, String)[1]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc054_extensionOutsideWhitelistRejected(String, String, String)[2]"
+      ],
+      "time": 0.328,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-055": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc055_fileNameWithoutDotRejectedWithReason"
+      ],
+      "time": 0.193,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-052": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc052_nonManagerRolesCannotUpload(String)[1]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc052_nonManagerRolesCannotUpload(String)[2]",
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc052_nonManagerRolesCannotUpload(String)[3]"
+      ],
+      "time": 0.6050000000000001,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-056": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc056_managerUploadsPngOfExactlyTheLimit"
+      ],
+      "time": 0.327,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-057": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UploadImageIT.tc057_managerUploadsPngOneByteOverTheLimitGets413"
+      ],
+      "time": 0.168,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-018": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UserInfoIT.tc018_userCannotReadAnotherUsersInfo"
+      ],
+      "time": 0.242,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UserInfoIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-019": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "com.winniethepooh.hotelsystembackend.UserInfoIT.tc019_idCardNumberIsMasked"
+      ],
+      "time": 0.168,
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UserInfoIT.xml",
+      "kind": "",
+      "defect": ""
+    },
+    "TC-135": {
+      "result": "pass",
+      "message": "",
+      "tests": [
+        "hotel.spec.js.TC-135 停用员工与经理并发请求失效后保持员工登录页"
+      ],
+      "time": 2.318,
+      "source": "TC-135.xml",
+      "kind": "",
+      "defect": ""
+    }
+  },
+  "runs": [
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.aspect.RoleCheckAspectTest.xml",
+      "cases": 4
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.config.SchedulingConfigTest.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.exception.GlobalExceptionHandlerTest.xml",
+      "cases": 2
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.filter.LoginFilterTest.xml",
+      "cases": 3
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.HotelSystemBackendApplicationTests.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.MapperWhereDateTest.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.NoManualRedisConnectionTest.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.utils.AliOSSUtilTest.xml",
+      "cases": 2
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.utils.JwtUtilsTest.xml",
+      "cases": 3
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AccessControlIT.xml",
+      "cases": 7
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.AnonymousStaffRegisterIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BusinessStatsIT.xml",
+      "cases": 16
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.CorsIT.xml",
+      "cases": 2
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.DefaultProfileIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.DevProfileDemoDataIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.DevSqlLogIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.ErrorResponseIT.xml",
+      "cases": 3
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.InfrastructureIT.xml",
+      "cases": 3
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.JwtSecretRequiredIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginFailureIT.xml",
+      "cases": 2
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.LoginRateLimitIT.xml",
+      "cases": 4
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.OrderWorkflowIT.xml",
+      "cases": 56
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PasswordHashingIT.xml",
+      "cases": 7
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.PriceCalendarIT.xml",
+      "cases": 4
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.RequestValidationIT.xml",
+      "cases": 7
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.SchemaSqlIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.SqlLogIT.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.TokenSessionIT.xml",
+      "cases": 9
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UploadImageIT.xml",
+      "cases": 6
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.UserInfoIT.xml",
+      "cases": 2
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TEST-com.winniethepooh.hotelsystembackend.BrowserE2EIT.xml",
+      "cases": 6
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TC-132.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TC-133.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TC-134.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TC-135.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TC-136.xml",
+      "cases": 1
+    },
+    {
+      "at": "2026-09-30T15:38:07+00:00",
+      "source": "TC-137.xml",
+      "cases": 1
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "published_at": "2026-10-01T00:31:19+08:00",
+  "title": "HotelSystemBackend review-fixes 测试报告（结论：有条件通过）",
+  "url": "https://mcn7m001m9qm.feishu.cn/wiki/KykSw5vXIi06CNkcDQVcIOVoneh",
+  "document_id": "IUeYdJXhHo7si5xtgeRcrJMUncf",
+  "node_token": "KykSw5vXIi06CNkcDQVcIOVoneh",
+  "parent_node_token": "BOftw3QaYiTilYkniKrcuktknoh",
+  "space_id": "7690927924169428264",
+  "revision_id": 3,
+  "readback_verified": true,
+  "verified_requirements": 97,
+  "verified_case_ids": 137,
+  "warnings": [],
+  "report_sha256": "dffcf2522c73a6e8151698742cb63d094e47d77889cec9706ab94320aa900750",
+  "export_sha256": "ec4bd4eb652ce64fccca8ea5e1be83a32d72401f473d990f318744f516726e05"
+}
