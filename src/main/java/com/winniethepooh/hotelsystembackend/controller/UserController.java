@@ -15,13 +15,10 @@ import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/user")
@@ -31,8 +28,6 @@ public class UserController {
     private UserService userService;
     @Autowired
     private RedisService redisService;
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private JwtUtils jwtUtils;
 
@@ -51,10 +46,8 @@ public class UserController {
         claims.put("role", RoleConstant.USER);
         String token = jwtUtils.generateJwt(claims);
 
-        redisService.deleteKeysByValue(RoleConstant.convertToStringConstant(RoleConstant.USER) + "_" + user.getId());
-        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        ops.set(token, RoleConstant.convertToStringConstant(RoleConstant.USER) + "_" + user.getId(), 3, TimeUnit.HOURS);
         // 更新redis里的token, 保证同一用户的token只有一个
+        redisService.saveSession(RedisService.principal(RoleConstant.USER, user.getId()), token);
 
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(token);

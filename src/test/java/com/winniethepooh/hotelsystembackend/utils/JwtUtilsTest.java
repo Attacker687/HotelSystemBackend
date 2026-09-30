@@ -26,6 +26,14 @@ class JwtUtilsTest {
     }
 
     @Test
+    void s6_tokensForSameClaimsAreDistinct() {
+        JwtUtils jwt = new JwtUtils(Fixtures.JWT_SECRET);
+        Map<String, Object> claims = Map.of("id", 1, "role", 0);
+
+        assertThat(jwt.generateJwt(claims)).isNotEqualTo(jwt.generateJwt(claims));
+    }
+
+    @Test
     void s11_secretShorterThan256BitsIsRejected() {
         assertThatThrownBy(() -> new JwtUtils("x".repeat(31)))
                 .isInstanceOf(IllegalStateException.class)

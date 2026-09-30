@@ -15,8 +15,6 @@ import com.winniethepooh.hotelsystembackend.vo.LoginVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.StaffVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -32,8 +30,6 @@ public class StaffController {
     @Autowired
     private RedisService redisService;
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-    @Autowired
     private JwtUtils jwtUtils;
 
     @PostMapping("/login")
@@ -44,10 +40,7 @@ public class StaffController {
         claims.put("role", staff.getRole());
         String token = jwtUtils.generateJwt(claims);
 
-        redisService.deleteKeysByValue(RoleConstant.convertToStringConstant
-                (staff.getRole()) + staff.getId());
-        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        ops.set(token, RoleConstant.convertToStringConstant(staff.getRole()) + "_" + staff.getId());
+        redisService.saveSession(RedisService.principal(staff.getRole(), staff.getId()), token);
 
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(token);
@@ -61,8 +54,7 @@ public class StaffController {
     public Result staffLogoutController() {
         Integer id = BaseContext.getCurrentId();
         Integer role = BaseContext.getCurrentRole();
-        redisService.deleteKeysByValue(RoleConstant.convertToStringConstant
-                (role) + "_" + id);
+        redisService.revokeSession(RedisService.principal(role, id));
         return Result.success();
     }
 

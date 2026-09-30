@@ -1,6 +1,5 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
-import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.constant.StaffStatusConstant;
 import com.winniethepooh.hotelsystembackend.dto.ModifyStatusDTO;
 import com.winniethepooh.hotelsystembackend.dto.StaffLoginDTO;
@@ -53,10 +52,8 @@ public class StaffServiceImpl implements StaffService {
 
         // 设为禁用立即删除token
         if (modifyStatusDTO.getStatus() == StaffStatusConstant.INACTIVE)
-            redisService.deleteKeysByValue(
-                    RoleConstant.convertToStringConstant
-                    (staffMapper.getStaffById(modifyStatusDTO.getId()).getRole()) + modifyStatusDTO.getId()
-            );
+            redisService.revokeSession(RedisService.principal(
+                    staffMapper.getStaffById(modifyStatusDTO.getId()).getRole(), modifyStatusDTO.getId()));
     }
 
     @Override
@@ -64,9 +61,7 @@ public class StaffServiceImpl implements StaffService {
     public void deleteStaffService(Integer id) {
 
         // 先删除token再删除账号
-        redisService.deleteKeysByValue(
-                RoleConstant.convertToStringConstant(staffMapper.getStaffById(id).getRole()) + id
-        );
+        redisService.revokeSession(RedisService.principal(staffMapper.getStaffById(id).getRole(), id));
         staffMapper.deleteStaff(id);
     }
 

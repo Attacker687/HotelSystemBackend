@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * JWT 签发与解析。签名密钥来自配置 hotel.jwt.secret（环境变量 JWT_SECRET），
@@ -37,6 +38,7 @@ public class JwtUtils {
     public String generateJwt(Map<String, Object> claims){
         return Jwts.builder()
                 .addClaims(claims)
+                .setId(UUID.randomUUID().toString()) // jti：同一秒内多次登录也得到不同 token，旧 token 才能被撤销
                 .signWith(SignatureAlgorithm.HS256, signKey)
                 .setExpiration(new Date(System.currentTimeMillis() + expire))
                 .compact();

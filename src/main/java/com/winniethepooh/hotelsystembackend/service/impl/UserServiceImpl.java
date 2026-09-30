@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
+import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.dto.UserLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
@@ -13,7 +14,6 @@ import com.winniethepooh.hotelsystembackend.service.UserService;
 import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,8 +22,6 @@ public class UserServiceImpl implements UserService {
     private UserMapper userMapper;
     @Autowired
     private RedisService redisService;
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public void registerService(RegisterDTO registerDTO) {
@@ -63,7 +61,7 @@ public class UserServiceImpl implements UserService {
         }
 
         userMapper.modifyUserInfo(userInfoChangeDTO);
-        if (passwordChanged) redisService.deleteKeysByValue(String.valueOf(BaseContext.getCurrentId()));
+        if (passwordChanged) redisService.revokeSession(RedisService.principal(RoleConstant.USER, BaseContext.getCurrentId()));
     }
 
     @Override
