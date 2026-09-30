@@ -8,15 +8,15 @@ import com.winniethepooh.hotelsystembackend.dto.StaffLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.StaffRegisterDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.entity.Staff;
+import com.winniethepooh.hotelsystembackend.service.LoginAttemptService;
 import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.StaffService;
 import com.winniethepooh.hotelsystembackend.utils.JwtUtils;
 import com.winniethepooh.hotelsystembackend.vo.LoginVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.StaffVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -32,20 +32,20 @@ public class StaffController {
     @Autowired
     private RedisService redisService;
     @Autowired
-    private StringRedisTemplate stringRedisTemplate;
+    private JwtUtils jwtUtils;
+    @Autowired
+    private LoginAttemptService loginAttemptService;
 
     @PostMapping("/login")
-    public Result staffLoginController(@RequestBody StaffLoginDTO staffLoginDTO) {
-        Staff staff = staffService.staffLoginService(staffLoginDTO);
+    public Result staffLoginController(@RequestBody StaffLoginDTO staffLoginDTO, HttpServletRequest request) {
+        Staff staff = loginAttemptService.guard(staffLoginDTO.getAccount(), request.getRemoteAddr(),
+                () -> staffService.staffLoginService(staffLoginDTO));
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", staff.getId());
         claims.put("role", staff.getRole());
-        String token = JwtUtils.generateJwt(claims);
+        String token = jwtUtils.generateJwt(claims);
 
-        redisService.deleteKeysByValue(RoleConstant.convertToStringConstant
-                (staff.getRole()) + staff.getId());
-        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
-        ops.set(token, RoleConstant.convertToStringConstant(staff.getRole()) + "_" + staff.getId());
+        redisService.saveSession(RedisService.principal(staff.getRole(), staff.getId()), token);
 
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(token);
@@ -59,8 +59,7 @@ public class StaffController {
     public Result staffLogoutController() {
         Integer id = BaseContext.getCurrentId();
         Integer role = BaseContext.getCurrentRole();
-        redisService.deleteKeysByValue(RoleConstant.convertToStringConstant
-                (role) + "_" + id);
+        redisService.revokeSession(RedisService.principal(role, id));
         return Result.success();
     }
 

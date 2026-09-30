@@ -21,4 +21,10 @@ public class BaseContext {
     public static void removeCurrentId() {
         threadLocal_1.remove();
     }
+
+    /** 请求结束时由 LoginFilter 调用，防止身份残留在复用的 Tomcat 工作线程上 */
+    public static void clear() {
+        threadLocal_1.remove();
+        threadLocal_2.remove();
+    }
 }

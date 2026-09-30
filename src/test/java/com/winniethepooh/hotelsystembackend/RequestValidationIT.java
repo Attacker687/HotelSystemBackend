@@ -146,7 +146,7 @@ class RequestValidationIT extends IntegrationTestBase {
 
         assertThat(reg.status()).isEqualTo(200);
         assertThat(reg.code()).isZero();
-        assertThat(passwordHashOf(N_PHONE)).isEqualTo(Fixtures.hash(password));
+        assertThat(Fixtures.isBcryptOf(passwordHashOf(N_PHONE), password)).isTrue(); // BCrypt 加盐，按校验比对
 
         Map<String, Object> n2 = Fixtures.registration("N2");
         String otherPhone = (String) n2.get("phone");
@@ -158,6 +158,6 @@ class RequestValidationIT extends IntegrationTestBase {
 
         assertThat(change.status()).isEqualTo(200);
         assertThat(change.code()).isZero();
-        assertThat(passwordHashOf(otherPhone)).isEqualTo(Fixtures.hash(password));
+        assertThat(Fixtures.isBcryptOf(passwordHashOf(otherPhone), password)).isTrue(); // BCrypt 加盐，按校验比对
     }
 }

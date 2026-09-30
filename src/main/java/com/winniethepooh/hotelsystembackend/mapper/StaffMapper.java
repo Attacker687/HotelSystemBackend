@@ -1,7 +1,6 @@
 package com.winniethepooh.hotelsystembackend.mapper;
 
 import com.winniethepooh.hotelsystembackend.dto.ModifyStatusDTO;
-import com.winniethepooh.hotelsystembackend.dto.StaffLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.StaffRegisterDTO;
 import com.winniethepooh.hotelsystembackend.entity.Staff;
 import org.apache.ibatis.annotations.Mapper;
@@ -14,7 +13,9 @@ public interface StaffMapper {
 
     boolean existStaffByAccount(String accountName);
 
-    Staff getStaffByAccountAndPassword(StaffLoginDTO staffLoginDTO);
+    Staff getActiveStaffByAccount(String account);
+
+    void updatePassword(Integer id, String password);
 
     void createStaff(StaffRegisterDTO staffRegisterDTO);
 

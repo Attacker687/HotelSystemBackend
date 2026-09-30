@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend;
 
+import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.net.http.HttpClient;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +47,7 @@ class DevProfileDemoDataIT {
         r.add("spring.data.redis.host", IntegrationTestBase.REDIS::getHost);
         r.add("spring.data.redis.port", () -> IntegrationTestBase.REDIS.getMappedPort(6379));
         r.add("hotel.scheduler.enabled", () -> "false");
+        r.add("hotel.jwt.secret", () -> Fixtures.JWT_SECRET);
     }
 
     @Autowired
@@ -75,6 +78,22 @@ class DevProfileDemoDataIT {
         assertThat(count("room")).isEqualTo(rooms);
         assertThat(count("dish")).isEqualTo(dishes);
         assertThat(count("user")).isEqualTo(users);
+    }
+
+    @Test
+    void tc136_devProfileSwaggerLoadsWithoutToken() {
+        rest.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build()));
+        for (String path : new String[]{"/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/swagger-ui.css",
+                "/swagger-ui/swagger-ui-bundle.js", "/swagger-ui/swagger-initializer.js",
+                "/v3/api-docs/swagger-config"}) {
+            var response = rest.getForEntity(path, String.class);
+            assertThat(response.getStatusCode().value()).as(path).isEqualTo(200);
+            assertThat(response.getBody()).as(path).isNotBlank();
+        }
+        var docs = rest.getForEntity("/v3/api-docs", Map.class);
+        assertThat(docs.getStatusCode().value()).isEqualTo(200);
+        assertThat((Map<?, ?>) docs.getBody().get("paths")).isNotEmpty();
     }
 
     private int count(String table) {

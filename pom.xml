@@ -97,7 +97,13 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.15</version>
 		</dependency>
-		<!--        这个依赖是md5加密密码需要的-->
+		<!--        这个依赖是md5加密密码需要的（现在只用于识别和迁移旧的 MD5 哈希）-->
+
+		<!-- BCrypt 密码哈希；只引入 crypto 模块，不引入整套 Spring Security，版本由 Boot 管理 -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
 
 
 		<dependency>

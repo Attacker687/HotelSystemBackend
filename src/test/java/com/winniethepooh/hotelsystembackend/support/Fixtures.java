@@ -8,8 +8,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDate;
@@ -18,9 +20,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 测试数据：docs/nova/review-fixes/testplan.json 的 strategy.data 夹具表（基础数据、未预置账号、入住人、标准请求体），
@@ -35,14 +39,24 @@ import java.util.Map;
  *   Fixtures.roomOrderBody(...) / mealOrderBody()   标准客房、餐饮下单体
  * </pre>
  * 每个测试前 {@link #reset()} 用 TRUNCATE 清表（自增从 1 重新开始），再 {@link #seedBase()}，所以基础数据的 id 固定。
- * 密码：所有账号明文都是 {@link #PASSWORD}；方案标「BCrypt」的账号经 {@link #hash} 写入（当前生产代码仍是 MD5，
- * S8 换哈希时只改 hash 一处），标「旧 MD5」的住客 C、员工 it_legacy_md5 经 {@link #legacyMd5} 写入。
+ * 密码：所有账号明文都是 {@link #PASSWORD}；方案标「BCrypt」的账号经 {@link #hash} 写入（BCrypt，与生产代码一致），
+ * 标「旧 MD5」的住客 C、员工 it_legacy_md5 经 {@link #legacyMd5} 写入。
  */
 public class Fixtures {
 
     /** 所有测试账号的明文密码，符合注册密码规则。 */
     public static final String PASSWORD = "Test@1234";
 
+    /** S11：测试 JVM 运行时生成的 256 位随机 JWT 密钥（hex），不写入仓库；IntegrationTestBase 注入为 hotel.jwt.secret。 */
+    public static final String JWT_SECRET = HexFormat.of().formatHex(randomBytes(32));
+
+    private static byte[] randomBytes(int n) {
+        byte[] b = new byte[n];
+        new SecureRandom().nextBytes(b);
+        return b;
+    }
+
+    /** 账号：login 是住客手机号或员工账号，role 取 RoleConstant。 */
     public record Account(int id, String login, String password, int role) {}
 
     public record Room(long id, String number, int type, int floor, int status) {}
@@ -258,14 +272,22 @@ public class Fixtures {
         jdbc.update("update `" + table + "` set created_at = NOW() - INTERVAL ? MINUTE where id = ?", minutes, id);
     }
 
-    /** 当前生产代码使用的密码哈希（现为 MD5；S8 改为 BCrypt 时只改这里）。 */
+    private static final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
+    private static final Map<String, String> HASHES = new ConcurrentHashMap<>();
+
+    /** 当前生产代码使用的密码哈希（S8：BCrypt）。同一明文复用一个哈希，免得每个测试都花时间重算。 */
     public static String hash(String rawPassword) {
+        return HASHES.computeIfAbsent(rawPassword, BCRYPT::encode);
+    }
+
+    /** 旧 MD5 哈希（S8 之前的不加盐 MD5；住客 C、员工 it_legacy_md5）。 */
+    public static String legacyMd5(String rawPassword) {
         return DigestUtils.md5Hex(rawPassword);
     }
 
-    /** 旧 MD5 哈希（住客 C、员工 it_legacy_md5）。 */
-    public static String legacyMd5(String rawPassword) {
-        return DigestUtils.md5Hex(rawPassword);
+    /** stored 是 BCrypt 格式（$2a$/$2b$/$2y$ 开头、共 60 位）且与明文匹配。 */
+    public static boolean isBcryptOf(String stored, String rawPassword) {
+        return stored != null && stored.matches("^\\$2[aby]\\$.{56}$") && BCRYPT.matches(rawPassword, stored);
     }
 
     /** 生成校验位正确的 18 位测试身份证号（110101 东城区，1990-01-01 出生，seq 为 3 位顺序码）。 */
