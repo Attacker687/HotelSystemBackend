@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UserNameInvalidException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UserNameInvalidException extends BusinessException {
     public UserNameInvalidException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }

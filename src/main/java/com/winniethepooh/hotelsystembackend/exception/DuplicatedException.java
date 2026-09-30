@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class DuplicatedException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class DuplicatedException extends BusinessException {
     public DuplicatedException(String message) {
-        super(message);
+        super(HttpStatus.CONFLICT, message);
     }
 }

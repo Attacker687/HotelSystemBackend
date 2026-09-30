@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UserPasswordInvalidException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UserPasswordInvalidException extends BusinessException {
     public UserPasswordInvalidException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }

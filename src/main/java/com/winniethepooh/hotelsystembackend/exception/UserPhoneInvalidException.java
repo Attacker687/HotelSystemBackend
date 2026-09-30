@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UserPhoneInvalidException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UserPhoneInvalidException extends BusinessException {
     public UserPhoneInvalidException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }

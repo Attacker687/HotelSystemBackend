@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UserEmailInvalidException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UserEmailInvalidException extends BusinessException {
     public UserEmailInvalidException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }

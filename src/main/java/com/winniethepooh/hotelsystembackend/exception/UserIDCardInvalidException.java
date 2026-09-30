@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UserIDCardInvalidException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UserIDCardInvalidException extends BusinessException {
     public UserIDCardInvalidException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }
