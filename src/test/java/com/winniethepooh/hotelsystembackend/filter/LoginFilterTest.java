@@ -1,6 +1,7 @@
 package com.winniethepooh.hotelsystembackend.filter;
 
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
+import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import com.winniethepooh.hotelsystembackend.utils.JwtUtils;
 import jakarta.servlet.FilterChain;
@@ -34,11 +35,13 @@ class LoginFilterTest {
     @SuppressWarnings("unchecked")
     void tc004_baseContextIsClearedAfterRequest(String downstream) throws Exception {
         JwtUtils jwt = new JwtUtils(Fixtures.JWT_SECRET);
-        String token = jwt.generateJwt(Map.of("id", 5, "role", 1));
+        // 不起库的单元测试：模拟身份由夹具别名派生，避免固定数据库 id。
+        int id = Fixtures.registration("N").get("phone").hashCode();
+        String token = jwt.generateJwt(Map.of("id", id, "role", RoleConstant.MANAGER));
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         ValueOperations<String, String> ops = mock(ValueOperations.class);
         when(redis.opsForValue()).thenReturn(ops);
-        when(ops.get(token)).thenReturn("MANAGER_5");
+        when(ops.get(token)).thenReturn("MANAGER_" + id);
         LoginFilter filter = new LoginFilter(redis, jwt, new MockEnvironment());
 
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/business/revenue/stats");
@@ -61,8 +64,8 @@ class LoginFilterTest {
             filter.doFilter(request, response, chain);
         }
 
-        assertThat(seenId.get()).isEqualTo(5);
-        assertThat(seenRole.get()).isEqualTo(1);
+        assertThat(seenId.get()).isEqualTo(id);
+        assertThat(seenRole.get()).isEqualTo(RoleConstant.MANAGER);
         assertThat(BaseContext.getCurrentId()).isNull();
         assertThat(BaseContext.getCurrentRole()).isNull();
     }

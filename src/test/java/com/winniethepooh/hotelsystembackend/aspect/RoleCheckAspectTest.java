@@ -76,7 +76,7 @@ class RoleCheckAspectTest {
     }
 
     @Test
-    void s1_classAnnotationAppliesWhenMethodHasNone() throws Throwable {
+    void tc010_classAnnotationAppliesWhenMethodHasNone() throws Throwable {
         ProceedingJoinPoint jp = joinPoint(new StubController(), "inheritsClassRole");
         BaseContext.setCurrentRole(RoleConstant.USER);
         assertThatThrownBy(() -> aspect.checkRole(jp)).isInstanceOf(ForbiddenException.class);

@@ -57,7 +57,7 @@ class TokenSessionIT extends IntegrationTestBase {
     }
 
     @Test
-    void s6_disabledStaffTokenIsRevoked() {
+    void tc033_disabledStaffTokenIsRevoked() {
         Fixtures.Account victim = base.staff("it_to_disable");
         String tokenX = login(victim);
 
