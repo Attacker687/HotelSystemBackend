@@ -3,3 +3,6 @@
 hotel:
   scheduler:
     enabled: false
+  login:
+    # 集成测试会反复输错密码，调高阈值避免互相影响；限流用例（LoginRateLimitIT）改回 5
+    max-failures: 1000

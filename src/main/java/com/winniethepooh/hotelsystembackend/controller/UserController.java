@@ -7,11 +7,13 @@ import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
 import com.winniethepooh.hotelsystembackend.dto.UserInfoChangeDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.entity.User;
+import com.winniethepooh.hotelsystembackend.service.LoginAttemptService;
 import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.UserService;
 import com.winniethepooh.hotelsystembackend.utils.JwtUtils;
 import com.winniethepooh.hotelsystembackend.vo.LoginVO;
 import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,8 @@ public class UserController {
     private RedisService redisService;
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private LoginAttemptService loginAttemptService;
 
     @PostMapping("/register")
     public Result registerController(@Valid @RequestBody RegisterDTO registerDTO) {
@@ -38,9 +42,10 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result loginController(@RequestBody UserLoginDTO userLoginDTO) {
+    public Result loginController(@RequestBody UserLoginDTO userLoginDTO, HttpServletRequest request) {
         log.info("用户登录:{}", userLoginDTO.getPhone());
-        User user = userService.loginService(userLoginDTO);
+        User user = loginAttemptService.guard(userLoginDTO.getPhone(), request.getRemoteAddr(),
+                () -> userService.loginService(userLoginDTO));
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
         claims.put("role", RoleConstant.USER);

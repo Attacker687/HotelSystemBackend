@@ -7,7 +7,6 @@ import com.winniethepooh.hotelsystembackend.dto.StaffRegisterDTO;
 import com.winniethepooh.hotelsystembackend.entity.Staff;
 import com.winniethepooh.hotelsystembackend.exception.DuplicatedException;
 import com.winniethepooh.hotelsystembackend.exception.PasswordIncorrectException;
-import com.winniethepooh.hotelsystembackend.exception.UserNotFoundException;
 import com.winniethepooh.hotelsystembackend.mapper.StaffMapper;
 import com.winniethepooh.hotelsystembackend.service.RedisService;
 import com.winniethepooh.hotelsystembackend.service.StaffService;
@@ -30,11 +29,10 @@ public class StaffServiceImpl implements StaffService {
     private RedisService redisService;
     @Override
     public Staff staffLoginService(StaffLoginDTO staffLoginDTO) {
-        if (!staffMapper.existStaffByAccount(staffLoginDTO.getAccount()))
-            throw new UserNotFoundException("此账号未注册");
+        // 账号不存在、已停用或删除、密码错误提示相同，不能用来枚举账号
         Staff staff = staffMapper.getActiveStaffByAccount(staffLoginDTO.getAccount());
         if (staff == null || !PasswordUtils.matches(staffLoginDTO.getPassword(), staff.getPassword()))
-            throw new PasswordIncorrectException("密码错误，请重新输入");
+            throw new PasswordIncorrectException("账号或密码错误");
         // 旧 MD5 哈希在登录成功时迁移为 BCrypt
         if (PasswordUtils.isLegacy(staff.getPassword()))
             staffMapper.updatePassword(staff.getId(), PasswordUtils.hash(staffLoginDTO.getPassword()));

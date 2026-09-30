@@ -33,6 +33,11 @@ hotel:
   jwt:
     # 必填：至少 256 位的随机密钥，缺失时应用拒绝启动
     secret: ${JWT_SECRET:}
+  login:
+    # 同一账号或同一 IP 在窗口期内登录失败达到上限后，限制一段时间
+    max-failures: 5
+    window-minutes: 15
+    lock-minutes: 15
 
 aliyun:
   endpoint: ${ALIYUN_OSS_ENDPOINT:https://oss-cn-chengdu.aliyuncs.com}

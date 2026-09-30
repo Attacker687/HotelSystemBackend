@@ -39,11 +39,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User loginService(UserLoginDTO userLoginDTO) {
+        // 账号不存在和密码错误提示相同，不能用来枚举账号
         User user = userMapper.findUserByPhone(userLoginDTO.getPhone());
-        if (user == null)
-            throw new UserNotFoundException("该用户未注册");
-        if (!PasswordUtils.matches(userLoginDTO.getPassword(), user.getPassword()))
-            throw new PasswordIncorrectException("密码错误，请重新输入");
+        if (user == null || !PasswordUtils.matches(userLoginDTO.getPassword(), user.getPassword()))
+            throw new PasswordIncorrectException("账号或密码错误");
         // 旧 MD5 哈希在登录成功时迁移为 BCrypt
         if (PasswordUtils.isLegacy(user.getPassword()))
             userMapper.updatePassword(user.getId(), PasswordUtils.hash(userLoginDTO.getPassword()));
