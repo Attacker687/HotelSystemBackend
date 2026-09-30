@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ErrorResponseIT extends IntegrationTestBase {
 
     @Test
-    void c1_insufficientRoleReturns403() {
+    void tc010_c1_insufficientRoleReturns403() {
         String token = login(base.userA());
 
         Resp r = get("/order/query", token);
@@ -25,7 +25,7 @@ class ErrorResponseIT extends IntegrationTestBase {
     }
 
     @Test
-    void c1_businessExceptionCarriesItsStatusAndMessage() {
+    void tc127_c1_businessExceptionCarriesItsStatusAndMessage() {
         Map<String, Object> body = Fixtures.registration("N");
         body.put("phone", base.user("A").login());
 
@@ -54,7 +54,7 @@ class ErrorResponseIT extends IntegrationTestBase {
     }
 
     @Test
-    void c1_springMvcErrorsKeepTheirOwnStatus() {
+    void tc125_c1_springMvcErrorsKeepTheirOwnStatus() {
         Resp badJson = post("/user/register", null, "{not json");
         Resp wrongMethod = call(HttpMethod.DELETE, "/user/register", null, null);
 

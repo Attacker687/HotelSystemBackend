@@ -57,7 +57,7 @@ public class StaffController {
     }
 
     @RoleRequired({RoleConstant.MANAGER, RoleConstant.FRONT, RoleConstant.RESTAURANT})
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public Result staffLogoutController() {
         Integer id = BaseContext.getCurrentId();
         Integer role = BaseContext.getCurrentRole();

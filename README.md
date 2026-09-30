@@ -17,7 +17,7 @@
     <a href="#快速开始">快速开始</a> ·
     <a href="#设计文档">设计文档</a>
   </p>
-  <p><strong>4 类业务角色 · 7 个领域服务 · 45 个 REST API · 3 个自动调度任务</strong></p>
+  <p><strong>4 类业务角色 · 7 个领域服务 · 46 个 REST API · 3 个自动调度任务</strong></p>
 </div>
 
 ## 项目定位
@@ -41,16 +41,16 @@ HotelSystemBackend 是一个以酒店真实业务链路为背景的 Spring Boot 
 | 多角色认证授权 | JWT 表达身份，Redis 保存有效登录态，过滤器统一鉴权，AOP 注解校验角色 | 同时支持用户、管理员、前台和餐厅四类角色 |
 | 房间全生命周期 | 房态、客房订单和定时任务协同推进预订、入住、退房及超时取消 | 避免订单状态与实际房态长期脱节 |
 | 日期价格日历 | 按房型和日期维护价格；下单时逐日取价，缺省时回退至房型基础价 | 支持周末、节假日和旺季差异化定价 |
-| 服务端金额计算 | 根据入住区间逐日累计房价，餐饮订单校验主单与明细金额 | 降低客户端篡改金额带来的风险 |
-| 事务一致性 | 使用 Spring 事务管理房态变更、员工写入、价格批量更新和餐饮主从单写入 | 异常时统一回滚，避免只写入部分数据 |
+| 服务端金额计算 | 客房按晚累计并落库；餐饮按库中菜品价格计算主单与明细金额，忽略客户端金额 | 降低客户端篡改金额带来的风险 |
+| 事务一致性 | 客房下单/改期、房态变更、调度任务及餐饮主从单使用 Spring 数据库事务 | 同一数据库事务内发生异常时回滚，避免部分写入 |
 | 经营分析 | 聚合营收、入住率、平均房价、房型收入、楼层热力图和菜品 Top 10 | 将业务数据转化为运营决策指标 |
 | 统一异常处理 | 业务异常集中映射为统一响应结构 | 降低 Controller 重复判断，便于前后端联调 |
-| 并发防超卖（V2 设计） | 按“客房 + 入住日期”维护每日库存，唯一键约束冲突，事务内逐日条件更新 | 保证跨日订单全部成功或全部回滚 |
-| 下单幂等（V2 设计） | `requestId` 唯一索引配合幂等状态记录，重复请求返回原订单 | 防止重复点击、网络重试产生重复订单 |
+| 并发防超卖（V2 仅设计完成，未实现） | 计划按“客房 + 入住日期”维护每日库存，唯一键约束冲突，事务内逐日条件更新 | 设计目标：跨日库存全部成功或全部回滚 |
+| 下单幂等（V2 仅设计完成，未实现） | 计划用 `requestId` 唯一索引配合幂等状态记录，重复请求返回原订单 | 设计目标：重复请求返回同一结果 |
 
 ### V2 并发预订方案
 
-针对基础订单模型在高并发场景下可能出现的区间重叠和重复下单问题，项目已经完成 V2 技术方案设计，代码实现计划在后续版本合并：
+当前预订已在事务内对房间行加锁，并检查 `[checkin, checkout)` 区间冲突，拒绝重叠预订。V2 每日库存及 `requestId` 幂等只完成技术方案设计，尚未实现，代码计划在后续版本合并：
 
 - **每日库存建模**：以 `(room_id, stay_date)` 唯一键定义最小库存冲突单元；
 - **事务内条件更新**：按固定日期顺序逐日执行 `available = 1 -> 0`，任一日期失败则整体回滚；
@@ -185,7 +185,7 @@ src/main/java/com/winniethepooh/hotelsystembackend
 
 ### 1. 登录态为什么同时使用 JWT 和 Redis
 
-JWT 负责携带用户 ID 与角色信息，减少每次请求的数据库查询；Redis 负责保存“当前仍然有效”的 token，使退出登录、账号停用和重复登录挤下线能够立即生效。相比完全无状态的 JWT，这种组合更适合后台管理系统。
+JWT 负责携带用户 ID 与角色信息；Redis 同时保存 token 与 `session:{ROLE}_{id}` 反向索引，使员工退出、员工停用/删除、住客改密码及重复登录挤下线立即生效。住客页面的“退出”清除本浏览器会话，当前没有住客服务端退出接口；住客、员工 token 都有 3 小时有效期。
 
 ### 2. 为什么采用价格日历
 
@@ -193,11 +193,11 @@ JWT 负责携带用户 ID 与角色信息，减少每次请求的数据库查询
 
 ### 3. 如何推进订单与房态
 
-订单状态和房间状态分别建模：订单描述交易生命周期，房态描述酒店当前可运营状态。定时任务负责将时间条件转换为状态变化，包括未支付订单超时关闭、已支付订单到期生效以及退房后释放房间。
+订单状态和房间状态分别建模：未支付的住客订单 15 分钟后由任务关闭；前台未收款订单不参与超时关闭。入住任务推进已支付住客订单或前台订单；退房任务结束订单并将占用房间置为清洁中，前台确认清洁完成后改为空闲。
 
 ### 4. 餐饮主从订单如何保证一致
 
-餐饮订单先写入主单并回填主键，再逐项写入明细，最后校验汇总金额。整个过程位于同一事务中；明细为空、主键回填失败或金额不一致都会抛出异常并整体回滚。
+餐饮订单先校验菜品和数量，使用库中价格计算金额，再写主单并回填主键，逐项写入明细。主从单处于同一数据库事务中，写入异常整体回滚；客户端的单价、总价不参与结算。
 
 ## API 概览
 
@@ -260,8 +260,11 @@ CREATE DATABASE HotelSystem DEFAULT CHARACTER SET utf8mb4;
 
 **本地开发**：设置 `SPRING_PROFILES_ACTIVE=dev` 再启动。`dev` profile 启动时会自动执行 `src/main/resources/db/schema.sql`（建表）和 `src/main/resources/db/demo-data.sql`（演示数据），两份脚本都可以重复执行。
 
+所有 profile 都必须提供至少 256 位的随机 `JWT_SECRET`。本地可用 `openssl rand -hex 32` 生成，再通过环境变量传入，勿提交到仓库。
+
 ```bash
 export SPRING_PROFILES_ACTIVE=dev      # PowerShell：$env:SPRING_PROFILES_ACTIVE='dev'
+export JWT_SECRET="$(openssl rand -hex 32)"
 mvn spring-boot:run
 ```
 
@@ -276,14 +279,40 @@ mvn spring-boot:run
 
 定时任务默认开启，设置环境变量 `HOTEL_SCHEDULER_ENABLED=false` 可关闭。
 
+### 浏览器页面与隔离演示
+
+启动后打开 `http://localhost:8080/`。原生 HTML/CSS/JS 页面由 Spring Boot 同源提供，无需另起前端服务。住客可注册、预订、支付/取消、点餐和评价；前台可开单、看订单和房态、确认清洁完成；餐厅可推进订单；经理可维护价格、查看营收/菜品 Top10、管理员工。接口返回 401 时页面清除会话并回登录页。
+
+Windows 上可运行隔离演示（Docker 已启动）：
+
+```powershell
+mvn -DskipTests package
+powershell -NoProfile -File scripts/demo.ps1 -Port 8080
+```
+
+脚本创建独立临时 MySQL 8 和 Redis 7 容器，生成随机密钥，以 `dev` 启动并加载上述演示账号。`Ctrl+C` 停止后清理本次容器；每次启动都是独立数据。它用于人工浏览器操作，与自动化用例执行分别记录。
+
 ### 运行测试
+
+完整验证另需 Node 24+、npm 11+；Playwright 固定为 `@playwright/test` 1.63.0。先安装测试依赖和 Chromium：
+
+```bash
+npm ci
+npx playwright install chromium
+```
 
 ```bash
 mvn test     # 单元测试，不依赖 Docker
-mvn verify   # 另外运行 *IT 集成测试：Testcontainers 启动 MySQL 8.0 与 Redis 7，需要本机 Docker
+mvn -B clean verify  # 单元、API 集成、六条真实浏览器流程；需要 Docker 和上述 Playwright 依赖
+mvn -B verify -DskipApiTests=true  # 复跑六条浏览器流程（仍保留单元测试）
+mvn -B verify -DskipBrowserTests=true  # 只跑单元与 API 集成测试
 ```
 
-服务启动后可通过 Swagger UI 查看接口定义。实际路径和端口以当前激活的 Spring Profile 为准。
+浏览器流程通过单独的 failsafe `browser-e2e` 执行启动独立 MySQL/Redis 和 `e2e` 应用，按 Fixtures 别名恢复基础数据，不预置住客。Playwright 仅用有限的测试源码桥读库和推进时间夹具，真实 cron 每分钟执行，不能用直接调用任务替代；TC-133 超时检查等满 70 秒。TC-136 另用独立空库、两份脚本、`dev` jar 验证启动与 Swagger。可加 `-Dit.test=BrowserE2EIT#tc132*` 选择单条（同时加 `-DskipApiTests=true`）；运行时的地址及桥密钥由 JUnit 注入 Node，无需手填。
+
+JUnit 结果分别在 `target/surefire-reports`、`target/failsafe-reports`、`target/failsafe-e2e-reports`；Playwright 每条日志、JUnit XML、截图和 trace 在 `target/e2e`（全部忽略，不提交）。查看 trace：`npx playwright show-trace <trace.zip路径>`。
+
+Swagger UI 路径为 `/swagger-ui.html`，仅 `SPRING_PROFILES_ACTIVE=dev` 时匿名开放，含 `/swagger-ui/**` 和 `/v3/api-docs`；其他 profile 下仍需要有效 token。
 
 ## 设计文档
 
@@ -293,14 +322,14 @@ mvn verify   # 另外运行 *IT 集成测试：Testcontainers 启动 MySQL 8.0 �
 
 ## 项目边界与演进方向
 
-该项目以业务建模和后端工程实践为主要目标，不直接等同于生产级酒店 PMS。生产化仍需进一步完善：
+该项目以业务建模和后端工程实践为主要目标，不直接等同于生产级酒店 PMS。现有预订采用房间行锁和区间冲突检查；以下 V2 勾选项均仅代表设计完成，未实现每日库存、`requestId` 幂等或 Cache Aside。生产化仍需进一步完善：
 
 - [x] 完成“客房 + 入住日期”每日库存、条件更新与事务回滚方案设计；
 - [x] 完成 `requestId` 唯一约束、幂等状态机与重复请求返回方案设计；
 - [x] 完成 Cache Aside 边界与 50 并发请求验收标准设计；
 - [ ] 将并发库存与幂等方案合并至主分支代码；
 - 为热点查询增加 Cache Aside，并设计更新后的失效策略；
-- 补齐集成测试、并发测试、可观测性与数据库版本迁移；
+- 集成、并发及六条端到端回归已补齐；后续完善可观测性与数据库版本迁移；
 - 使用 Docker Compose 固化 MySQL、Redis 与应用运行环境。
 
 对应的约束、SQL 思路和验收方法已整理在[并发预订设计文档](docs/booking-consistency.md)中。

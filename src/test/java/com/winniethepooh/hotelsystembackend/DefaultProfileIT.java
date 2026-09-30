@@ -52,7 +52,7 @@ class DefaultProfileIT {
     private TestRestTemplate rest;
 
     @Test
-    void e1_defaultProfileIsProductionWithoutSchemaOrDemoData() {
+    void tc136_e1_defaultProfileIsProductionWithoutSchemaOrDemoData() {
         assertThat(env.getActiveProfiles()).isEmpty();
         assertThat(jdbc.queryForObject("select database()", String.class)).isEqualTo(DB);
         assertThat(jdbc.queryForObject("select count(*) from information_schema.tables where table_schema = ?",

@@ -90,7 +90,7 @@ class TokenSessionIT extends IntegrationTestBase {
     void tc036_staffLogoutInvalidatesToken() {
         String token = login(base.front());
 
-        Resp out = get("/staff/logout", token);
+        Resp out = post("/staff/logout", token, null);
 
         assertThat(out.status()).isEqualTo(200);
         assertThat(out.code()).isZero();
@@ -105,6 +105,15 @@ class TokenSessionIT extends IntegrationTestBase {
         assertThat(r.code()).isZero();
         String token = r.data().path("token").asText();
         assertThat(redis.opsForValue().get("session:USER_" + r.data().path("id").asInt())).isEqualTo(token);
+    }
+
+    @Test
+    void tc063_getStaffLogoutCannotRevokeSessionButPostDoes() {
+        String token = login(base.front());
+        assertThat(get("/staff/logout", token).status()).isEqualTo(405);
+        assertThat(get(ROOMS, token).code()).isZero();
+        assertThat(post("/staff/logout", token, null).code()).isZero();
+        assertThat(get(ROOMS, token).status()).isEqualTo(401);
     }
 
     @Test
@@ -145,7 +154,7 @@ class TokenSessionIT extends IntegrationTestBase {
             case "员工登录" -> () -> loginResp(base.front());
             case "员工退出" -> {
                 String t = login(base.front());
-                yield () -> get("/staff/logout", t);
+                yield () -> post("/staff/logout", t, null);
             }
             case "住客改密码" -> {
                 String t = login(base.userA());

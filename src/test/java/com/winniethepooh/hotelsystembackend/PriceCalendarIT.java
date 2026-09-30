@@ -95,7 +95,7 @@ class PriceCalendarIT extends IntegrationTestBase {
     }
 
     @Test
-    void getCalendarReturnsOneEntryPerDateWithNullForUnsetDays() {
+    void tc121_getCalendarReturnsOneEntryPerDateWithNullForUnsetDays() {
         fx.price(1, d, new BigDecimal("320.00"));
         fx.price(1, d.plusDays(2), new BigDecimal("330.00"));
 

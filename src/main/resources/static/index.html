@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>酒店服务</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#content">跳到内容</a>
+  <header>
+    <div><span class="brand">酒店服务</span><span class="subtitle">预订 · 入住 · 用餐</span></div>
+    <div id="identity" data-testid="identity"></div>
+  </header>
+  <div class="layout">
+    <nav id="navigation" aria-label="角色导航"></nav>
+    <main>
+      <p id="notice" role="status" aria-live="polite" hidden></p>
+      <p id="error" role="alert" hidden></p>
+      <div id="content" tabindex="-1"><p>加载中…</p></div>
+    </main>
+  </div>
+  <noscript>请启用 JavaScript 以使用酒店服务。</noscript>
+</body>
+</html>

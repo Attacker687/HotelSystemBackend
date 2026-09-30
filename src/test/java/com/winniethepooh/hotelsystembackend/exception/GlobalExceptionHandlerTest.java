@@ -13,7 +13,7 @@ class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
     @Test
-    void c1_unexpectedExceptionReturns500WithGenericMessage() {
+    void tc127_c1_unexpectedExceptionReturns500WithGenericMessage() {
         ResponseEntity<Result> r = handler.handleUnexpected(new NullPointerException("internal detail"));
 
         assertThat(r.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -22,7 +22,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void c1_forbiddenExceptionReturns403() {
+    void tc010_c1_forbiddenExceptionReturns403() {
         ResponseEntity<Result> r = handler.handleBusiness(new ForbiddenException("无权限访问该资源"));
 
         assertThat(r.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);

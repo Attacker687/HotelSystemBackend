@@ -6,7 +6,7 @@
 
 ### 登录态
 
-除登录、注册和接口文档外，请求需要在 Header 中携带：
+除住客注册、住客/员工登录和具体静态页资产（`/`、`/index.html`、`/app.js`、`/style.css`）外，业务请求需要在 Header 中携带 token。`/staff/register` 要求经理权限；Swagger UI 及 OpenAPI 仅在 `dev` profile 匿名开放。
 
 ```http
 token: <JWT_TOKEN>
@@ -20,13 +20,13 @@ token: <JWT_TOKEN>
 
 ```json
 {
-  "code": 1,
+  "code": 0,
   "msg": "success",
   "data": {}
 }
 ```
 
-具体 code 与 message 以项目常量和统一异常处理器为准。
+成功 `code=0`，失败 `code=1`。输入、认证、权限、冲突等错误同时使用相应 HTTP 状态（如 400、401、403、409）；提示说明具体原因。
 
 ## 2. 角色矩阵
 
@@ -53,7 +53,7 @@ token: <JWT_TOKEN>
 | Method | Path | 权限 | 说明 |
 | --- | --- | --- | --- |
 | POST | `/staff/login` | 公开 | 员工登录 |
-| GET | `/staff/logout` | MANAGER / FRONT / RESTAURANT | 退出并撤销登录态 |
+| POST | `/staff/logout` | MANAGER / FRONT / RESTAURANT | 退出并撤销登录态 |
 | POST | `/staff/register` | MANAGER | 创建员工账号 |
 | POST | `/staff/status` | MANAGER | 启用或停用员工 |
 | DELETE | `/staff` | MANAGER | 删除员工 |
@@ -81,9 +81,10 @@ token: <JWT_TOKEN>
 | POST | `/order` | USER / FRONT | 用户在线下单或前台代客开单 |
 | PUT | `/order/{id}` | FRONT | 调整订单信息 |
 | DELETE | `/order/{id}` | MANAGER | 逻辑删除订单 |
-| GET | `/order/pay` | USER | 支付客房订单 |
-| GET | `/order/cancel` | USER | 取消客房订单 |
+| POST | `/order/pay` | USER | 支付客房订单，id 用查询参数 |
+| POST | `/order/cancel` | USER | 取消尚未入住的客房订单，已支付单标为已退款 |
 | POST | `/order/meal-order` | USER | 创建餐饮主从订单 |
+| PUT | `/order/meal-order/{id}/cancel` | USER | 取消本人的新餐饮订单 |
 
 ### 菜品 `/food`
 
@@ -187,9 +188,9 @@ sequenceDiagram
 
 ## 6. 接口演进建议
 
-- 支付与取消接口由 GET 调整为 POST，避免非幂等操作使用查询语义；
+- 支付、取消和员工退出已使用 POST；GET 调用返回 405，不改变状态；
 - 统一 token Header 为标准 `Authorization: Bearer <token>`；
-- 对分页、日期范围、评分、数量和金额增加 Bean Validation；
+- 分页、日期范围、评分、数量和金额已有约束；继续补齐其他写接口的参数校验；
 - 通过 OpenAPI Schema 补齐示例、错误码和字段枚举；
 - 对创建订单增加 `Idempotency-Key` 或 `requestId`；
-- 为经营分析接口增加最大日期跨度限制，防止大范围聚合拖慢数据库。
+- 经营分析及价格日历日期区间已限制为最多 366 天。

@@ -162,13 +162,23 @@ public class Fixtures {
 
     /** 写入 strategy.data 的基础数据：账号（住客各带同名入住人）、房间、分类、菜品。不含订单、价格日历、散客入住人。 */
     public Base seedBase() {
+        return seed(false);
+    }
+
+    /** TC-132～137：仅预置经理、前台、餐厅、房间和菜品，住客由浏览器注册。 */
+    public Base seedE2eBase() {
+        return seed(true);
+    }
+
+    private Base seed(boolean e2e) {
         Map<String, Account> users = new LinkedHashMap<>();
-        for (String[] u : USERS) {
+        for (String[] u : e2e ? List.<String[]>of() : USERS) {
             String pwd = "md5".equals(u[5]) ? legacyMd5(PASSWORD) : hash(PASSWORD);
             users.put(u[0], new Account(user(u[2], u[1], u[3], u[4], pwd), u[1], PASSWORD, RoleConstant.USER));
         }
         Map<String, Account> staff = new LinkedHashMap<>();
         for (String[] s : STAFF) {
+            if (e2e && !List.of("it_manager", "it_front", "it_restaurant").contains(s[0])) continue;
             int role = Integer.parseInt(s[1]);
             String pwd = "md5".equals(s[2]) ? legacyMd5(PASSWORD) : hash(PASSWORD);
             staff.put(s[0], new Account(staff(s[0], pwd, role, 1), s[0], PASSWORD, role));
@@ -184,6 +194,12 @@ public class Fixtures {
     }
 
     // ---------- 请求体 ----------
+
+    /** 不预置的新员工 G，供浏览器在员工管理页创建。 */
+    public static Map<String, Object> staffRegistration(String alias) {
+        if (!"G".equals(alias)) throw new IllegalArgumentException("未知新员工夹具别名 " + alias);
+        return Map.of("account", "it_new_front", "password", PASSWORD, "role", RoleConstant.FRONT, "status", 1);
+    }
 
     /** 未预置住客（N、N2、E、F、H、K）的注册请求体，密码为 {@link #PASSWORD}；可修改（如把某字段置 null）。 */
     public static Map<String, Object> registration(String alias) {

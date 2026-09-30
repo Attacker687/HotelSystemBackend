@@ -12,12 +12,12 @@ class SchedulingConfigTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(SchedulingConfig.class);
 
     @Test
-    void schedulingEnabledByDefault() {
+    void tc133_schedulingEnabledByDefault() {
         runner.run(ctx -> assertThat(ctx).hasSingleBean(ScheduledTaskHolder.class));
     }
 
     @Test
-    void schedulingDisabledWhenPropertyFalse() {
+    void tc133_schedulingDisabledWhenPropertyFalse() {
         runner.withPropertyValues("hotel.scheduler.enabled=false")
                 .run(ctx -> assertThat(ctx).doesNotHaveBean(ScheduledTaskHolder.class));
     }

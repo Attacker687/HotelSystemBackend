@@ -16,7 +16,7 @@ class HotelSystemBackendApplicationTests {
 	}
 
 	@Test
-	void contextLoads() {
+	void tc136_contextLoads() {
 
 	}
 

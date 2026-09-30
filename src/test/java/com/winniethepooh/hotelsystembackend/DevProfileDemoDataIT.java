@@ -56,7 +56,7 @@ class DevProfileDemoDataIT {
     private TestRestTemplate rest;
 
     @Test
-    void e1_devProfileLoadsSchemaAndDemoDataAndDemoManagerCanLogin() throws Exception {
+    void tc136_e1_devProfileLoadsSchemaAndDemoDataAndDemoManagerCanLogin() throws Exception {
         assertThat(jdbc.queryForObject("select database()", String.class)).isEqualTo(DB);
         int staff = count("staff"), rooms = count("room"), dishes = count("dish"), users = count("user");
         assertThat(staff).isGreaterThanOrEqualTo(3);
