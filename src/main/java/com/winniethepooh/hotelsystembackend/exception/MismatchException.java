@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class MismatchException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class MismatchException extends BusinessException {
     public MismatchException(String message) {
-        super(message);
+        super(HttpStatus.CONFLICT, message);
     }
 }

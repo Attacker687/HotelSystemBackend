@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UnknownRoomTypeException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UnknownRoomTypeException extends BusinessException {
     public UnknownRoomTypeException(String message) {
-        super(message);
+        super(HttpStatus.BAD_REQUEST, message);
     }
 }

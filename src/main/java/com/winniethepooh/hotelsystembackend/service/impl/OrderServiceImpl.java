@@ -10,6 +10,7 @@ import com.winniethepooh.hotelsystembackend.dto.InsertMealOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.entity.*;
+import com.winniethepooh.hotelsystembackend.exception.BusinessException;
 import com.winniethepooh.hotelsystembackend.exception.DuplicatedException;
 import com.winniethepooh.hotelsystembackend.exception.MismatchException;
 import com.winniethepooh.hotelsystembackend.exception.UnknownOrderTypeException;
@@ -23,6 +24,7 @@ import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -170,7 +172,7 @@ public class OrderServiceImpl implements OrderService {
         insertMealOrderDTO.setUserId(BaseContext.getCurrentId());
         List<MealOrderItem> itemList = insertMealOrderDTO.getItemList();
         if (CollectionUtils.isEmpty(itemList)) {
-            throw new RuntimeException("订单明细不能为空");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "订单明细不能为空");
         }
         orderMapper.insertMealOrder(insertMealOrderDTO);
         if (insertMealOrderDTO.getId() == null) {
@@ -185,7 +187,7 @@ public class OrderServiceImpl implements OrderService {
         }
         if (total.compareTo(insertMealOrderDTO.getTotalAmount()) != 0) {
             log.error("餐饮订单金额校验失败：前端 = {}, 实际 = {}", insertMealOrderDTO.getTotalAmount(), total);
-            throw new RuntimeException("订单金额校验失败");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "订单金额校验失败");
         }
     }
 

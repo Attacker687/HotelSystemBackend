@@ -8,6 +8,7 @@ import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.exception.ArgumentInvalidException;
 import com.winniethepooh.hotelsystembackend.service.BusinessService;
 import com.winniethepooh.hotelsystembackend.vo.*;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -66,7 +67,7 @@ public class BusinessController {
     }
 
     @PostMapping("/calendar")
-    public Result updatePriceCalendarController(@RequestBody DynamicUpdatePriceDTO dynamicUpdatePriceDTO) {
+    public Result updatePriceCalendarController(@Valid @RequestBody DynamicUpdatePriceDTO dynamicUpdatePriceDTO) {
         if (dynamicUpdatePriceDTO.getStartDate().isAfter(dynamicUpdatePriceDTO.getEndDate()))
             throw new ArgumentInvalidException("开始日期不能在结束日期之后");
         businessService.updateRoomPriceService(dynamicUpdatePriceDTO);

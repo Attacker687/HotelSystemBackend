@@ -2,12 +2,13 @@ package com.winniethepooh.hotelsystembackend.aspect;
 
 import com.winniethepooh.hotelsystembackend.annotation.RoleRequired;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
+import com.winniethepooh.hotelsystembackend.exception.BusinessException;
+import com.winniethepooh.hotelsystembackend.exception.ForbiddenException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-
-import java.nio.file.AccessDeniedException;
 
 @Aspect
 @Component
@@ -17,7 +18,7 @@ public class RoleCheckAspect {
     public Object checkRole(ProceedingJoinPoint joinPoint, RoleRequired roleRequired) throws Throwable {
         Integer currentRole = BaseContext.getCurrentRole();
         if (currentRole == null) {
-            throw new AccessDeniedException("未登录或角色信息缺失");
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "未登录或角色信息缺失");
         }
 
         int[] allowed = roleRequired.value();
@@ -27,7 +28,7 @@ public class RoleCheckAspect {
             }
         }
 
-        throw new AccessDeniedException("无权限访问该资源");
+        throw new ForbiddenException("无权限访问该资源");
     }
 }
 

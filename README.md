@@ -252,8 +252,32 @@ $env:REDIS_PORT='6379'
 
 只有使用图片上传功能时才需要设置 `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_SECRET_KEY` 和 `ALIYUN_BUCKET_NAME`。敏感信息不要提交到公开仓库。
 
+先建库（只需一次）：
+
+```sql
+CREATE DATABASE HotelSystem DEFAULT CHARACTER SET utf8mb4;
+```
+
+默认激活的 `dev` profile 启动时会自动执行 `src/main/resources/db/schema.sql`（建表）和 `src/main/resources/db/demo-data.sql`（演示数据），两份脚本都可以重复执行。其他 profile 不会自动执行 SQL，需要手动建表，演示数据按需导入：
+
+```bash
+mysql -uroot -p HotelSystem < src/main/resources/db/schema.sql
+mysql -uroot -p HotelSystem < src/main/resources/db/demo-data.sql   # 可选
+```
+
+演示账号（仅用于本地）：经理 `admin` / `Admin@123`，前台 `front` / `Front@123`，餐厅 `kitchen` / `Kitchen@123`，住客手机号 `13900000000` / `User@1234`。
+
 ```bash
 mvn spring-boot:run
+```
+
+定时任务默认开启，设置环境变量 `HOTEL_SCHEDULER_ENABLED=false` 可关闭。
+
+### 运行测试
+
+```bash
+mvn test     # 单元测试，不依赖 Docker
+mvn verify   # 另外运行 *IT 集成测试：Testcontainers 启动 MySQL 8.0 与 Redis 7，需要本机 Docker
 ```
 
 服务启动后可通过 Swagger UI 查看接口定义。实际路径和端口以当前激活的 Spring Profile 为准。

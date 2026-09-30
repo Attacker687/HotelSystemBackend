@@ -27,6 +27,10 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+hotel:
+  scheduler:
+    enabled: ${HOTEL_SCHEDULER_ENABLED:true}
+
 aliyun:
   endpoint: ${ALIYUN_OSS_ENDPOINT:https://oss-cn-chengdu.aliyuncs.com}
   access-key-id: ${ALIYUN_ACCESS_KEY_ID:}

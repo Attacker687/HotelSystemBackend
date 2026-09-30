@@ -12,6 +12,7 @@ import com.winniethepooh.hotelsystembackend.service.OrderService;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -52,7 +53,7 @@ public class OrderController {
 
     @PostMapping
     @RoleRequired({RoleConstant.FRONT, RoleConstant.USER})
-    public Result insertRoomOrderController(@RequestBody InsertRoomOrderDTO insertRoomOrderDTO) {
+    public Result insertRoomOrderController(@Valid @RequestBody InsertRoomOrderDTO insertRoomOrderDTO) {
         if (BaseContext.getCurrentRole() == RoleConstant.USER) {
             Long id = orderService.insertRoomOrderByUserService(insertRoomOrderDTO);
             return Result.success(id);
@@ -91,7 +92,7 @@ public class OrderController {
 
     @RoleRequired({RoleConstant.USER})
     @PostMapping("/meal-order")
-    public Result insertMealOrderController(@RequestBody InsertMealOrderDTO insertMealOrderDTO) {
+    public Result insertMealOrderController(@Valid @RequestBody InsertMealOrderDTO insertMealOrderDTO) {
         orderService.insertMealOrderService(insertMealOrderDTO);
         return Result.success();
     }

@@ -1,8 +1,5 @@
 package com.winniethepooh.hotelsystembackend.service.impl;
 
-import cn.hutool.core.lang.Validator;
-import cn.hutool.core.util.IdcardUtil;
-import cn.hutool.core.util.PhoneUtil;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.dto.UserLoginDTO;
 import com.winniethepooh.hotelsystembackend.dto.RegisterDTO;
@@ -30,17 +27,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void registerService(RegisterDTO registerDTO) {
-        if (registerDTO.getName().isBlank()) throw new UserNameInvalidException("用户姓名不能为空");
-        if (registerDTO.getName().length() > 16) throw new UserNameInvalidException("用户姓名不能超过16个字");
-        if (!IdcardUtil.isValidCard(registerDTO.getIdCardNumber()))
-            throw new UserIDCardInvalidException("请输入正确的身份证");
-        if (!PhoneUtil.isMobile(registerDTO.getPhone())) throw new UserPhoneInvalidException("请输入正确的手机号");
-        if (!Validator.isEmail(registerDTO.getEmail())) throw new UserEmailInvalidException("请输入正确的邮箱");
-        if (registerDTO.getPassword().length() < 8) throw new UserPasswordInvalidException("密码不得少于8位");
-        if (registerDTO.getPassword().length() > 20) throw new UserPasswordInvalidException("密码不得多于20位");
-        if (!registerDTO.getPassword().matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-={}\\[\\]:;\"'<>,.?/~`|\\\\]).{8,20}$"
-        ))
-            throw new UserPasswordInvalidException("密码必须包含大小写字母、数字和特殊字符");
+        // 姓名、身份证、手机号、邮箱、密码的格式由 RegisterDTO 上的约束注解在进入 Service 前校验
         User user = userMapper.findUserByPhone(registerDTO.getPhone());
         if (user != null) throw new DuplicatedException("该手机号已被注册");
         registerDTO.setPassword(DigestUtils.md5Hex(registerDTO.getPassword()));
@@ -71,19 +58,10 @@ public class UserServiceImpl implements UserService {
         if (userInfoChangeDTO.getOriginPassword() != null && userInfoChangeDTO.getPasswordToChange() != null) {
             if (userMapper.findUserByPhoneAndPassword(userInfoChangeDTO.getPhone(), DigestUtils.md5Hex(userInfoChangeDTO.getOriginPassword())) == null)
                 throw new PasswordIncorrectException("原密码错误，操作失败");
-            if (userInfoChangeDTO.getPasswordToChange().length() < 8)
-                throw new UserPasswordInvalidException("密码不得少于8位");
-            if (userInfoChangeDTO.getPasswordToChange().length() > 20)
-                throw new UserPasswordInvalidException("密码不得多于20位");
-            if (!userInfoChangeDTO.getPasswordToChange().matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-={}\\[\\]:;\"'<>,.?/~`|\\\\]).{8,20}$"
-            ))
-                throw new UserPasswordInvalidException("密码必须包含大小写字母、数字和特殊字符");
             userInfoChangeDTO.setPasswordToChange(DigestUtils.md5Hex(userInfoChangeDTO.getPasswordToChange()));
             passwordChanged = true;
         }
 
-        if (userInfoChangeDTO.getEmailToChange() != null && !Validator.isEmail(userInfoChangeDTO.getEmailToChange()))
-            throw new UserEmailInvalidException("请输入正确的邮箱");
         userMapper.modifyUserInfo(userInfoChangeDTO);
         if (passwordChanged) redisService.deleteKeysByValue(String.valueOf(BaseContext.getCurrentId()));
     }

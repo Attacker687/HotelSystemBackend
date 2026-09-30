@@ -1,7 +1,9 @@
 package com.winniethepooh.hotelsystembackend.exception;
 
-public class UnknownException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class UnknownException extends BusinessException {
     public UnknownException(String message) {
-        super(message);
+        super(HttpStatus.FORBIDDEN, message);
     }
 }

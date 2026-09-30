@@ -12,6 +12,7 @@ import com.winniethepooh.hotelsystembackend.service.UserService;
 import com.winniethepooh.hotelsystembackend.utils.JwtUtils;
 import com.winniethepooh.hotelsystembackend.vo.LoginVO;
 import com.winniethepooh.hotelsystembackend.vo.QueryUserVO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,7 +35,7 @@ public class UserController {
     private StringRedisTemplate stringRedisTemplate;
 
     @PostMapping("/register")
-    public Result registerController(@RequestBody RegisterDTO registerDTO) {
+    public Result registerController(@Valid @RequestBody RegisterDTO registerDTO) {
         userService.registerService(registerDTO);
         return Result.success();
     }
@@ -62,7 +63,7 @@ public class UserController {
 
     @RoleRequired({RoleConstant.USER})
     @PostMapping("/change")
-    public Result changeInfoController(@RequestBody UserInfoChangeDTO userInfoChangeDTO) {
+    public Result changeInfoController(@Valid @RequestBody UserInfoChangeDTO userInfoChangeDTO) {
         userService.changeInfoService(userInfoChangeDTO);
         return Result.success();
     }
