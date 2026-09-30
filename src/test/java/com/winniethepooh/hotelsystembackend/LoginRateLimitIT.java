@@ -68,7 +68,7 @@ class LoginRateLimitIT extends IntegrationTestBase {
     @Test
     void tc050_fiveFailuresFromOneIpAcrossAccountsLockTheIp() {
         List<Fixtures.Account> ls = new ArrayList<>();
-        for (int i = 1; i <= 6; i++) ls.add(fx.user("测试限流" + i, "170000000" + (10 + i), Fixtures.PASSWORD));
+        for (int i = 1; i <= 6; i++) ls.add(base.user("L" + i));
         for (int i = 0; i < 5; i++) assertThat(attempt(ls.get(i), "Wrong@1234").code()).isNotZero();
 
         Resp r = attempt(ls.get(5), ls.get(5).password());

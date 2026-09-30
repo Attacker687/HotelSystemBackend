@@ -9,7 +9,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,18 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** C1/C3：参数错误返回 HTTP 400，提示取约束注解上的文案；非法请求不进入 Service、不落库。 */
 class RequestValidationIT extends IntegrationTestBase {
 
-    private static final String NEW_PHONE = "13800000099";
-
-    /** 合法注册请求（HashMap 以便把字段置 null）。 */
-    private static Map<String, Object> register(String phone, String password) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("name", "新住客");
-        m.put("idCardNumber", Fixtures.idCard(99));
-        m.put("phone", phone);
-        m.put("email", "t3@example.test");
+    /** 新住客 N 的注册信息（strategy.data），password 替换为给定值。 */
+    private static Map<String, Object> registerN(String password) {
+        Map<String, Object> m = Fixtures.registration("N");
         m.put("password", password);
         return m;
     }
+
+    private static final String N_PHONE = (String) Fixtures.registration("N").get("phone");
 
     private String passwordHashOf(String phone) {
         return jdbc.queryForObject("select password from user where phone = ?", String.class, phone);
@@ -50,9 +45,21 @@ class RequestValidationIT extends IntegrationTestBase {
     }
 
     @Test
+    void c1_reversedDateRangeFromSharedDateUtilReturns400() {
+        String token = login(base.manager());
+        LocalDate d = LocalDate.now().plusDays(10);
+
+        Resp r = get("/business/revenue/trend?startDate=" + d + "&endDate=" + d.minusDays(9), token);
+
+        assertThat(r.status()).isEqualTo(400);
+        assertThat(r.code()).isEqualTo(1);
+        assertThat(r.msg()).isEqualTo("开始日期不能在结束日期之后");
+    }
+
+    @Test
     void tc125_registerWithNullNameReturns400BeforeService() {
         int users = fx.count("user"), individuals = fx.count("individual");
-        Map<String, Object> body = register(NEW_PHONE, "Aa1!aaaa");
+        Map<String, Object> body = Fixtures.registration("N");
         body.put("name", null);
 
         Resp r = post("/user/register", null, body);
@@ -68,13 +75,7 @@ class RequestValidationIT extends IntegrationTestBase {
         String token = login(base.userA());
         int individuals = fx.count("individual"), orders = fx.count("room_order");
         LocalDateTime checkout = LocalDate.now().plusDays(11).atTime(12, 0);
-        Map<String, Object> body = new HashMap<>();
-        body.put("name", "入住人丙");
-        body.put("phone", "13800000055");
-        body.put("idCard", Fixtures.idCard(55));
-        body.put("roomNumber", "101");
-        body.put("checkInTime", null);
-        body.put("checkOutTime", checkout.toString());
+        Map<String, Object> body = Fixtures.roomOrderBody(base.room("R1").number(), null, checkout);
 
         Resp r = post("/order", token, body);
 
@@ -90,7 +91,7 @@ class RequestValidationIT extends IntegrationTestBase {
         int orders = fx.count("meal_order"), items = fx.count("meal_order_item");
 
         Resp r = post("/order/meal-order", token, Map.of("address", "1208 房", "totalAmount", 0,
-                "itemList", List.of(Map.of("dishId", base.dishX(), "quantity", 0, "unitPrice", 38.00))));
+                "itemList", List.of(Map.of("dishId", base.dish("X").id(), "quantity", 0, "unitPrice", base.dish("X").price()))));
 
         assertThat(r.status()).isEqualTo(400);
         assertThat(r.msg()).contains("数量");
@@ -101,18 +102,13 @@ class RequestValidationIT extends IntegrationTestBase {
     @ParameterizedTest(name = "tc128[{index}] {0}={1} -> {2}")
     @CsvSource(delimiter = '|', value = {
             "name        | 一二三四五六七八九十一二三四五六七 | 用户姓名不能超过16个字",
-            "idCardNumber| BAD_CHECK_DIGIT                   | 请输入正确的身份证",
+            "idCardNumber| 110101199001010188                | 请输入正确的身份证",
             "phone       | 12345678901                       | 请输入正确的手机号",
             "email       | abc@                              | 请输入正确的邮箱"
     })
     void tc128_registerValidationKeepsOriginalMessages(String field, String value, String expectedMsg) {
         int users = fx.count("user");
-        Map<String, Object> body = register(NEW_PHONE, "Aa1!aaaa");
-        if (value.equals("BAD_CHECK_DIGIT")) {
-            String valid = Fixtures.idCard(99);
-            char last = valid.charAt(17);
-            value = valid.substring(0, 17) + (last == '0' ? '1' : '0');
-        }
+        Map<String, Object> body = Fixtures.registration("N");
         body.put(field, value);
 
         Resp r = post("/user/register", null, body);
@@ -131,7 +127,7 @@ class RequestValidationIT extends IntegrationTestBase {
     void tc129_invalidPasswordRejectedWithSameMessageByRegisterAndChange(String password, String expectedMsg) {
         String hashBefore = passwordHashOf(base.userA().login());
 
-        Resp reg = post("/user/register", null, register(NEW_PHONE, password));
+        Resp reg = post("/user/register", null, registerN(password));
         String token = login(base.userA());
         Resp change = post("/user/change", token, Map.of("phone", base.userA().login(),
                 "originPassword", base.userA().password(), "passwordToChange", password));
@@ -139,23 +135,22 @@ class RequestValidationIT extends IntegrationTestBase {
         assertThat(reg.status()).isEqualTo(400);
         assertThat(change.status()).isEqualTo(400);
         assertThat(reg.msg()).isEqualTo(change.msg()).isEqualTo(expectedMsg);
-        assertThat(fx.count("user", "phone = ?", NEW_PHONE)).isZero();
+        assertThat(fx.count("user", "phone = ?", N_PHONE)).isZero();
         assertThat(passwordHashOf(base.userA().login())).isEqualTo(hashBefore);
     }
 
     @ParameterizedTest(name = "tc130[{index}] {0}")
     @ValueSource(strings = {"Aa1!aaaa", "Aa1!aaaaaaaaaaaaaaaa"})
     void tc130_validPasswordAcceptedByRegisterAndChange(String password) {
-        Resp reg = post("/user/register", null, register(NEW_PHONE, password));
+        Resp reg = post("/user/register", null, registerN(password));
 
         assertThat(reg.status()).isEqualTo(200);
         assertThat(reg.code()).isZero();
-        assertThat(Fixtures.isBcryptOf(passwordHashOf(NEW_PHONE), password)).isTrue(); // BCrypt 加盐，按校验比对
+        assertThat(Fixtures.isBcryptOf(passwordHashOf(N_PHONE), password)).isTrue(); // BCrypt 加盐，按校验比对
 
-        String otherPhone = "13800000098";
-        Map<String, Object> other = register(otherPhone, Fixtures.PASSWORD);
-        other.put("idCardNumber", Fixtures.idCard(98));
-        assertThat(post("/user/register", null, other).code()).isZero();
+        Map<String, Object> n2 = Fixtures.registration("N2");
+        String otherPhone = (String) n2.get("phone");
+        assertThat(post("/user/register", null, n2).code()).isZero();
         String token = login(new Fixtures.Account(0, otherPhone, Fixtures.PASSWORD, 0));
 
         Resp change = post("/user/change", token, Map.of("phone", otherPhone,

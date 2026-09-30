@@ -45,7 +45,10 @@ public abstract class IntegrationTestBase {
     @ServiceConnection
     public static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
             .withEnv("TZ", "Asia/Shanghai")
-            .withCommand("--default-time-zone=+08:00")
+            // 数据目录放内存、关闭 binlog 和逐事务刷盘：每个测试前 TRUNCATE 全部表，落盘时单个测试要多花约 3 秒
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
+            .withCommand("--default-time-zone=+08:00", "--skip-log-bin", "--innodb-flush-log-at-trx-commit=0",
+                    "--sync-binlog=0", "--innodb-doublewrite=0")
             .withUrlParam("serverTimezone", "Asia/Shanghai")
             .withInitScript("db/schema.sql");
 

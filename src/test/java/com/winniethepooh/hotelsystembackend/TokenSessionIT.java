@@ -45,7 +45,7 @@ class TokenSessionIT extends IntegrationTestBase {
 
     @Test
     void tc033_deletedStaffTokenIsRevoked() {
-        Fixtures.Account victim = fx.staff("it_to_delete", Fixtures.PASSWORD, RoleConstant.FRONT, StaffStatusConstant.ACTIVE);
+        Fixtures.Account victim = base.staff("it_to_delete");
         String tokenX = login(victim);
         assertThat(get(ROOMS, tokenX).status()).isEqualTo(200);
 
@@ -58,7 +58,7 @@ class TokenSessionIT extends IntegrationTestBase {
 
     @Test
     void s6_disabledStaffTokenIsRevoked() {
-        Fixtures.Account victim = fx.staff("it_to_disable", Fixtures.PASSWORD, RoleConstant.FRONT, StaffStatusConstant.ACTIVE);
+        Fixtures.Account victim = base.staff("it_to_disable");
         String tokenX = login(victim);
 
         Resp r = post("/staff/status", login(base.manager()), Map.of("id", victim.id(), "status", StaffStatusConstant.INACTIVE));
@@ -152,13 +152,13 @@ class TokenSessionIT extends IntegrationTestBase {
                 yield () -> post("/user/change", t, changePassword(base.userA()));
             }
             case "停用员工" -> {
-                Fixtures.Account s = fx.staff("it_to_disable", Fixtures.PASSWORD, RoleConstant.FRONT, StaffStatusConstant.ACTIVE);
+                Fixtures.Account s = base.staff("it_to_disable");
                 login(s);
                 String t = login(base.manager());
                 yield () -> post("/staff/status", t, Map.of("id", s.id(), "status", StaffStatusConstant.INACTIVE));
             }
             case "删除员工" -> {
-                Fixtures.Account s = fx.staff("it_to_delete", Fixtures.PASSWORD, RoleConstant.FRONT, StaffStatusConstant.ACTIVE);
+                Fixtures.Account s = base.staff("it_to_delete");
                 login(s);
                 String t = login(base.manager());
                 yield () -> delete("/staff?id=" + s.id(), t);

@@ -23,24 +23,22 @@ class PasswordHashingIT extends IntegrationTestBase {
         return jdbc.queryForObject("select password from staff where id = ?", String.class, id);
     }
 
-    /** 住客 C：库里仍是 S8 之前的 MD5 哈希。 */
+    /** 住客 C：基础数据里仍是 S8 之前的 MD5 哈希。 */
     private Fixtures.Account legacyUser() {
-        Fixtures.Account c = fx.user("测试住客丙", "17000000003", Fixtures.PASSWORD);
-        jdbc.update("update user set password = ? where id = ?", Fixtures.md5(Fixtures.PASSWORD), c.id());
-        return c;
+        return base.user("C");
     }
 
     @Test
     void tc039_registeredUserPasswordIsBcrypt() {
-        String phone = "17000000900";
-        Resp r = post("/user/register", null, Map.of("name", "测试新客", "idCardNumber", Fixtures.idCard(189),
-                "phone", phone, "email", "n@example.test", "password", Fixtures.PASSWORD));
+        Map<String, Object> n = Fixtures.registration("N");
+        String phone = (String) n.get("phone");
+        Resp r = post("/user/register", null, n);
 
         assertThat(r.status()).isEqualTo(200);
         assertThat(r.code()).isZero();
         String stored = jdbc.queryForObject("select password from user where phone = ?", String.class, phone);
         assertThat(Fixtures.isBcryptOf(stored, Fixtures.PASSWORD)).as(stored).isTrue();
-        assertThat(stored).isNotEqualTo(Fixtures.md5(Fixtures.PASSWORD));
+        assertThat(stored).isNotEqualTo(Fixtures.legacyMd5(Fixtures.PASSWORD));
     }
 
     @Test
@@ -52,7 +50,7 @@ class PasswordHashingIT extends IntegrationTestBase {
         assertThat(r.code()).isZero();
         String stored = jdbc.queryForObject("select password from staff where account = ?", String.class, "it_bcrypt_staff");
         assertThat(Fixtures.isBcryptOf(stored, Fixtures.PASSWORD)).as(stored).isTrue();
-        assertThat(stored).isNotEqualTo(Fixtures.md5(Fixtures.PASSWORD));
+        assertThat(stored).isNotEqualTo(Fixtures.legacyMd5(Fixtures.PASSWORD));
     }
 
     @Test
@@ -66,7 +64,7 @@ class PasswordHashingIT extends IntegrationTestBase {
         assertThat(r.code()).isZero();
         String stored = userPassword(a.id());
         assertThat(Fixtures.isBcryptOf(stored, NEW_PASSWORD)).as(stored).isTrue();
-        assertThat(stored).isNotEqualTo(Fixtures.md5(NEW_PASSWORD));
+        assertThat(stored).isNotEqualTo(Fixtures.legacyMd5(NEW_PASSWORD));
     }
 
     @Test
@@ -84,8 +82,7 @@ class PasswordHashingIT extends IntegrationTestBase {
 
     @Test
     void tc043_legacyStaffIsMigratedToBcryptOnSuccessfulLogin() {
-        Fixtures.Account s = fx.staff("it_legacy_md5", Fixtures.PASSWORD, RoleConstant.FRONT, StaffStatusConstant.ACTIVE);
-        jdbc.update("update staff set password = ? where id = ?", Fixtures.md5(Fixtures.PASSWORD), s.id());
+        Fixtures.Account s = base.staff("it_legacy_md5");
         assertThat(staffPassword(s.id())).matches("^[0-9a-f]{32}$");
 
         Resp r = post("/staff/login", null, Map.of("account", s.login(), "password", s.password()));
@@ -112,7 +109,7 @@ class PasswordHashingIT extends IntegrationTestBase {
     void tc045_userStillOnLegacyHashCanChangePassword() {
         Fixtures.Account c = legacyUser();
         String token = login(c);
-        jdbc.update("update user set password = ? where id = ?", Fixtures.md5(c.password()), c.id());
+        jdbc.update("update user set password = ? where id = ?", Fixtures.legacyMd5(c.password()), c.id());
 
         Resp r = post("/user/change", token, Map.of("phone", c.login(), "originPassword", c.password(),
                 "passwordToChange", NEW_PASSWORD));

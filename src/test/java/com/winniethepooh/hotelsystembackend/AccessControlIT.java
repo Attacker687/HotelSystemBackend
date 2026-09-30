@@ -118,7 +118,7 @@ class AccessControlIT extends IntegrationTestBase {
     void tc015_userCannotDeleteOrder() {
         LocalDateTime d = LocalDate.now().plusDays(10).atStartOfDay();
         long individual = jdbc.queryForObject("select id from individual where phone = ?", Long.class, base.userA().login());
-        long order = fx.roomOrder(base.userA().id(), individual, base.room("101"), d.withHour(14), d.plusDays(1).withHour(12),
+        long order = fx.roomOrder(base.userA().id(), individual, base.room("R1").id(), d.withHour(14), d.plusDays(1).withHour(12),
                 new BigDecimal("199.00"), 0, 0);
         String token = login(base.userA());
 

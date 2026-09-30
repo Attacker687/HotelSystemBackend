@@ -1,5 +1,6 @@
 package com.winniethepooh.hotelsystembackend;
 
+import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,8 @@ class LoginFailureIT extends IntegrationTestBase {
 
     @Test
     void tc046_userLoginUnknownAccountAndWrongPasswordLookTheSame() {
-        Resp unknown = post("/user/login", null, Map.of("phone", "17000000900", "password", "Whatever@1"));
+        String unregistered = (String) Fixtures.registration("N").get("phone"); // 新住客 N，基础数据中未注册
+        Resp unknown = post("/user/login", null, Map.of("phone", unregistered, "password", "Whatever@1"));
         Resp wrong = post("/user/login", null, Map.of("phone", base.userA().login(), "password", "Wrong@1234"));
 
         assertNoToken(unknown);
