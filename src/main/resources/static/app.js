@@ -51,14 +51,17 @@ function query(values) {
 }
 async function api(path, method = 'GET', body) {
   const headers = {};
-  if (session) headers.token = session.token;
+  const token = session?.token;
+  if (token) headers.token = token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-  if (response.status === 401) {
-    const staff = session && session.role !== 0;
-    session = null;
-    sessionStorage.removeItem('hotel-session');
-    showAuth(staff ? 'staff' : 'user');
+  if (response.status === 401 && token) {
+    if (session?.token === token) {
+      const staff = session.role !== 0;
+      session = null;
+      sessionStorage.removeItem('hotel-session');
+      showAuth(staff ? 'staff' : 'user');
+    }
     throw new Error('登录已失效，请重新登录');
   }
   let result;

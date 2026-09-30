@@ -210,7 +210,7 @@ test('TC-134 两张餐饮单取消一张，另一张推进、评价并计入 Top
   expect(orders[1]).toMatchObject({ order_status: 2, comment_star: 5, comment: '好吃', total_amount: 76 });
 });
 
-test('TC-135 经理创建并停用员工，独立员工会话收到 401 后回登录页', async ({ page, browser }) => {
+test('TC-135 停用员工与经理并发请求失效后保持员工登录页', async ({ page, browser }) => {
   await login(page, data.base.staff.it_manager);
   await nav(page, '员工管理');
   await page.getByLabel('新员工账号').fill(data.newStaff.account);
@@ -242,6 +242,16 @@ test('TC-135 经理创建并停用员工，独立员工会话收到 401 后回�
     await expect(employee.getByRole('heading', { name: '员工登录', exact: true })).toBeVisible();
     expect((await fixture('state')).staff.find(s => s.account === data.newStaff.account)).toMatchObject({ status: 0, is_deleted: 0 });
     await employee.screenshot({ path: test.info().outputPath('staff-disabled.png'), fullPage: true });
+    // 第二个真实经理会话使第一个令牌失效；经营页的三个并发 401 不能改成住客登录。
+    await login(employee, data.base.staff.it_manager);
+    const refusedBusiness = ['/business/revenue/stats', '/business/revenue/trend', '/business/dish/top10']
+      .map(path => page.waitForResponse(r => new URL(r.url()).pathname === path && r.status() === 401));
+    await nav(page, '经营分析');
+    await Promise.all(refusedBusiness);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: '员工登录', exact: true })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('登录已失效');
+    await page.screenshot({ path: test.info().outputPath('staff-concurrent-expired.png'), fullPage: true });
   } finally { await context.close(); }
 });
 
