@@ -10,7 +10,7 @@ const roomTypes = ['单人间', '双人间', '套房'];
 const roomStates = ['空闲', '占用', '清洁中', '维修中'];
 const orderStates = ['进行中', '已完成', '已取消'];
 const payStates = ['待支付', '已支付', '已退款'];
-const mealStates = ['新订单', '待完成（状态 1）', '已完成', '已取消'];
+const mealStates = ['新订单', '待完成', '已完成', '已取消'];
 const links = {
   home: '首页', rooms: '房间列表', orders: '我的订单', meals: '点餐',
   front: '前台开单', overview: '订单总览', wall: '房态墙', live: '实时订单',
