@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,18 +28,20 @@ public class AgentService {
     private final AgentProperties props;
     private final LlmClient llm;
     private final ObjectMapper json;
+    private final SessionStore sessions;
     private final Clock clock;
     private final String fixedPrompt;
 
     @Autowired
-    public AgentService(AgentProperties props, LlmClient llm, ObjectMapper json) {
-        this(props, llm, json, Clock.system(ZoneId.of("Asia/Shanghai")));
+    public AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions) {
+        this(props, llm, json, sessions, Clock.system(ZoneId.of("Asia/Shanghai")));
     }
 
-    AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, Clock clock) {
+    AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, Clock clock) {
         this.props = props;
         this.llm = llm;
         this.json = json;
+        this.sessions = sessions;
         this.clock = clock;
         try (var resource = new ClassPathResource("agent/system-prompt.txt").getInputStream()) {
             fixedPrompt = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
@@ -58,10 +61,14 @@ public class AgentService {
         try {
             send(response, "status", Map.of("text", "正在思考…"));
             try {
-                llm.respond(instructions(), List.of(AgentItem.user(message)), text -> {
+                List<AgentItem> turn = new ArrayList<>(List.of(AgentItem.user(message)));
+                List<AgentItem> input = new ArrayList<>(sessions.window(userId, sessionId));
+                input.addAll(turn);
+                turn.addAll(llm.respond(instructions(), input, text -> {
                     try { send(response, "delta", Map.of("text", text)); }
                     catch (IOException e) { throw new UncheckedIOException(e); }
-                }, Duration.ofSeconds(props.getTimeoutSeconds()));
+                }, Duration.ofSeconds(props.getTimeoutSeconds())));
+                sessions.append(userId, sessionId, turn);
             } catch (LlmException e) {
                 send(response, "error", Map.of("code", e.isTimeout() ? "TIMEOUT" : "MODEL_UNAVAILABLE", "msg", e.getMessage()));
             } catch (UncheckedIOException e) { return; }
