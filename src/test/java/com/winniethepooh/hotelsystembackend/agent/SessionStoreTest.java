@@ -106,6 +106,18 @@ class SessionStoreTest {
         verify(redis, times(1)).expire(KEY, Duration.ofMinutes(30));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void tc035_noteUsesSameAppendEntryAndRefreshesTtlAfterOneRpush() throws Exception {
+        ArgumentCaptor<Collection<String>> rows = ArgumentCaptor.forClass(Collection.class);
+        String text = "[系统通知] 住客已确认：订单号 123";
+        store.appendNote(7, SESSION, text);
+        var commands = inOrder(lists, redis);
+        commands.verify(lists).rightPushAll(eq(KEY), rows.capture()); commands.verify(redis).expire(KEY, Duration.ofMinutes(30));
+        assertThat(rows.getValue()).containsExactly(json.writeValueAsString(new AgentItem(AgentItem.Type.NOTE, text, null, null, null, null, null)));
+        verifyNoMoreInteractions(lists);
+    }
+
     private List<String> encode(List<AgentItem> items) throws Exception {
         List<String> result = new ArrayList<>();
         for (AgentItem item : items) result.add(json.writeValueAsString(item));

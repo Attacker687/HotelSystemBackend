@@ -1,6 +1,7 @@
 package com.winniethepooh.hotelsystembackend.controller;
 
 import com.winniethepooh.hotelsystembackend.agent.AgentService;
+import com.winniethepooh.hotelsystembackend.agent.PendingActionService;
 import com.winniethepooh.hotelsystembackend.annotation.RoleRequired;
 import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
@@ -20,8 +21,9 @@ import java.util.UUID;
 @RoleRequired({RoleConstant.USER})
 public class AgentController {
     private final AgentService agentService;
+    private final PendingActionService pending;
 
-    public AgentController(AgentService agentService) { this.agentService = agentService; }
+    public AgentController(AgentService agentService, PendingActionService pending) { this.agentService = agentService; this.pending = pending; }
 
     public record ChatRequest(
             @NotBlank(message = "会话不能为空")
@@ -35,4 +37,10 @@ public class AgentController {
     public void chat(@Valid @RequestBody ChatRequest request, HttpServletResponse response) {
         agentService.chat(BaseContext.getCurrentId(), request.sessionId(), request.message(), response);
     }
+
+    @PostMapping("/actions/{id}/confirm")
+    public Result confirm(@PathVariable String id) { return Result.success(pending.confirm(id, BaseContext.getCurrentId())); }
+
+    @PostMapping("/actions/{id}/cancel")
+    public Result cancel(@PathVariable String id) { return Result.success(pending.cancel(id, BaseContext.getCurrentId())); }
 }

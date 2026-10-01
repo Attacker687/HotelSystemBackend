@@ -34,6 +34,10 @@ public class SessionStore {
         redis.expire(key, Duration.ofMinutes(props.getSessionTtlMinutes()));
     }
 
+    public void appendNote(Integer userId, String sessionId, String text) {
+        append(userId, sessionId, List.of(new AgentItem(AgentItem.Type.NOTE, text, null, null, null, null, null)));
+    }
+
     public List<AgentItem> window(Integer userId, String sessionId) {
         String key = key(userId, sessionId);
         List<String> rows = redis.opsForList().range(key, 0, -1);

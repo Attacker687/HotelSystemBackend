@@ -6,6 +6,7 @@ import com.winniethepooh.hotelsystembackend.dto.InsertMealOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.MealOrderStatusCountDTO;
 import com.winniethepooh.hotelsystembackend.dto.TimeCheckDTO;
 import com.winniethepooh.hotelsystembackend.entity.Individual;
+import com.winniethepooh.hotelsystembackend.entity.BookingRequest;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
 import com.winniethepooh.hotelsystembackend.entity.MealOrderItem;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
@@ -21,6 +22,12 @@ import java.util.Map;
 
 @Mapper
 public interface OrderMapper {
+
+    int insertBookingRequest(String requestId, Integer userId, String actionType, String status);
+
+    int markBookingRequestSuccess(String requestId, Long orderId);
+
+    BookingRequest findBookingRequest(String requestId);
 
     List<MealOrder> getMealOrdersByDate(LocalDate startDate, LocalDate endDate, Integer id);
 
