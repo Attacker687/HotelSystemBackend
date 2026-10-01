@@ -100,15 +100,24 @@ $hotelMaven = 'mvn'
 powershell -NoProfile -File scripts/booking-agent.ps1 -Mode demo -Provider fake -Port 8080
 ```
 
-出现 `Started HotelSystemBackendApplication` 后，在同一 checkout 的终端 B 执行：
+确认 `target/agent-demo-source.json` 中的 `status` 为 `RUNNING` 后，在同一 checkout 的终端 B 执行（可用 `(Get-Content target/agent-demo-source.json -Raw | ConvertFrom-Json).status` 查询）：
 
 ```powershell
 node scripts/booking-agent-demo.mjs --base-url http://127.0.0.1:8080 --provider fake
 ```
 
-脚本用真实 Chromium 点击页面：按上海日期现算未来两晚双人间逐晚报价 → 订既有 302 的确认卡片（明确 2 人）→ 同卡两次确认同号、一张主单 → 支付后取消并核对已退款 → 拒绝他人手机号。每步核对隔离 MySQL 的订单、间夜与幂等记录；失败退出 1。结果、五张截图和去除临时 JWT 的 trace 在 `target/agent-demo-fake/`。`--provider` 是报告标签，后端模型由启动终端的 `-Provider` 决定。`--base-url` 的端口必须与当前 `target/demo-info.json` 一致。
+脚本用真实 Chromium 点击页面：按上海日期现算未来两晚双人间逐晚报价 → 订既有 302 的确认卡片（明确 2 人）→ 同卡两次确认同号、一张主单 → 支付后取消并核对已退款 → 拒绝他人手机号。每步核对隔离 MySQL 的订单、间夜与幂等记录；失败退出 1。结果、五张截图和去除临时 JWT 的 trace 在 `target/agent-demo-fake/`。启动包装器生成 `target/agent-demo-source.json`，关联本次 URL、容器、启动时间、Java 进程、jar 哈希与实际 SDK 条目；`--provider` 必须匹配这个运行来源，缺证或错标会失败。`--base-url` 的端口也必须与当前 `target/demo-info.json` 一致。
 
-终端 A 按 Ctrl+C 清理本次应用与两只演示容器，再运行真实模型演示；每次启动均为新数据。端口占用时，启动命令和浏览器命令一起改为同一个空闲端口。
+演示结束后，在终端 B 核对本次 Java 身份再停止它，让终端 A 的原脚本正常清理本次容器：
+
+```powershell
+$hotelRun = Get-Content target/agent-demo-source.json -Raw | ConvertFrom-Json
+$hotelJava = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $hotelRun.javaPid)
+if (-not $hotelJava -or $hotelJava.Name -ne 'java.exe' -or $hotelJava.ParentProcessId -ne $hotelRun.launcherPid) { throw '本次 Java 身份不匹配。' }
+Stop-Process -Id $hotelJava.ProcessId
+```
+
+等待来源记录变为 `STOPPED`、本次容器移除后，再运行真实模型演示；每次启动均为新数据。终端 A 此时退出 1 表示 Java 被人工停止，不计五步失败。端口占用时，启动命令和浏览器命令一起改为同一个空闲端口。
 
 在启动终端将 key 放入进程环境（不写源码、命令参数或报告），然后分别执行终端 A / B 的命令：
 
@@ -121,7 +130,7 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode demo -Provider opena
 node scripts/booking-agent-demo.mjs --base-url http://127.0.0.1:8080 --provider openai
 ```
 
-真实结果写入 `target/agent-demo-openai/`，服务端实际发送由 `agent.llm model=gpt-6-luna ... result=SUCCESS` 日志确认。启动器只在子进程范围设置 provider/model，退出后恢复进程环境；复用 `scripts/demo.ps1`，不改演示房号或业务请求。
+真实结果写入 `target/agent-demo-openai/`。包装器只保存本次 `agent.llm user=... model=gpt-6-luna ... result=SUCCESS` 的安全字段，浏览器报告还会自动核对五次 chat 对应的实际 SDK 成功发送证据；缺证即失败。启动器只在子进程范围设置 provider/model，退出后恢复进程环境；复用 `scripts/demo.ps1`，不改演示房号或业务请求。trace 先导出到临时 ZIP，脱敏并扫描成功后才保留 `trace.zip`；失败或超时会删除临时和最终 ZIP、保存安全失败报告。
 
 真实评测独立执行，停止演示后在已配置 key 的终端运行：
 
@@ -133,7 +142,7 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode eval -Maven $hotelMa
 
 `Invoke-AgentEval` 实际执行 `mvn -B test-compile failsafe:integration-test@default failsafe:verify@default -Dit.test=AgentEval#evaluateRealModel`。Failsafe 3.2.5 的 [it.test / 方法选择文档](https://maven.apache.org/surefire-archives/surefire-3.2.5/maven-failsafe-plugin/examples/single-test.html) 对应这个命名 execution；不关闭 `failIfNoSpecifiedTests`。`AgentEval` 不匹配常规 Test/Tests/IT 命名，`mvn test` / `clean verify` 不发现它。
 
-评测通过生产 HTTP sessions/chat/actions 和实际 `OpenAiLlmClient` / `com.openai:openai-java:4.73.0` 调用 `gpt-6-luna`，固定 Responses `store=false` / `include=reasoning.encrypted_content`。每例重置独立 Testcontainers MySQL/Redis，加载 `src/test/resources/agent/eval-cases.json` 的 24 条场景。工具、卡片、合理追问规则、服务端金额与订单状态自动判定；本人两类订单、他人数据不变、未确认零写、重复同号单独核对。没有 key 时入口明确报前提错误、退出 1；第一次模型不可用或超时后保留失败、标明剩余未运行，避免重复网络调用。
+评测通过生产 HTTP sessions/chat/actions 和实际 `OpenAiLlmClient` / `com.openai:openai-java:4.73.0` 调用 `gpt-6-luna`，固定 Responses `store=false` / `include=reasoning.encrypted_content`。每例重置独立 Testcontainers MySQL/Redis，加载 `src/test/resources/agent/eval-cases.json` 的 24 条场景。工具、卡片、合理追问规则、服务端金额与订单状态自动判定；本人两类订单、他人固定入住人记录、未确认零写、首次主单增量及重复同号单独核对。成功的他人订单结果或卡片也硬计越权。确认异常仍读取后置数据；无法核对状态时安全项为 UNKNOWN / null、整体失败。没有 key 时入口明确报前提错误、退出 1；第一次模型不可用、超时、传输或解析失败后保留部分结果、标明剩余未尝试项，避免重复网络调用。模型预算仍为 60 秒；客户端从发送至完整 SSE/DONE 有独立 75 秒绝对截止，半行停滞也会关闭本次 body 并取消读取。
 
 `target/agent-eval/report.json` 保留每次 chat 的回复和追问原文、首个**非空文本 delta** 的实际到达时间、逐条 3 秒达标情况及 P50/P90（nearest rank）；思考 status 不计首字，无文本和超时单列。五轮工具/NOTE 场景逐项核对模型 raw、后续 SDK 输入和 Redis 顺序、call/output 配对，加密项只报告实际数量与 SHA-256，不导出内容。追问原文供阅读复核，不新增人工测试用例。整体要求完成率 ≥90%、三项安全指标均 0、所有多轮成功回放；每次 chat 的 3 秒目标也决定总体结果，不因失败而删除样本。
 
@@ -142,6 +151,17 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode eval -Maven $hotelMa
 ```powershell
 powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -Maven $hotelMaven
 ```
+
+离线维护检查包含隔离本地 HTTP 的 EOF、坏 JSON、半行停滞、慢速流与初始化故障，以及原生 ZIP 的合成 JWT 脱敏/失败删除。可单独执行故障探针以复核**预期退出 1**的报告路径（不发模型）：
+
+```powershell
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe stream -Maven $hotelMaven
+# 预期退出 1；target/agent-eval-contract-stream/report.json 保留部分文本、TTFT 与 TIMEOUT 样本
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe init -Maven $hotelMaven
+# 预期退出 1；target/agent-eval-contract-init/report.json 保留失败初始化和后续未尝试项
+```
+
+这些产物注明 OFFLINE_CONTRACT，不计真实完成率、首字性能或模型回放结果。浏览器自检的内存故障替身只验证报告/自身资源收尾，实际五步仍按上面的独立 Chromium 命令执行。
 
 常规 `test` / `e2e` 仍使用 fake；TC-038、TC-048、TC-055、TC-056 是确定性接入回归，不能作为真实效果或性能结果。
 
@@ -153,9 +173,11 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -Maven $hotelM
 | 独立真实入口 | Windows PowerShell 5.1 实跑 `-Mode eval`：明确需要 key，退出 1；未发送模型 |
 | 24 条真实评测 | 已准备；真实调用未运行，失败项、完成率、安全三项、TTFT P50/P90 与逐 chat 3 秒情况均**未取得** |
 | 真实多轮 / 加密项 | 未运行；实际返回数量与完整回放结果**未取得**，离线合成 opaque 项不计真实数量 |
-| fake 浏览器五步 | 2026-10-01 20:05 上海时间，5/5、退出 0，**4.951 秒**；查询/提议零写，重复确认同号且一单，支付后取消 status=2 / pay_status=2，越权请求不改数据 |
+| fake 浏览器五步（r2） | 2026-10-01 21:07 上海时间，5/5、退出 0，**6.841 秒**，本次来源 `BOUND_TO_RUNNING_LAUNCH`；查询/提议零写，重复确认同号且一单，支付后取消 status=2 / pay_status=2，越权请求不改数据；本次 Java/启动器/容器/浏览器清理后均为 0，环境恢复 |
+| fake 错标 openai | 显式 `--provider openai` 与默认 openai 均退出 1；实际来源仍为 fake / UNKNOWN，0/5，不被计入真实结果 |
 | openai 浏览器五步 | 未运行，缺 key；耗时**未取得** |
-| 离线维护检查 | Windows PowerShell 5.1 → 实际 Failsafe 只选 `AgentEval#offlineCheck`：1/0/0/0；24 数据、判定/回放/DB/HTTP 前提及 Node self-check 通过，退出 0 |
+| 离线维护检查 | Windows PowerShell 5.1 → 实际 Failsafe 只选 `AgentEval#offlineCheck`：1/0/0/0；24 数据、判定/回放/DB/HTTP 前提、11 个 Node 故障阶段与 3 个原生 ZIP 路径通过，退出 0；真实 trace 的 23 个文本条目无 JWT |
+| 离线故障探针 | stream / init 两入口均按预期退出 1；保留 EOF/坏 JSON/部分文本/约 400ms 绝对截止 TIMEOUT 以及失败初始化后的 NOT_RUN，安全 UNKNOWN/null；不计模型效果 |
 | M2 已验证基线（历史） | 本地 `9197a013` 的完整回归 **640/0/0/0**（198 unit / 432 API / 10 browser），保留原 285 的执行身份；S08 完整验收交独立 verifier 执行 |
 
 真实配置缺口未补齐前，这张表不代表 M3 整体验收通过。实际产物先备份到本机过程目录，再执行会清除 `target/` 的完整验证。
