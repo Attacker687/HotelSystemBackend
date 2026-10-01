@@ -200,7 +200,7 @@ class AgentLlmClientTest {
         Clock clock = Clock.fixed(Instant.parse("2026-10-01T00:00:00Z"), ZoneId.of("Asia/Shanghai"));
         FakeLlmClient llm = spy(new FakeLlmClient());
         llm.enqueue(AgentItem.assistant("您好"));
-        AgentService service = new AgentService(new AgentProperties(), llm, new ObjectMapper(), mock(SessionStore.class), clock);
+        AgentService service = new AgentService(new AgentProperties(), llm, new ObjectMapper(), mock(SessionStore.class), mock(AgentTools.class), clock);
         BaseContext.setCurrentId(7);
         BaseContext.setCurrentRole(RoleConstant.USER);
         String fixed;

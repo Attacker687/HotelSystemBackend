@@ -16,6 +16,8 @@ import java.util.List;
 @Mapper
 public interface RoomMapper {
 
+    List<Room> findAvailableRooms(Integer roomType, LocalDateTime checkin, LocalDateTime checkout, int limit);
+
     List<Room> queryRooms(Integer limit, Integer offset, String roomNumber, Integer roomType, Integer status, LocalDate date);
 
     Room lockRoomByNumber(String roomNumber);

@@ -29,19 +29,21 @@ public class AgentService {
     private final LlmClient llm;
     private final ObjectMapper json;
     private final SessionStore sessions;
+    private final AgentTools tools;
     private final Clock clock;
     private final String fixedPrompt;
 
     @Autowired
-    public AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions) {
-        this(props, llm, json, sessions, Clock.system(ZoneId.of("Asia/Shanghai")));
+    public AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, AgentTools tools) {
+        this(props, llm, json, sessions, tools, Clock.system(ZoneId.of("Asia/Shanghai")));
     }
 
-    AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, Clock clock) {
+    AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, AgentTools tools, Clock clock) {
         this.props = props;
         this.llm = llm;
         this.json = json;
         this.sessions = sessions;
+        this.tools = tools;
         this.clock = clock;
         try (var resource = new ClassPathResource("agent/system-prompt.txt").getInputStream()) {
             fixedPrompt = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
@@ -58,16 +60,48 @@ public class AgentService {
         response.setContentType("text/event-stream");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setHeader("Cache-Control", "no-cache");
+        long started = System.nanoTime();
+        int toolCalls = 0;
         try {
             send(response, "status", Map.of("text", "正在思考…"));
             try {
                 List<AgentItem> turn = new ArrayList<>(List.of(AgentItem.user(message)));
                 List<AgentItem> input = new ArrayList<>(sessions.window(userId, sessionId));
                 input.addAll(turn);
-                turn.addAll(llm.respond(instructions(), input, text -> {
-                    try { send(response, "delta", Map.of("text", text)); }
-                    catch (IOException e) { throw new UncheckedIOException(e); }
-                }, Duration.ofSeconds(props.getTimeoutSeconds())));
+                AgentTools.ToolContext ctx = new AgentTools.ToolContext(userId, sessionId);
+                while (true) {
+                    List<AgentItem> output = llm.respond(instructions(), input, text -> {
+                        try { send(response, "delta", Map.of("text", text)); }
+                        catch (IOException e) { throw new UncheckedIOException(e); }
+                    }, remaining(started));
+                    remaining(started);
+                    turn.addAll(output); input.addAll(output);
+                    List<AgentItem> calls = output.stream().filter(item -> item.type() == AgentItem.Type.FUNCTION_CALL).toList();
+                    if (calls.isEmpty()) break;
+                    boolean limit = false;
+                    for (AgentItem call : calls) {
+                        remaining(started);
+                        String result;
+                        if (toolCalls >= props.getMaxToolCalls()) {
+                            result = "{\"ok\":false,\"error\":\"未执行：超过本轮工具调用上限\"}";
+                            limit = true;
+                        } else {
+                            send(response, "status", Map.of("tool", call.name(), "text", toolStatus(call.name())));
+                            toolCalls++;
+                            result = tools.execute(call.name(), call.arguments(), ctx);
+                        }
+                        AgentItem item = new AgentItem(AgentItem.Type.FUNCTION_CALL_OUTPUT, null, call.callId(), null, null, result, null);
+                        turn.add(item); input.add(item);
+                    }
+                    if (limit) {
+                        String text = "这个问题需要的步骤太多了，请换种说法或拆成几步问我。";
+                        turn.add(AgentItem.assistant(text));
+                        send(response, "delta", Map.of("text", text));
+                        send(response, "error", Map.of("code", "TOOL_LIMIT", "msg", text));
+                        break;
+                    }
+                }
+                remaining(started);
                 sessions.append(userId, sessionId, turn);
             } catch (LlmException e) {
                 send(response, "error", Map.of("code", e.isTimeout() ? "TIMEOUT" : "MODEL_UNAVAILABLE", "msg", e.getMessage()));
@@ -76,8 +110,24 @@ public class AgentService {
                 log.error("agent.chat user={} failed", userId, e);
                 send(response, "error", Map.of("code", "INTERNAL", "msg", "系统繁忙，请稍后再试"));
             }
-            send(response, "done", Map.of("toolCalls", 0));
+            send(response, "done", Map.of("toolCalls", toolCalls));
         } catch (IOException e) { /* 浏览器断开，结束本次请求。 */ }
+    }
+
+    private Duration remaining(long started) {
+        Duration remaining = Duration.ofSeconds(props.getTimeoutSeconds()).minusNanos(System.nanoTime() - started);
+        if (remaining.isZero() || remaining.isNegative()) throw new LlmException(true, null);
+        return remaining;
+    }
+
+    private String toolStatus(String name) {
+        return switch (name) {
+            case "search_available_rooms" -> "正在查询空房…";
+            case "get_price_quote" -> "正在计算价格…";
+            case "list_my_orders" -> "正在查询您的订单…";
+            case "list_menu" -> "正在查看菜单…";
+            default -> "正在执行工具…";
+        };
     }
 
     private void send(HttpServletResponse response, String event, Object data) throws IOException {

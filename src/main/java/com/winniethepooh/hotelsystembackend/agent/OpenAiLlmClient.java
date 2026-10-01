@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.ObjectMappers;
+import com.openai.core.JsonSchemaLocalValidation;
+import com.openai.core.JsonValue;
 import com.openai.core.RequestOptions;
 import com.openai.helpers.ResponseAccumulator;
 import com.openai.models.responses.*;
@@ -20,6 +22,7 @@ import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -82,7 +85,20 @@ public class OpenAiLlmClient implements LlmClient {
             } catch (JsonProcessingException e) { throw new LlmException(false, e); }
         }
         return ResponseCreateParams.builder().model(props.getModel()).instructions(instructions)
-                .inputOfResponse(converted).store(false).addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT).build();
+                .inputOfResponse(converted).store(false).addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT)
+                .addTool(AgentTools.SearchAvailableRooms.class).addTool(AgentTools.GetPriceQuote.class)
+                .addTool(noArgumentsTool(AgentTools.ListMyOrders.class)).addTool(noArgumentsTool(AgentTools.ListMenu.class)).build();
+    }
+
+    private FunctionTool noArgumentsTool(Class<?> type) {
+        // SDK 4.73.0 的 Class 派生会省略空 properties，且本地校验拒绝无参 schema。
+        FunctionTool tool = ResponseCreateParams.builder().model(props.getModel()).addTool(type, JsonSchemaLocalValidation.NO)
+                .build().tools().orElseThrow().get(0).asFunction();
+        return tool.toBuilder().parameters(FunctionTool.Parameters.builder()
+                .putAdditionalProperty("type", JsonValue.from("object"))
+                .putAdditionalProperty("additionalProperties", JsonValue.from(false))
+                .putAdditionalProperty("properties", JsonValue.from(Map.of()))
+                .putAdditionalProperty("required", JsonValue.from(List.of())).build()).build();
     }
 
     List<AgentItem> convertOutput(List<ResponseOutputItem> output) {
