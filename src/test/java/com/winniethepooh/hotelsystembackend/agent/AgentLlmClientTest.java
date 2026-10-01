@@ -127,6 +127,7 @@ class AgentLlmClientTest {
         JsonNode body = SDK_JSON.valueToTree(llm.buildRequest(instructions, List.of(AgentItem.user("你好")))._body());
         assertThat(body.path("model").asText()).isEqualTo("gpt-6-luna"); assertThat(body.has("store")).isTrue(); assertThat(body.path("store").asBoolean(true)).isFalse();
         assertThat(body.path("include")).isEqualTo(SDK_JSON.readTree("[\"reasoning.encrypted_content\"]"));
+        assertThat(body.path("reasoning").path("effort").asText()).isEqualTo("low");
         assertThat(body.path("instructions").asText()).isEqualTo(instructions);
         assertThat(body.path("input").get(0).path("role").asText()).isEqualTo("user"); assertThat(body.path("input").get(0).path("content").asText()).isEqualTo("你好");
         assertThat(body.has("previous_response_id")).isFalse(); assertThat(body.has("conversation")).isFalse();
