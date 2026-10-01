@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -141,8 +142,9 @@ public class FakeLlmClient implements LlmClient {
 
     private String describeQuote(JsonNode quote) {
         StringBuilder text = new StringBuilder("房间 ").append(quote.path("roomNumber").asText()).append("：");
-        quote.path("nights").fields().forEachRemaining(night -> text.append(night.getKey()).append(" ").append(night.getValue().asText()).append("元；"));
-        return text.append("合计 ").append(quote.path("total").asText()).append("元。").toString();
+        quote.path("nights").fields().forEachRemaining(night -> text.append(night.getKey()).append(" ")
+                .append(PendingActionService.money(new BigDecimal(night.getValue().asText()))).append("元；"));
+        return text.append("合计 ").append(PendingActionService.money(new BigDecimal(quote.path("total").asText()))).append("元。").toString();
     }
 
     private AgentItem call(String name, Map<String, Object> args) {

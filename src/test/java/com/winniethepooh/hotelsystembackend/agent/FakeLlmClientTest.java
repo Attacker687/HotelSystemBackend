@@ -100,6 +100,17 @@ class FakeLlmClientTest {
         assertThat(deltas).allSatisfy(delta -> assertThat(delta.length()).isBetween(2, 4));
     }
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"get_price_quote", "search_available_rooms"})
+    void s07ac2_numericQuotesKeepTwoDecimalNightlyAndTotal(String tool) {
+        String quote = "{\"roomNumber\":\"2101\",\"nights\":{\"2026-10-02\":299,\"2026-10-03\":299},\"total\":598}";
+        String data = "{\"ok\":true,\"data\":" + (tool.equals("get_price_quote") ? quote : "{\"rooms\":[" + quote + "]}") + "}";
+        List<String> deltas = new ArrayList<>();
+        var output = new FakeLlmClient(JSON, CLOCK).respond("指令", input("多少钱", tool, data), deltas::add, Duration.ofSeconds(5));
+        assertThat(String.join("", deltas)).isEqualTo(output.get(0).text())
+                .contains("2101", "2026-10-02 299.00", "2026-10-03 299.00", "合计 598.00");
+    }
+
     @Test
     void s06ac5_usesLatestUserAndLastItemRatherThanOldCall() {
         var fake = new FakeLlmClient(JSON, CLOCK);
