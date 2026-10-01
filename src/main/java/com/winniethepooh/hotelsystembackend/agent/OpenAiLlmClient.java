@@ -9,6 +9,8 @@ import com.openai.core.JsonSchemaLocalValidation;
 import com.openai.core.JsonValue;
 import com.openai.core.RequestOptions;
 import com.openai.helpers.ResponseAccumulator;
+import com.openai.models.Reasoning;
+import com.openai.models.ReasoningEffort;
 import com.openai.models.responses.*;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import jakarta.annotation.PreDestroy;
@@ -86,6 +88,8 @@ public class OpenAiLlmClient implements LlmClient {
         }
         return ResponseCreateParams.builder().model(props.getModel()).instructions(instructions)
                 .inputOfResponse(converted).store(false).addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT)
+                // 对话场景以首字时间为先：默认推理强度下约一半回复首字超过 3 秒，low 足够完成工具选择与追问。
+                .reasoning(Reasoning.builder().effort(ReasoningEffort.LOW).build())
                 .addTool(AgentTools.SearchAvailableRooms.class).addTool(AgentTools.GetPriceQuote.class)
                 .addTool(noArgumentsTool(AgentTools.ListMyOrders.class)).addTool(noArgumentsTool(AgentTools.ListMenu.class))
                 .addTool(AgentTools.ProposeBooking.class).addTool(AgentTools.ProposePayment.class).addTool(AgentTools.ProposeCancel.class)
