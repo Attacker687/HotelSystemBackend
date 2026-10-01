@@ -393,10 +393,15 @@ async function agentAction(page, card, action = 'confirm', status = 200) {
     await expect(box).toContainText(result.data.message);
     await expect(box.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
     await expect(box.getByRole('button', { name: '取消', exact: true })).toHaveCount(0);
-  } else if (status === 200 || [400, 404, 409].includes(status)) {
+  } else if (status === 200 || status === 404 || (action === 'confirm' && [400, 409].includes(status))) {
     await expect(box).toContainText(action === 'cancel' && status === 200 ? '已取消' : '已失效');
     if (status !== 200) await expect(box).toContainText(result.msg);
     await expect(box.getByRole('button')).toHaveCount(0);
+  } else {
+    await expect(box).toContainText(result.msg);
+    await expect(box.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
+    await expect(box.getByRole('button', { name: '取消', exact: true })).toBeEnabled();
+    await expect(box).toContainText('剩余');
   }
   return result;
 }
@@ -555,7 +560,17 @@ test('TC-052 助手预订重复确认同号一单、DONE门槛及取消过期变
   await expect(agentPanel(page).getByLabel('消息', { exact: true })).toBeDisabled();
   const delayed = eventCard(sseEvents(await (await waiting).text()), 'BOOKING');
   await expect(delayedBox.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
+  await page.route(`**/agent/actions/${delayed.actionId}/cancel`, route => route.fulfill({ status: 409, json: { code: 1, msg: '操作冲突，请重试' } }), { times: 1 });
+  const conflict = await agentAction(page, delayed, 'cancel', 409);
+  expect(conflict.msg).toBe('操作冲突，请重试');
+  await expect(delayedBox.locator('.badge')).toHaveText('待确认');
+  await expect(delayedBox.locator('.agent-error')).toHaveText('操作冲突，请重试');
+  const countdown = delayedBox.locator('span').filter({ hasText: '剩余' });
+  const remaining = await countdown.textContent();
+  await expect.poll(() => countdown.textContent()).not.toBe(remaining);
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
   await agentAction(page, delayed, 'cancel');
+  await expect(delayedBox.locator('.agent-error')).toHaveCount(0);
   expect((await fixture('state')).roomOrders).toHaveLength(1);
 
   const missing = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R2.number}`), 'BOOKING');

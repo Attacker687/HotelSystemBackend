@@ -727,6 +727,7 @@ function agentCard(state, data, generation, sessionId) {
       stop();
       status = action === 'confirm' ? 'CONFIRMED' : 'CANCELLED';
       badge.textContent = action === 'confirm' ? '已确认' : '已取消';
+      result.className = '';
       result.textContent = action === 'confirm' ? `#${response.orderId} · ${response.message}` : '已取消，此操作未执行';
       controls.replaceChildren();
       if (action === 'confirm') controls.append(confirm, button('查看我的订单', () => navigate('orders'), { class: 'secondary' }));
@@ -734,7 +735,7 @@ function agentCard(state, data, generation, sessionId) {
       if (!agentCurrent(state, generation, sessionId) || error.name === 'AbortError') return;
       result.textContent = error.message;
       result.className = 'agent-error';
-      if ([400, 404, 409].includes(error.status)) { status = 'EXPIRED'; badge.textContent = '已失效'; stop(); controls.replaceChildren(); }
+      if (error.status === 404 || (action === 'confirm' && [400, 409].includes(error.status))) { status = 'EXPIRED'; badge.textContent = '已失效'; stop(); controls.replaceChildren(); }
     } finally { requesting = false; sync(); }
   };
   const disabled = () => !ready || requesting || !['PENDING', 'CONFIRMED'].includes(status);
