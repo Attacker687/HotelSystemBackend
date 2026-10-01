@@ -220,7 +220,7 @@ class AgentLlmClientTest {
         verify(sdk, never()).chat();
         verify(sdk, never()).conversations();
         assertThat(logs.list).hasSize(1);
-        assertThat(logs.list.get(0).getFormattedMessage()).matches("agent\\.llm user=7 model=gpt-6-luna input=10 output=2 cached=4 ms=\\d+")
+        assertThat(logs.list.get(0).getFormattedMessage()).matches("agent\\.llm user=7 model=gpt-6-luna input=10 output=2 cached=4 ms=\\d+ result=SUCCESS")
                 .doesNotContain("你好", "您好", "m1", "固定指令", "resp_test");
         assertThat(logs.list.get(0).getThrowableProxy()).isNull();
         } finally { logger.detachAppender(logs); logs.stop(); }
@@ -229,6 +229,9 @@ class AgentLlmClientTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void s06ac4_sdkPropagatesBrowserDeltaDisconnectRatherThanModelFailure(boolean streamed) throws Exception {
+        Logger logger = (Logger) LoggerFactory.getLogger(OpenAiLlmClient.class); ListAppender<ILoggingEvent> logs = new ListAppender<>();
+        logs.start(); logger.addAppender(logs);
+        try {
         OpenAIClient sdk = mock(OpenAIClient.class); ResponseService responses = mock(ResponseService.class);
         @SuppressWarnings("unchecked") StreamResponse<ResponseStreamEvent> stream = mock(StreamResponse.class);
         when(sdk.responses()).thenReturn(responses); when(responses.createStreaming(any(ResponseCreateParams.class), any(RequestOptions.class))).thenReturn(stream);
@@ -240,6 +243,30 @@ class AgentLlmClientTest {
         UncheckedIOException disconnected = new UncheckedIOException(new IOException("browser disconnected"));
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> llm.respond("指令", List.of(AgentItem.user("你好")), ignored -> { throw disconnected; }, Duration.ofSeconds(5))).isSameAs(disconnected);
         verify(stream).close();
+        assertThat(logs.list).isEmpty();
+        } finally { logger.detachAppender(logs); logs.stop(); }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"transport", "failed", "timeout"})
+    void generalF1_actualSdkFailuresProduceExactlyOneSafeResultLog(String row) throws Exception {
+        Logger logger = (Logger) LoggerFactory.getLogger(OpenAiLlmClient.class); ListAppender<ILoggingEvent> logs = new ListAppender<>(); logs.start(); logger.addAppender(logs); BaseContext.setCurrentId(7);
+        try {
+            OpenAIClient sdk = mock(OpenAIClient.class); ResponseService responses = mock(ResponseService.class); when(sdk.responses()).thenReturn(responses);
+            @SuppressWarnings("unchecked") StreamResponse<ResponseStreamEvent> stream = mock(StreamResponse.class);
+            if (row.equals("transport")) when(responses.createStreaming(any(ResponseCreateParams.class), any(RequestOptions.class))).thenThrow(new IllegalStateException("110101199001010015 private-password"));
+            else if (row.equals("timeout")) when(responses.createStreaming(any(ResponseCreateParams.class), any(RequestOptions.class))).thenThrow(new UncheckedIOException(new java.net.SocketTimeoutException("110101199001010015 private-password")));
+            else {
+                when(responses.createStreaming(any(ResponseCreateParams.class), any(RequestOptions.class))).thenReturn(stream);
+                when(stream.stream()).thenReturn(Stream.of(SDK_JSON.readValue("{\"type\":\"error\",\"code\":\"failure\",\"message\":\"110101199001010015 private-password\",\"sequence_number\":1}", ResponseStreamEvent.class)));
+            }
+            var llm = new OpenAiLlmClient(properties("sk-test"), () -> sdk);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> llm.respond("秘密指令", List.of(AgentItem.user("秘密消息")), ignored -> {}, Duration.ofSeconds(5))).isInstanceOf(LlmException.class);
+            assertThat(logs.list).hasSize(1).allSatisfy(e -> {
+                assertThat(e.getFormattedMessage()).contains("agent.llm user=7", "model=gpt-6-luna", "ms=", "result=" + (row.equals("timeout") ? "TIMEOUT" : "MODEL_UNAVAILABLE"), "input=unavailable", "output=unavailable", "cached=unavailable")
+                        .doesNotContain("110101199001010015", "private-password", "秘密指令", "秘密消息"); assertThat(e.getThrowableProxy()).isNull();
+            });
+        } finally { logger.detachAppender(logs); logs.stop(); }
     }
 
     @Test

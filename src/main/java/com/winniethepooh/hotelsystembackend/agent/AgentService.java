@@ -68,27 +68,27 @@ public class AgentService {
         response.setContentType("text/event-stream");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setHeader("Cache-Control", "no-cache");
-        long started = System.nanoTime();
         int toolCalls = 0;
-        try {
+        try (AgentDeadline deadline = AgentDeadline.start(Duration.ofSeconds(props.getTimeoutSeconds()))) {
             send(response, "status", Map.of("text", "正在思考…"));
             try {
                 List<AgentItem> turn = new ArrayList<>(List.of(AgentItem.user(message)));
                 List<AgentItem> input = new ArrayList<>(sessions.window(userId, sessionId));
+                deadline.remaining();
                 input.addAll(turn);
                 AgentTools.ToolContext ctx = new AgentTools.ToolContext(userId, sessionId);
                 while (true) {
                     List<AgentItem> output = llm.respond(instructions(), input, text -> {
                         try { send(response, "delta", Map.of("text", text)); }
                         catch (IOException e) { throw new UncheckedIOException(e); }
-                    }, remaining(started));
-                    remaining(started);
+                    }, deadline.remaining());
+                    deadline.remaining();
                     turn.addAll(output); input.addAll(output);
                     List<AgentItem> calls = output.stream().filter(item -> item.type() == AgentItem.Type.FUNCTION_CALL).toList();
                     if (calls.isEmpty()) break;
                     boolean limit = false;
                     for (AgentItem call : calls) {
-                        remaining(started);
+                        deadline.remaining();
                         String result;
                         if (toolCalls >= props.getMaxToolCalls()) {
                             result = "{\"ok\":false,\"error\":\"未执行：超过本轮工具调用上限\"}";
@@ -97,6 +97,7 @@ public class AgentService {
                             send(response, "status", Map.of("tool", call.name(), "text", toolStatus(call.name())));
                             toolCalls++;
                             AgentTools.ToolResult execution = tools.execute(call.name(), call.arguments(), ctx);
+                            deadline.remaining();
                             result = execution.output();
                             if (execution.card() != null) send(response, "card", execution.card());
                         }
@@ -111,23 +112,20 @@ public class AgentService {
                         break;
                     }
                 }
-                remaining(started);
+                deadline.remaining();
                 sessions.append(userId, sessionId, turn);
             } catch (LlmException e) {
                 send(response, "error", Map.of("code", e.isTimeout() ? "TIMEOUT" : "MODEL_UNAVAILABLE", "msg", e.getMessage()));
             } catch (UncheckedIOException e) { return; }
             catch (RuntimeException e) {
-                log.error("agent.chat user={} failed cause={}", userId, e.getClass().getSimpleName());
-                send(response, "error", Map.of("code", "INTERNAL", "msg", "系统繁忙，请稍后再试"));
+                if (AgentDeadline.isTimeout(e)) send(response, "error", Map.of("code", "TIMEOUT", "msg", new LlmException(true, null).getMessage()));
+                else {
+                    log.error("agent.chat user={} failed cause={}", userId, e.getClass().getSimpleName());
+                    send(response, "error", Map.of("code", "INTERNAL", "msg", "系统繁忙，请稍后再试"));
+                }
             }
             send(response, "done", Map.of("toolCalls", toolCalls));
         } catch (IOException e) { /* 浏览器断开，结束本次请求。 */ }
-    }
-
-    private Duration remaining(long started) {
-        Duration remaining = Duration.ofSeconds(props.getTimeoutSeconds()).minusNanos(System.nanoTime() - started);
-        if (remaining.isZero() || remaining.isNegative()) throw new LlmException(true, null);
-        return remaining;
     }
 
     private String toolStatus(String name) {

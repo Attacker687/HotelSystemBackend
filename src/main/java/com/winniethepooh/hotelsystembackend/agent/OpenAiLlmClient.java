@@ -131,6 +131,8 @@ public class OpenAiLlmClient implements LlmClient {
         ResponseAccumulator accumulator = ResponseAccumulator.create();
         boolean[] streamedText = {false};
         java.io.UncheckedIOException[] disconnected = {null};
+        Object[] tokens = {"unavailable", "unavailable", "unavailable"};
+        String result = "MODEL_UNAVAILABLE";
         Consumer<String> emit = text -> {
             try { onTextDelta.accept(text); }
             catch (java.io.UncheckedIOException e) { disconnected[0] = e; throw e; }
@@ -143,14 +145,15 @@ public class OpenAiLlmClient implements LlmClient {
                 event.outputTextDelta().ifPresent(delta -> { streamedText[0] = true; emit.accept(delta.delta()); });
             });
             Response response = accumulator.response();
-            response.usage().ifPresent(usage -> log.info("agent.llm user={} model={} input={} output={} cached={} ms={}",
-                    BaseContext.getCurrentId(), props.getModel(), usage.inputTokens(), usage.outputTokens(),
-                    usage.inputTokensDetails().cachedTokens(), (System.nanoTime() - started) / 1_000_000));
+            response.usage().ifPresent(usage -> {
+                tokens[0] = usage.inputTokens(); tokens[1] = usage.outputTokens(); tokens[2] = usage.inputTokensDetails().cachedTokens();
+            });
             List<AgentItem> output = convertOutput(response.output());
             if (!streamedText[0]) output.stream().filter(item -> item.type() == AgentItem.Type.ASSISTANT)
                     .forEach(item -> emit.accept(item.text()));
+            result = "SUCCESS";
             return output;
-        } catch (LlmException e) { throw e; }
+        } catch (LlmException e) { result = e.isTimeout() ? "TIMEOUT" : "MODEL_UNAVAILABLE"; throw e; }
         catch (RuntimeException e) {
             if (disconnected[0] != null) throw disconnected[0];
             boolean timedOut = System.nanoTime() - started >= timeout.toNanos();
@@ -158,7 +161,12 @@ public class OpenAiLlmClient implements LlmClient {
                 if (cause instanceof InterruptedIOException || cause instanceof HttpTimeoutException || cause instanceof TimeoutException)
                     timedOut = true;
             }
+            result = timedOut ? "TIMEOUT" : "MODEL_UNAVAILABLE";
             throw new LlmException(timedOut, e);
+        } finally {
+            if (disconnected[0] == null) log.info("agent.llm user={} model={} input={} output={} cached={} ms={} result={}",
+                    BaseContext.getCurrentId(), props.getModel(), tokens[0], tokens[1], tokens[2],
+                    (System.nanoTime() - started) / 1_000_000, result);
         }
     }
 }

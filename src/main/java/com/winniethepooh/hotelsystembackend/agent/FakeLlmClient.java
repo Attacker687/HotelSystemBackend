@@ -100,7 +100,12 @@ public class FakeLlmClient implements LlmClient {
                 int count = 1;
                 if (quantity.find()) {
                     String n = quantity.group(1);
-                    count = n.equals("两") ? 2 : "一二三四五六七八九十".contains(n) ? "一二三四五六七八九十".indexOf(n) + 1 : Integer.parseInt(n);
+                    if (n.matches("\\d+")) {
+                        n = n.replaceFirst("^0+(?!$)", "");
+                        if (n.length() > 2 || Integer.parseInt(n) < 1 || Integer.parseInt(n) > 20)
+                            return AgentItem.assistant("点餐数量必须为1至20份，请重新选择数量。");
+                        count = Integer.parseInt(n);
+                    } else count = n.equals("两") ? 2 : "一二三四五六七八九十".indexOf(n) + 1;
                 }
                 for (JsonNode dish : data.path("dishes")) if (message.contains(dish.path("name").asText()))
                     items.add(Map.of("dishId", dish.path("dishId").asLong(), "quantity", count));

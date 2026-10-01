@@ -9,6 +9,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisScriptingCommands;
+import org.springframework.data.redis.connection.ReturnType;
+import java.nio.charset.StandardCharsets;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -20,12 +25,22 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class SessionStoreTest {
+    @Test
+    void edgeF1_refusedCommitDoesNotExposePartialTurnOrLosePreviousHistory() {
+        List<String> persisted = new ArrayList<>(List.of("old-user", "old-assistant"));
+        doAnswer(i -> { persisted.addAll(i.getArgument(1)); return (long) persisted.size(); }).when(lists).rightPushAll(anyString(), any(java.util.Collection.class));
+        when(redis.expire(anyString(), any(Duration.class))).thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("refused"));
+        when(redis.execute(any(RedisCallback.class))).thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("refused"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> store.append(7, "session", List.of(AgentItem.user("failed"), AgentItem.assistant("failed")))).isInstanceOf(RuntimeException.class);
+        assertThat(persisted).containsExactly("old-user", "old-assistant");
+    }
     private static final String SESSION = "00000000-0000-0000-0000-000000000007";
     private static final String KEY = "agent:session:7:" + SESSION;
     private final ObjectMapper json = new ObjectMapper();
     private StringRedisTemplate redis;
     private ListOperations<String, String> lists;
     private SessionStore store;
+    private RedisScriptingCommands scripts;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -33,6 +48,10 @@ class SessionStoreTest {
         redis = mock(StringRedisTemplate.class);
         lists = mock(ListOperations.class);
         when(redis.opsForList()).thenReturn(lists);
+        RedisConnection connection = mock(RedisConnection.class); scripts = mock(RedisScriptingCommands.class);
+        when(connection.scriptingCommands()).thenReturn(scripts);
+        when(scripts.eval(any(byte[].class), eq(ReturnType.INTEGER), eq(1), any(byte[][].class))).thenReturn(1L);
+        when(redis.execute(any(RedisCallback.class))).thenAnswer(i -> ((RedisCallback<?>) i.getArgument(0)).doInRedis(connection));
         store = new SessionStore(redis, json, new AgentProperties());
     }
 
@@ -82,7 +101,7 @@ class SessionStoreTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void s02ac2_allSixItemsAreWrittenInOneRpushThenExpireAndReadUnchanged() throws Exception {
+    void s02ac2_allSixItemsAreWrittenInOneAtomicAppendAndReadUnchanged() throws Exception {
         List<AgentItem> items = List.of(AgentItem.user("继续"),
                 new AgentItem(AgentItem.Type.REASONING, null, null, null, null, null,
                         "{\"type\":\"reasoning\",\"encrypted_content\":\"opaque+/==\",\"summary\":[]}"),
@@ -92,29 +111,36 @@ class SessionStoreTest {
                 new AgentItem(AgentItem.Type.ASSISTANT, "中文\n回复", null, null, null, null,
                         "{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"中文\\n回复\"}]}"),
                 new AgentItem(AgentItem.Type.NOTE, "[系统通知] 确认结果", null, null, null, null, null));
-        ArgumentCaptor<Collection<String>> rows = ArgumentCaptor.forClass(Collection.class);
+        ArgumentCaptor<byte[][]> arguments = ArgumentCaptor.forClass(byte[][].class);
 
         store.append(7, SESSION, items);
 
-        var commands = inOrder(lists, redis);
-        commands.verify(lists).rightPushAll(eq(KEY), rows.capture());
-        commands.verify(redis).expire(KEY, Duration.ofMinutes(30));
+        verify(redis).execute(any(RedisCallback.class));
+        verify(scripts).eval(any(byte[].class), eq(ReturnType.INTEGER), eq(1), arguments.capture());
         verifyNoMoreInteractions(lists);
-        assertThat(rows.getValue()).containsExactlyElementsOf(encode(items));
-        when(lists.range(KEY, 0, -1)).thenReturn(new ArrayList<>(rows.getValue()));
+        List<String> args = java.util.Arrays.stream(arguments.getValue()).map(value -> new String(value, StandardCharsets.UTF_8)).toList();
+        assertThat(args.get(0)).isEqualTo(KEY);
+        assertThat(Long.parseLong(args.get(1))).isBetween(System.currentTimeMillis(), System.currentTimeMillis() + 60000);
+        assertThat(args.get(2)).isEqualTo("1800000");
+        List<String> rows = args.subList(3, args.size());
+        assertThat(rows).containsExactlyElementsOf(encode(items));
+        when(lists.range(KEY, 0, -1)).thenReturn(rows);
         assertThat(store.window(7, SESSION)).isEqualTo(items);
-        verify(redis, times(1)).expire(KEY, Duration.ofMinutes(30));
+        verify(redis, never()).expire(anyString(), any(Duration.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void tc035_noteUsesSameAppendEntryAndRefreshesTtlAfterOneRpush() throws Exception {
-        ArgumentCaptor<Collection<String>> rows = ArgumentCaptor.forClass(Collection.class);
+    void tc035_noteUsesSameAtomicAppendEntryAndRefreshesTtl() throws Exception {
+        ArgumentCaptor<byte[][]> arguments = ArgumentCaptor.forClass(byte[][].class);
         String text = "[系统通知] 住客已确认：订单号 123";
         store.appendNote(7, SESSION, text);
-        var commands = inOrder(lists, redis);
-        commands.verify(lists).rightPushAll(eq(KEY), rows.capture()); commands.verify(redis).expire(KEY, Duration.ofMinutes(30));
-        assertThat(rows.getValue()).containsExactly(json.writeValueAsString(new AgentItem(AgentItem.Type.NOTE, text, null, null, null, null, null)));
+        verify(redis).execute(any(RedisCallback.class));
+        verify(scripts).eval(any(byte[].class), eq(ReturnType.INTEGER), eq(1), arguments.capture());
+        List<String> args = java.util.Arrays.stream(arguments.getValue()).map(value -> new String(value, StandardCharsets.UTF_8)).toList();
+        assertThat(args.get(0)).isEqualTo(KEY); assertThat(args.get(2)).isEqualTo("1800000");
+        assertThat(args.subList(3, 4)).containsExactly(json.writeValueAsString(new AgentItem(AgentItem.Type.NOTE, text, null, null, null, null, null)));
+        verify(redis, never()).expire(anyString(), any(Duration.class));
         verifyNoMoreInteractions(lists);
     }
 

@@ -3,9 +3,14 @@ package com.winniethepooh.hotelsystembackend.agent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +18,11 @@ import java.util.Map;
 
 @Component
 public class SessionStore {
+    private static final byte[] APPEND;
+    static {
+        try (var stream = new ClassPathResource("agent/append-session.lua").getInputStream()) { APPEND = stream.readAllBytes(); }
+        catch (IOException e) { throw new IllegalStateException("会话脚本无法读取", e); }
+    }
     private final StringRedisTemplate redis;
     private final ObjectMapper json;
     private final AgentProperties props;
@@ -29,9 +39,21 @@ public class SessionStore {
         try {
             for (AgentItem item : items) rows.add(json.writeValueAsString(item));
         } catch (JsonProcessingException e) { throw new IllegalStateException("会话内容无法序列化", e); }
-        String key = key(userId, sessionId);
-        redis.opsForList().rightPushAll(key, rows);
-        redis.expire(key, Duration.ofMinutes(props.getSessionTtlMinutes()));
+        AgentDeadline active = AgentDeadline.current();
+        try (AgentDeadline own = active == null ? AgentDeadline.start(Duration.ofSeconds(props.getTimeoutSeconds())) : null) {
+            AgentDeadline deadline = AgentDeadline.current();
+            deadline.remaining();
+            List<String> args = new ArrayList<>(List.of(key(userId, sessionId), Long.toString(deadline.epochMillis()),
+                    Long.toString(Duration.ofMinutes(props.getSessionTtlMinutes()).toMillis())));
+            args.addAll(rows);
+            byte[][] encoded = args.stream().map(value -> value.getBytes(StandardCharsets.UTF_8)).toArray(byte[][]::new);
+            Long result = redis.execute((RedisCallback<Long>) connection -> connection.scriptingCommands().eval(APPEND, ReturnType.INTEGER, 1, encoded));
+            if (Long.valueOf(-1).equals(result)) throw new LlmException(true, null);
+            if (result == null || result < 0) throw new IllegalStateException("会话提交被拒绝");
+        } catch (RuntimeException e) {
+            if (AgentDeadline.isTimeout(e)) throw new LlmException(true, e);
+            throw e;
+        }
     }
 
     public void appendNote(Integer userId, String sessionId, String text) {

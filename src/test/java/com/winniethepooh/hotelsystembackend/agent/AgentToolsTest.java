@@ -95,6 +95,41 @@ class AgentToolsTest {
         assertThat(json.isEnabled(com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_FLOAT_AS_INT)).isTrue();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"get_price_quote", "search_available_rooms", "propose_booking"})
+    void adversarialF1_invalidDateTextIsNeverLogged(String tool) throws Exception {
+        String raw = json.writeValueAsString(Map.of("roomNumber", "1101", "checkInDate", "110101199001010015 private-password", "checkOutDate", "2026-10-11"));
+        assertThat(json.readTree(tools.execute(tool, raw, ctx).output()).path("ok").asBoolean()).isFalse();
+        assertThat(logs.list).isNotEmpty().allSatisfy(e -> assertThat(e.getFormattedMessage()).contains("user=7", "tool=", "ms=", "result=").doesNotContain("110101199001010015", "private-password"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"propose_payment", "propose_meal_order"})
+    void adversarialF1_numericIdentifiersNeverExposeArbitraryLongValues(String tool) throws Exception {
+        String body = tool.equals("propose_payment") ? "{\"orderId\":110101199001010015}"
+                : "{\"items\":[{\"dishId\":110101199001010015,\"quantity\":1}],\"address\":\"1101\"}";
+        assertThat(json.readTree(tools.execute(tool, body, ctx).output()).path("ok").asBoolean()).isFalse();
+        assertThat(logs.list).isNotEmpty().allSatisfy(e -> assertThat(e.getFormattedMessage()).doesNotContain("110101199001010015").contains("user=7", "tool=", "result=error", "ms="));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"room", "emptyMeal", "validMeal"})
+    void adversarialF1_freeTextOnlyHasSafeStructuralSummary(String row) throws Exception {
+        String secret = "110101199001010015 private-password";
+        String body;
+        if (row.equals("room")) body = json.writeValueAsString(Map.of("roomNumber", secret, "checkInDate", "2026-10-09", "checkOutDate", "2026-10-11"));
+        else {
+            body = json.writeValueAsString(Map.of("items", row.equals("emptyMeal") ? List.of() : List.of(Map.of("dishId", 1, "quantity", 1)), "address", "1101 " + secret, "remarks", secret));
+            if (row.equals("validMeal")) {
+                Dish dish = new Dish(); dish.setId(1); dish.setStatus(1); dish.setName("菜品"); dish.setPrice(new BigDecimal("38.00")); when(dishes.getDishById(1L)).thenReturn(dish);
+                when(pending.create(any(), any(), any(), any(), any(), any())).thenReturn(new PendingAction("action", 7, ctx.sessionId(), PendingAction.Type.MEAL_ORDER, Map.of(), new BigDecimal("38.00"), Map.of("title", "点餐", "ttlSeconds", 600)));
+            }
+        }
+        var result = json.readTree(tools.execute(row.equals("room") ? "get_price_quote" : "propose_meal_order", body, ctx).output());
+        assertThat(result.path("ok").asBoolean()).isEqualTo(row.equals("validMeal"));
+        assertThat(logs.list).isNotEmpty().allSatisfy(e -> assertThat(e.getFormattedMessage()).contains("user=7", "tool=", "ms=", "result=").doesNotContain(secret, "110101199001010015", "private-password"));
+    }
+
     @Test
     void s06ac5_productionToolLogsOnlyTypedAllowedParametersWithoutIdentityOrRaw() {
         when(orders.quoteRoomService(any(), any(), any())).thenReturn(quote());
@@ -102,7 +137,7 @@ class AgentToolsTest {
         tools.execute("get_price_quote", raw, ctx);
         assertThat(logs.list).hasSize(1);
         String log = logs.list.get(0).getFormattedMessage();
-        assertThat(log).contains("agent.tool user=7 tool=get_price_quote", "roomNumber", "1101", "2026-10-09", "ms=", "result=ok")
+        assertThat(log).contains("agent.tool user=7 tool=get_price_quote", "\"roomNumberLength\":4", "2026-10-09", "ms=", "result=ok").doesNotContain("1101")
                 .doesNotContain("userId", "phone", "idCard", "password", "13800000002", "110101199001010015", "private-password");
         assertThat(logs.list.get(0).getThrowableProxy()).isNull();
     }
@@ -113,12 +148,15 @@ class AgentToolsTest {
         assertThat(json.readTree(tools.execute("propose_meal_order", raw, ctx).output()).path("ok").asBoolean()).isFalse();
         String log = logs.list.get(logs.list.size() - 1).getFormattedMessage();
         String args = log.substring(log.indexOf(" args=") + 6, log.indexOf(" ms="));
-        assertThat(args.length()).isEqualTo(200); assertThat(args).contains("dishId", "quantity", "address");
+        assertThat(args.length()).isLessThanOrEqualTo(200); assertThat(args).contains("dishId", "quantity", "\"addressLength\":256");
         assertThat(log).doesNotContain("remarks", "private-password", "110101199001010015");
         String shortAddress = json.writeValueAsString(Map.of("items", List.of(Map.of("dishId", 1, "quantity", 1)), "address", "1101", "remarks", "private-password 110101199001010015"));
         tools.execute("propose_meal_order", shortAddress, ctx);
-        assertThat(logs.list.get(logs.list.size() - 1).getFormattedMessage()).contains("address", "1101")
+        assertThat(logs.list.get(logs.list.size() - 1).getFormattedMessage()).contains("\"addressLength\":4").doesNotContain("1101")
                 .doesNotContain("remarks", "private-password", "110101199001010015");
+        tools.execute("propose_meal_order", json.writeValueAsString(Map.of("items", java.util.Collections.nCopies(20, Map.of("dishId", 1, "quantity", 1)), "address", "1101")), ctx);
+        String capped = logs.list.get(logs.list.size() - 1).getFormattedMessage();
+        assertThat(capped.substring(capped.indexOf(" args=") + 6, capped.indexOf(" ms="))).hasSize(200);
     }
 
     @Test

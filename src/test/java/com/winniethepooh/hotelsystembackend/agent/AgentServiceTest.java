@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.winniethepooh.hotelsystembackend.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -24,6 +26,19 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class AgentServiceTest {
+    @ParameterizedTest
+    @ValueSource(strings = {"history", "tool"})
+    void edgeF2_lateJavaReturnCannotSendCardOrCommit(String boundary) throws Exception {
+        props.setTimeoutSeconds(1);
+        if (boundary.equals("history")) when(sessions.window(any(), any())).thenAnswer(i -> { Thread.sleep(1100); return List.of(); });
+        else {
+            when(llm.respond(any(), any(), any(), any())).thenReturn(List.of(new AgentItem(AgentItem.Type.FUNCTION_CALL, null, "c1", "list_menu", "{}", null, null)));
+            when(tools.execute(any(), any(), any())).thenAnswer(i -> { Thread.sleep(1100); return new AgentTools.ToolResult("{\"ok\":true}", java.util.Map.of("actionId", "late")); });
+        }
+        MockHttpServletResponse response = new MockHttpServletResponse(); service.chat(7, session, "晚返回", response);
+        assertThat(response.getContentAsString()).contains("TIMEOUT").doesNotContain("event: card").endsWith("event: done\ndata: {\"toolCalls\":" + (boundary.equals("tool") ? 1 : 0) + "}\n\n");
+        verify(sessions, never()).append(any(), any(), any());
+    }
     private final AgentProperties props = new AgentProperties();
     private final LlmClient llm = mock(LlmClient.class);
     private final SessionStore sessions = mock(SessionStore.class);

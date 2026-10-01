@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
@@ -26,6 +25,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,6 +54,10 @@ public class AgentTools {
     private final UserMapper users;
     private final FoodMapper dishes;
     private final PendingActionService pending;
+    private PlatformTransactionManager transactions;
+
+    @Autowired
+    public void setTransactions(PlatformTransactionManager transactions) { this.transactions = transactions; }
 
     public AgentTools(OrderService orders, FoodService food, RoomMapper rooms, ObjectMapper json,
                       OrderMapper orderMapper, UserMapper users, FoodMapper dishes, PendingActionService pending) {
@@ -122,7 +128,7 @@ public class AgentTools {
         Integer current = BaseContext.getCurrentId();
         if (!Objects.equals(BaseContext.getCurrentRole(), RoleConstant.USER) || current == null || current <= 0
                 || ctx == null || !current.equals(ctx.userId())) {
-            log.warn("agent.tool denied user={} tool={}", current, logName);
+            log.warn("agent.tool user={} tool={} args={} ms={} result=denied", current, logName, "{}", (System.nanoTime() - started) / 1_000_000);
             return new ToolResult(encode(Map.of("ok", false, "error", "无权限")), null);
         }
         try {
@@ -138,20 +144,14 @@ public class AgentTools {
                 default -> throw invalid("未知工具");
             };
             Object params = parse(arguments, type);
-            ObjectNode allowed = json.valueToTree(params);
-            if (params instanceof ProposeMealOrder) allowed.remove("remarks");
-            safeArgs = json.writeValueAsString(allowed);
-            Object data = switch (name) {
-                case "search_available_rooms" -> search((SearchAvailableRooms) params);
-                case "get_price_quote" -> price((GetPriceQuote) params);
-                case "list_my_orders" -> myOrders(ctx);
-                case "list_menu" -> menu();
-                case "propose_booking" -> booking((ProposeBooking) params, ctx);
-                case "propose_payment" -> orderAction(((ProposePayment) params).orderId(), ctx, PendingAction.Type.PAYMENT);
-                case "propose_cancel" -> orderAction(((ProposeCancel) params).orderId(), ctx, PendingAction.Type.CANCEL);
-                case "propose_meal_order" -> meal((ProposeMealOrder) params, ctx);
-                default -> throw invalid("未知工具");
-            };
+            safeArgs = json.writeValueAsString(safeSummary(params));
+            AgentDeadline deadline = AgentDeadline.current();
+            Object data;
+            if (deadline != null && transactions != null) {
+                TransactionTemplate transaction = new TransactionTemplate(transactions);
+                transaction.setTimeout(deadline.remainingSeconds());
+                data = transaction.execute(status -> dispatch(name, params, ctx));
+            } else data = dispatch(name, params, ctx);
             if (data instanceof PendingAction action) {
                 card = action.card();
                 result = Map.of("ok", true, "data", fields("actionId", action.id(), "summary", card.get("title"),
@@ -160,13 +160,52 @@ public class AgentTools {
             } else result = Map.of("ok", true, "data", data);
         } catch (BusinessException e) { result = Map.of("ok", false, "error", e.getMessage()); }
         catch (Exception e) {
+            if (AgentDeadline.isTimeout(e) || e instanceof LlmException llm && llm.isTimeout()) {
+                log.info("agent.tool user={} tool={} args={} ms={} result=TIMEOUT", current, logName,
+                        safeArgs.substring(0, Math.min(200, safeArgs.length())), (System.nanoTime() - started) / 1_000_000);
+                throw new LlmException(true, e);
+            }
             log.error("agent.tool user={} tool={} failed cause={}", current, logName, e.getClass().getSimpleName());
             result = Map.of("ok", false, "error", "系统繁忙，请稍后再试");
         }
         log.info("agent.tool user={} tool={} args={} ms={} result={}", current, logName,
                 safeArgs.substring(0, Math.min(200, safeArgs.length())), (System.nanoTime() - started) / 1_000_000,
-                result.getOrDefault("error", "ok"));
+                Boolean.TRUE.equals(result.get("ok")) ? "ok" : "error");
         return new ToolResult(encode(result), card);
+    }
+
+    private Object dispatch(String name, Object params, ToolContext ctx) {
+        return switch (name) {
+            case "search_available_rooms" -> search((SearchAvailableRooms) params);
+            case "get_price_quote" -> price((GetPriceQuote) params);
+            case "list_my_orders" -> myOrders(ctx);
+            case "list_menu" -> menu();
+            case "propose_booking" -> booking((ProposeBooking) params, ctx);
+            case "propose_payment" -> orderAction(((ProposePayment) params).orderId(), ctx, PendingAction.Type.PAYMENT);
+            case "propose_cancel" -> orderAction(((ProposeCancel) params).orderId(), ctx, PendingAction.Type.CANCEL);
+            case "propose_meal_order" -> meal((ProposeMealOrder) params, ctx);
+            default -> throw invalid("未知工具");
+        };
+    }
+
+    private Map<String, Object> safeSummary(Object params) {
+        if (params instanceof SearchAvailableRooms p) return fields("checkInDate", safeDate(p.checkInDate()), "checkOutDate", safeDate(p.checkOutDate()),
+                "roomType", p.roomType() != null && p.roomType() >= 0 && p.roomType() <= 2 ? p.roomType() : null);
+        if (params instanceof GetPriceQuote p) return fields("roomNumberLength", length(p.roomNumber()), "checkInDate", safeDate(p.checkInDate()), "checkOutDate", safeDate(p.checkOutDate()));
+        if (params instanceof ProposeBooking p) return fields("roomNumberLength", length(p.roomNumber()), "checkInDate", safeDate(p.checkInDate()), "checkOutDate", safeDate(p.checkOutDate()));
+        if (params instanceof ProposePayment p) return fields("orderIdPresent", p.orderId() != null);
+        if (params instanceof ProposeCancel p) return fields("orderIdPresent", p.orderId() != null);
+        if (params instanceof ProposeMealOrder p) return fields("itemCount", p.items() == null ? 0 : p.items().size(),
+                "items", p.items() == null ? List.of() : p.items().stream().limit(20).map(i -> i == null ? Map.of() : fields("dishIdPresent", i.dishId() != null,
+                        "quantity", i.quantity() != null && i.quantity() >= 1 && i.quantity() <= 20 ? i.quantity() : null)).toList(),
+                "addressLength", length(p.address()));
+        return Map.of();
+    }
+
+    private int length(String value) { return value == null ? 0 : value.length(); }
+    private String safeDate(String value) {
+        try { return date(value, "date").toString(); }
+        catch (BusinessException e) { return null; }
     }
 
     private Object parse(String arguments, Class<?> type) {
