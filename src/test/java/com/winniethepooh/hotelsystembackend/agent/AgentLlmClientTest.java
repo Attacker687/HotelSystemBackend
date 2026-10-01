@@ -111,6 +111,40 @@ class AgentLlmClientTest {
     }
 
     @Test
+    void tc055_actualResponsesRequestRegistersEightSafeToolsWithoutNetwork() throws Exception {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-01T00:00:00Z"), ZoneId.of("Asia/Shanghai"));
+        AgentProperties props = properties("sk-test-fake");
+        AgentService service = new AgentService(props, new FakeLlmClient(), new ObjectMapper(), mock(SessionStore.class), mock(AgentTools.class), clock);
+        String instructions = service.instructions();
+        OpenAiLlmClient llm = new OpenAiLlmClient(props, () -> { throw new AssertionError("Request construction must not initialize the SDK client"); });
+        JsonNode body = SDK_JSON.valueToTree(llm.buildRequest(instructions, List.of(AgentItem.user("你好")))._body());
+        assertThat(body.path("model").asText()).isEqualTo("gpt-6-luna"); assertThat(body.has("store")).isTrue(); assertThat(body.path("store").asBoolean(true)).isFalse();
+        assertThat(body.path("include")).isEqualTo(SDK_JSON.readTree("[\"reasoning.encrypted_content\"]"));
+        assertThat(body.path("instructions").asText()).isEqualTo(instructions);
+        assertThat(body.path("input").get(0).path("role").asText()).isEqualTo("user"); assertThat(body.path("input").get(0).path("content").asText()).isEqualTo("你好");
+        assertThat(body.has("previous_response_id")).isFalse(); assertThat(body.has("conversation")).isFalse();
+        List<String> names = new ArrayList<>();
+        body.path("tools").forEach(tool -> {
+            names.add(tool.path("name").asText());
+            assertThat(tool.path("type").asText()).isEqualTo("function"); assertThat(tool.path("strict").asBoolean()).isTrue();
+            assertThat(tool.path("description").asText()).isNotBlank();
+            assertSafeParameters(tool.path("parameters"));
+        });
+        assertThat(names).containsExactly("search_available_rooms", "get_price_quote", "list_my_orders", "list_menu", "propose_booking", "propose_payment", "propose_cancel", "propose_meal_order").doesNotHaveDuplicates();
+        assertThat(body.path("tools").get(7).path("parameters").path("properties").path("remarks").path("type").toString()).contains("string", "null");
+    }
+
+    private void assertSafeParameters(JsonNode schema) {
+        if (schema.isObject()) {
+            if (schema.has("properties")) {
+                assertThat(schema.path("additionalProperties").asBoolean(true)).isFalse();
+                schema.path("properties").fieldNames().forEachRemaining(name -> assertThat(name).isNotIn("userId", "name", "phone", "guestName", "guestPhone", "guestIdCard", "idCard", "idCardNumber", "individualId", "password", "price", "unitPrice", "totalPrice", "total", "totalAmount"));
+            }
+            schema.elements().forEachRemaining(this::assertSafeParameters);
+        } else if (schema.isArray()) schema.elements().forEachRemaining(this::assertSafeParameters);
+    }
+
+    @Test
     void s01ac3_rawOutputsRoundTripEncryptedContentAndOrder() throws Exception {
         OpenAiLlmClient llm = new OpenAiLlmClient(properties("sk-test-fake"));
         List<String> raw = List.of(

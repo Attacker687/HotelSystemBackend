@@ -87,7 +87,9 @@ public class OpenAiLlmClient implements LlmClient {
         return ResponseCreateParams.builder().model(props.getModel()).instructions(instructions)
                 .inputOfResponse(converted).store(false).addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT)
                 .addTool(AgentTools.SearchAvailableRooms.class).addTool(AgentTools.GetPriceQuote.class)
-                .addTool(noArgumentsTool(AgentTools.ListMyOrders.class)).addTool(noArgumentsTool(AgentTools.ListMenu.class)).build();
+                .addTool(noArgumentsTool(AgentTools.ListMyOrders.class)).addTool(noArgumentsTool(AgentTools.ListMenu.class))
+                .addTool(AgentTools.ProposeBooking.class).addTool(AgentTools.ProposePayment.class).addTool(AgentTools.ProposeCancel.class)
+                .addTool(AgentTools.ProposeMealOrder.class).build();
     }
 
     private FunctionTool noArgumentsTool(Class<?> type) {

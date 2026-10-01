@@ -88,7 +88,9 @@ public class AgentService {
                         } else {
                             send(response, "status", Map.of("tool", call.name(), "text", toolStatus(call.name())));
                             toolCalls++;
-                            result = tools.execute(call.name(), call.arguments(), ctx);
+                            AgentTools.ToolResult execution = tools.execute(call.name(), call.arguments(), ctx);
+                            result = execution.output();
+                            if (execution.card() != null) send(response, "card", execution.card());
                         }
                         AgentItem item = new AgentItem(AgentItem.Type.FUNCTION_CALL_OUTPUT, null, call.callId(), null, null, result, null);
                         turn.add(item); input.add(item);
@@ -126,6 +128,10 @@ public class AgentService {
             case "get_price_quote" -> "正在计算价格…";
             case "list_my_orders" -> "正在查询您的订单…";
             case "list_menu" -> "正在查看菜单…";
+            case "propose_booking" -> "正在生成预订确认…";
+            case "propose_payment" -> "正在生成支付确认…";
+            case "propose_cancel" -> "正在生成取消确认…";
+            case "propose_meal_order" -> "正在生成点餐确认…";
             default -> "正在执行工具…";
         };
     }

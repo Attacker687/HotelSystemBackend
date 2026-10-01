@@ -11,9 +11,12 @@ import com.winniethepooh.hotelsystembackend.entity.MealOrder;
 import com.winniethepooh.hotelsystembackend.entity.Room;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
+import com.winniethepooh.hotelsystembackend.entity.Dish;
 import com.winniethepooh.hotelsystembackend.exception.BusinessException;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
+import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
+import com.winniethepooh.hotelsystembackend.mapper.FoodMapper;
 import com.winniethepooh.hotelsystembackend.service.FoodService;
 import com.winniethepooh.hotelsystembackend.service.OrderService;
 import com.winniethepooh.hotelsystembackend.service.impl.OrderServiceImpl;
@@ -26,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -38,6 +42,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.provider.Arguments;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,13 +56,18 @@ class AgentToolsTest {
     private FoodService food;
     private RoomMapper rooms;
     private AgentTools tools;
+    private OrderMapper orderMapper;
+    private UserMapper users;
+    private FoodMapper dishes;
+    private PendingActionService pending;
     private AgentTools.ToolContext ctx;
     private static final String QUOTE = "{\"roomNumber\":\"1101\",\"checkInDate\":\"2026-10-09\",\"checkOutDate\":\"2026-10-11\"}";
 
     @BeforeEach
     void prepare() {
         orders = mock(OrderService.class); food = mock(FoodService.class); rooms = mock(RoomMapper.class);
-        tools = new AgentTools(orders, food, rooms, json);
+        orderMapper = mock(OrderMapper.class); users = mock(UserMapper.class); dishes = mock(FoodMapper.class); pending = mock(PendingActionService.class);
+        tools = new AgentTools(orders, food, rooms, json, orderMapper, users, dishes, pending);
         ctx = new AgentTools.ToolContext(7, UUID.randomUUID().toString());
         BaseContext.setCurrentRole(RoleConstant.USER); BaseContext.setCurrentId(7);
     }
@@ -78,7 +89,7 @@ class AgentToolsTest {
 
     @Test
     void tc019_missingContextCannotPassEvenWithAnAuthenticatedUser() throws Exception {
-        assertThat(json.readTree(tools.execute("get_price_quote", QUOTE, null)).path("error").asText()).contains("无权限");
+        assertThat(json.readTree(tools.execute("get_price_quote", QUOTE, null).output()).path("error").asText()).contains("无权限");
         verifyNoInteractions(orders, food, rooms);
     }
 
@@ -144,7 +155,7 @@ class AgentToolsTest {
         OrderServiceImpl actual = new OrderServiceImpl();
         ReflectionTestUtils.setField(actual, "roomMapper", rooms);
         ReflectionTestUtils.setField(actual, "orderMapper", mock(OrderMapper.class));
-        tools = new AgentTools(actual, food, rooms, json);
+        tools = new AgentTools(actual, food, rooms, json, orderMapper, users, dishes, pending);
         LocalDate start = LocalDate.now().plusDays(1), end = start.plusDays(2);
         List<Room> available = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
@@ -209,7 +220,7 @@ class AgentToolsTest {
     }
 
     @Test
-    void s03ac5_officialRequestRegistersOnlyFourWorkingClassDerivedTools() {
+    void s04ac5_officialRequestRegistersEightWorkingClassDerivedTools() {
         AgentProperties props = new AgentProperties(); props.getOpenai().setApiKey("sk-test");
         JsonNode body = ObjectMappers.jsonMapper().valueToTree(new OpenAiLlmClient(props).buildRequest("固定指令", List.of(AgentItem.user("你好")))._body());
         JsonNode definitions = body.path("tools"); List<String> names = new ArrayList<>();
@@ -221,7 +232,7 @@ class AgentToolsTest {
             assertThat(tool.path("parameters").path("additionalProperties").asBoolean(true)).isFalse();
             assertThat(tool.path("parameters").path("properties").has("userId")).isFalse();
         });
-        assertThat(names).containsExactly("search_available_rooms", "get_price_quote", "list_my_orders", "list_menu");
+        assertThat(names).containsExactly("search_available_rooms", "get_price_quote", "list_my_orders", "list_menu", "propose_booking", "propose_payment", "propose_cancel", "propose_meal_order");
         JsonNode search = definitions.get(0).path("parameters");
         assertThat(search.path("required").toString()).contains("roomType", "checkInDate", "checkOutDate");
         assertThat(search.path("properties").path("roomType").path("type").toString()).contains("integer", "null");
@@ -234,7 +245,66 @@ class AgentToolsTest {
         }
     }
 
-    private JsonNode execute(String name, String args) throws Exception { return json.readTree(tools.execute(name, args, ctx)); }
+    @ParameterizedTest
+    @MethodSource("mealBounds")
+    void tc034_allMealParameterBoundsAreValidatedBeforeDishLookup(String group, int count, int quantity, Integer addressLength, Integer remarksLength, boolean allowed) throws Exception {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (int i = 1; i <= count; i++) items.add(Map.of("dishId", i, "quantity", quantity));
+        Map<String, Object> args = new LinkedHashMap<>(); args.put("items", items);
+        args.put("address", addressLength == null ? null : "地".repeat(addressLength)); args.put("remarks", remarksLength == null ? null : "备".repeat(remarksLength));
+        if (allowed) {
+            when(dishes.getDishById(any())).thenAnswer(invocation -> {
+                Dish dish = new Dish(); dish.setId(Math.toIntExact(invocation.getArgument(0, Long.class))); dish.setName("测试菜品"); dish.setStatus(1); dish.setPrice(new BigDecimal("38.00")); return dish;
+            });
+            when(pending.create(any(), any(), any(), any(), any(), any())).thenAnswer(invocation ->
+                    new PendingAction("id", 7, ctx.sessionId(), PendingAction.Type.MEAL_ORDER, invocation.getArgument(2), invocation.getArgument(3), Map.of("actionId", "id")));
+        }
+        AgentTools.ToolResult result = tools.execute("propose_meal_order", json.writeValueAsString(args), ctx);
+        JsonNode output = json.readTree(result.output()); assertThat(output.path("ok").asBoolean()).as(group).isEqualTo(allowed);
+        if (!allowed) {
+            assertThat(output.path("error").asText()).isNotBlank(); assertThat(result.card()).isNull(); verifyNoInteractions(dishes, pending);
+        } else {
+            for (int i = 1; i <= count; i++) verify(dishes).getDishById((long) i);
+            verifyNoMoreInteractions(dishes);
+            var params = org.mockito.ArgumentCaptor.forClass(Map.class); var total = org.mockito.ArgumentCaptor.forClass(BigDecimal.class);
+            verify(pending).create(eq(ctx), eq(PendingAction.Type.MEAL_ORDER), params.capture(), total.capture(), any(), any());
+            JsonNode saved = json.readTree(json.writeValueAsString(params.getValue()));
+            assertThat(saved.path("items")).isEqualTo(json.valueToTree(items));
+            assertThat(saved.path("address")).isEqualTo(json.valueToTree(args.get("address")));
+            assertThat(saved.path("remarks")).isEqualTo(json.valueToTree(args.get("remarks")));
+            assertThat(total.getValue()).isEqualByComparingTo(new BigDecimal("38.00").multiply(BigDecimal.valueOf((long) count * quantity)));
+            assertThat(result.card()).containsEntry("actionId", "id");
+        }
+        verifyNoInteractions(orders, food, rooms, orderMapper, users);
+    }
+
+    static Stream<Arguments> mealBounds() {
+        List<Arguments> rows = new ArrayList<>();
+        for (int count : new int[]{0, 1, 2, 19, 20, 21}) rows.add(Arguments.of("明细" + count, count, 1, 4, 0, count >= 1 && count <= 20));
+        for (int quantity : new int[]{0, 1, 2, 19, 20, 21}) rows.add(Arguments.of("数量" + quantity, 1, quantity, 4, 0, quantity >= 1 && quantity <= 20));
+        for (Integer length : new Integer[]{null, 0, 1, 254, 255, 256}) rows.add(Arguments.of("地址" + length, 1, 1, length, 0, length != null && length >= 1 && length <= 255));
+        for (Integer length : new Integer[]{null, 0, 499, 500, 501}) rows.add(Arguments.of("备注" + length, 1, 1, 4, length, length == null || length <= 500));
+        return rows.stream();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null-items", "null-item", "late-invalid-quantity", "null-dish", "null-quantity", "blank-address"})
+    void s04ac4_missingOrLateInvalidMealInputsNeverReadDishes(String failure) throws Exception {
+        Map<String, Object> args = new LinkedHashMap<>(); args.put("address", failure.equals("blank-address") ? " " : "1101");
+        List<Object> items = new ArrayList<>(); items.add(Map.of("dishId", 1, "quantity", 1));
+        switch (failure) {
+            case "null-items" -> args.put("items", null);
+            case "null-item" -> { items.add(null); args.put("items", items); }
+            case "late-invalid-quantity" -> { items.add(Map.of("dishId", 2, "quantity", 0)); args.put("items", items); }
+            case "null-dish" -> { args.put("items", List.of(Map.of("quantity", 1))); }
+            case "null-quantity" -> { args.put("items", List.of(Map.of("dishId", 1))); }
+            default -> args.put("items", items);
+        }
+        assertThat(execute("propose_meal_order", json.writeValueAsString(args)).path("ok").asBoolean()).isFalse();
+        verifyNoInteractions(dishes, pending, orders, orderMapper, users, rooms, food);
+    }
+
+    private JsonNode execute(String name, String args) throws Exception { return json.readTree(tools.execute(name, args, ctx).output()); }
 
     private RoomQuoteVO quote() {
         RoomQuoteVO q = new RoomQuoteVO(); q.setRoomNumber("1101"); q.setRoomType(0); q.setFloor(1);
