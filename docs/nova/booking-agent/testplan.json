@@ -1240,7 +1240,7 @@
     },
     {
       "id": "TP-055",
-      "title": "OpenAiLlmClient 构造的请求参数符合 Responses API 约定（model、store=false、include 加密推理、8 个工具）",
+      "title": "OpenAiLlmClient 构造的请求参数符合 Responses API 约定（model、store=false、include 加密推理、reasoning.effort=low、8 个工具）",
       "type": "unit",
       "condition": "rule",
       "technique": "ep-bva",
@@ -1252,7 +1252,7 @@
       "priority": "P1",
       "quote": "model = `hotel.agent.model`；`store=false`；include `reasoning.encrypted_content`；系统提示词作为指令",
       "inferred": "预期值取自 design §4.8「工具定义」「请求参数」行与 goal.md G4；需要 OpenAiLlmClient 把构造请求与发送分开，才能不联网断言；读取 SDK 请求对象字段的方法见 GAP-11",
-      "expected": "以 hotel.agent.model=gpt-6-luna、api-key=sk-test-fake 构造一次请求（不发送）：model 为 gpt-6-luna；store=false；include 含 reasoning.encrypted_content；工具恰好 8 个，名称为 search_available_rooms、get_price_quote、list_my_orders、list_menu、propose_booking、propose_payment、propose_cancel、propose_meal_order；指令为系统提示词"
+      "expected": "以 hotel.agent.model=gpt-6-luna、api-key=sk-test-fake 构造一次请求（不发送）：model 为 gpt-6-luna；store=false；include 含 reasoning.encrypted_content；reasoning.effort=low；工具恰好 8 个，名称为 search_available_rooms、get_price_quote、list_my_orders、list_menu、propose_booking、propose_payment、propose_cancel、propose_meal_order；指令为系统提示词"
     },
     {
       "id": "TP-056",
@@ -4931,7 +4931,7 @@
         "依据": "goal.md G4；design.md §4.8请求参数/工具定义；sdk-reference.md 第2～4项"
       },
       "expected": [
-        "请求对象或其官方序列化请求体：model=gpt-6-luna；store字段明确存在且为false；include包含reasoning.encrypted_content。",
+        "请求对象或其官方序列化请求体：model=gpt-6-luna；store字段明确存在且为false；include包含reasoning.encrypted_content；reasoning.effort=low。",
         "tools恰好8个，函数名集合与data.工具名完全相等且无重复；系统指令与P逐字相同，input包含USER「你好」。",
         "不设置previous_response_id或托管会话引用；构造使用Responses请求对象，全程没有Chat Completions调用或网络请求。"
       ],

@@ -169,16 +169,17 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe 
 
 | 项目 | 实际结果 |
 | --- | --- |
-| 真实配置 | 指定 `gpt-6-luna` / SDK 4.73.0；当前进程、User、Machine 都未配置 `OPENAI_API_KEY` |
-| 独立真实入口 | Windows PowerShell 5.1 实跑 `-Mode eval`：明确需要 key，退出 1；未发送模型 |
-| 24 条真实评测 | 已准备；真实调用未运行，失败项、完成率、安全三项、TTFT P50/P90 与逐 chat 3 秒情况均**未取得** |
-| 真实多轮 / 加密项 | 未运行；实际返回数量与完整回放结果**未取得**，离线合成 opaque 项不计真实数量 |
+| 真实配置 | OpenAI 官方 API，`gpt-6-luna` / SDK 4.73.0；Responses API、`store=false`、`reasoning.effort=low`；key 来自 `OPENAI_API_KEY` 用户环境变量 |
+| 24 条真实评测 | 23:45（上海时间）`-Mode eval` 退出 0：**24/24（100%）**；越权 / 未确认写入 / 重复订单 **0 / 0 / 0**；29 次 chat 首字 **P50 1.14 秒、P90 1.79 秒**，超过 3 秒 0 次；请求失败与超时 0 |
+| 真实多轮 / 加密项 | 多轮场景 1/1 通过；实际返回带 `encrypted_content` 的推理项 20 个，并按序完整回放 |
+| 调优过程 | 默认推理强度下首字 P50 3.0 秒、14/29 次超过 3 秒；改为 `reasoning.effort=low` 并在提示词中要求「问齐日期/人数/房型」「调工具前先回一句」「逐晚日期写成 2026-10-02」后达标 |
 | fake 浏览器五步（r2） | 2026-10-01 21:07 上海时间，5/5、退出 0，**6.841 秒**，本次来源 `BOUND_TO_RUNNING_LAUNCH`；查询/提议零写，重复确认同号且一单，支付后取消 status=2 / pay_status=2，越权请求不改数据；本次 Java/启动器/容器/浏览器清理后均为 0，环境恢复 |
 | fake 错标 openai | 显式 `--provider openai` 与默认 openai 均退出 1；实际来源仍为 fake / UNKNOWN，0/5，不被计入真实结果 |
-| openai 浏览器五步 | 未运行，缺 key；耗时**未取得** |
+| openai 浏览器五步 | 23:50（上海时间）**5/5、退出 0**，共 22.3 秒（各步 5.1 / 3.9 / 0.8 / 7.1 / 1.9 秒）；来源核验 `ACTUAL_SDK_SUCCESS_VERIFIED`；结束后 Java 与容器均已清理 |
 | 离线维护检查 | Windows PowerShell 5.1 → 实际 Failsafe 只选 `AgentEval#offlineCheck`：1/0/0/0；24 数据、判定/回放/DB/HTTP 前提、11 个 Node 故障阶段与 3 个原生 ZIP 路径通过，退出 0；真实 trace 的 23 个文本条目无 JWT |
 | 离线故障探针 | stream / init 两入口均按预期退出 1；保留 EOF/坏 JSON/部分文本/约 400ms 绝对截止 TIMEOUT 以及失败初始化后的 NOT_RUN，安全 UNKNOWN/null；不计模型效果 |
-| M2 已验证基线（历史） | 本地 `9197a013` 的完整回归 **640/0/0/0**（198 unit / 432 API / 10 browser），保留原 285 的执行身份；S08 完整验收交独立 verifier 执行 |
+| M2 已验证基线（历史） | 本地 `9197a013` 的完整回归 **640/0/0/0**（198 unit / 432 API / 10 browser），保留原 285 的执行身份 |
+| M3 最终回归 | 本地 `771ae25` 的 `mvn -B clean verify` **640/0/0/0**（198 unit / 432 API / 10 browser），BUILD SUCCESS |
 
 真实配置缺口未补齐前，这张表不代表 M3 整体验收通过。实际产物先备份到本机过程目录，再执行会清除 `target/` 的完整验证。
 
