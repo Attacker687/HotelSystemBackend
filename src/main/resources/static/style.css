@@ -8,7 +8,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 nav { padding: 24px 16px; }
 nav button { display: block; width: 100%; margin: 0 0 8px; text-align: left; color: #234b3f; background: transparent; border-color: transparent; }
 nav button[aria-current="page"] { color: #173f35; background: #dcebe2; font-weight: 700; }
-main { padding: 24px 32px 60px; min-width: 0; }
+main { padding: 24px 32px 96px; min-width: 0; }
 h1 { font-size: 27px; margin: 0 0 8px; }
 h2 { font-size: 20px; margin: 22px 0 12px; }
 h3 { font-size: 17px; margin: 0 0 12px; }
@@ -52,8 +52,26 @@ td { font-variant-numeric: tabular-nums; }
   .layout { grid-template-columns: 1fr; }
   nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; }
   nav button { width: auto; margin: 0; font-size: 14px; }
-  main { padding: 16px 16px 40px; }
+  main { padding: 16px 16px 96px; }
   h1 { font-size: 23px; }
   .field { min-width: min(100%, 220px); }
   .panel, .card { padding: 16px; }
 }
+
+.agent-toggle { position: fixed; right: 24px; bottom: 24px; z-index: 20; box-shadow: 0 4px 16px #173f3533; }
+.agent-panel { position: fixed; right: 24px; bottom: 84px; z-index: 20; width: min(420px, calc(100vw - 32px)); height: min(560px, 70vh); max-height: 70vh; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: white; border: 1px solid #b9c9be; border-radius: 12px; box-shadow: 0 8px 32px #173f3533; }
+.agent-header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.agent-header h2 { margin: 0; flex: 1; font-size: 18px; }
+.agent-log { flex: 1; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; }
+.agent-log p { white-space: pre-wrap; }
+.agent-user, .agent-assistant { padding: 10px; border-radius: 8px; background: #eef4ef; }
+.agent-user { background: #dcebe2; }
+.agent-error { color: #973320; }
+.agent-form { flex-wrap: nowrap; gap: 8px; }
+.agent-form .field { min-width: 0; }
+.agent-panel > p { margin: 0; }
+.agent-card { padding: 14px; margin: 10px 0; }
+.agent-card dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; }
+.agent-card dt { color: #607067; }
+.agent-card dd { margin: 0; }
+.agent-card ul { padding-left: 20px; }

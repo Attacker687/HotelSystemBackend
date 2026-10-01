@@ -2,6 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.RoomMapper">
+    <select id="findAvailableRooms" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
+        select r.* from room r
+        where r.is_deleted = 0
+        <if test="roomType != null">and r.room_type = #{roomType}</if>
+          and not exists (
+              select 1 from room_order o
+              where o.room_id = r.id and o.status = 0 and o.is_deleted = 0
+                and o.checkin_time &lt; #{checkout} and o.checkout_time &gt; #{checkin}
+          )
+        order by r.room_number
+        limit #{limit}
+    </select>
     <select id="lockRoomByNumber" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
         select * from room where room_number = #{roomNumber} and is_deleted = 0 for update
     </select>

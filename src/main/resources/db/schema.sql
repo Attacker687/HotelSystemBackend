@@ -195,3 +195,20 @@ CREATE TABLE IF NOT EXISTS scheduler_task_lock
     owner VARCHAR(36) NULL,
     PRIMARY KEY (task_name)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '定时任务互斥';
+
+-- 确认动作幂等：同一动作最多执行一次，确认与取消通过唯一键互斥。
+-- PROCESSING只存在于未提交的确认事务；执行失败整体回滚，不留记录。
+CREATE TABLE IF NOT EXISTS booking_request
+(
+    id          BIGINT      NOT NULL AUTO_INCREMENT,
+    request_id  VARCHAR(64) NOT NULL,
+    user_id     INT         NOT NULL,
+    action_type VARCHAR(16) NOT NULL,
+    order_id    BIGINT      NULL,
+    status      VARCHAR(16) NOT NULL,
+    created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_booking_request_request_id (request_id),
+    KEY idx_booking_request_user (user_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '确认动作幂等记录';

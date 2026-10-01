@@ -15,6 +15,7 @@ import com.winniethepooh.hotelsystembackend.utils.LocalDateUtil;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
+import com.winniethepooh.hotelsystembackend.vo.RoomQuoteVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +46,30 @@ public class OrderServiceImpl implements OrderService {
         vo.setMealOrderList(orderMapper.getMealOrdersByDate(startDate, endDate, id));
         vo.setRoomOrderList(orderMapper.getRoomOrdersByDate(startDate, endDate, id));
         return vo;
+    }
+
+    @Override
+    public RoomQuoteVO quoteRoomService(String roomNumber, LocalDateTime checkin, LocalDateTime checkout) {
+        validateStay(checkin, checkout, true);
+        Room room = requireRoom(roomMapper.getRoomByRoomNumber(roomNumber));
+        checkOverlap(room.getId(), checkin, checkout, null);
+        return quote(room, checkin, checkout, prices(room, checkin, checkout));
+    }
+
+    @Override
+    public List<RoomQuoteVO> searchAvailableRoomsService(Integer roomType, LocalDateTime checkin, LocalDateTime checkout, int limit) {
+        validateStay(checkin, checkout, true);
+        Map<Integer, Map<LocalDate, BigDecimal>> byType = new HashMap<>();
+        return roomMapper.findAvailableRooms(roomType, checkin, checkout, limit).stream().map(room ->
+                quote(room, checkin, checkout, byType.computeIfAbsent(room.getRoomType(), ignored -> prices(room, checkin, checkout))))
+                .toList();
+    }
+
+    private static RoomQuoteVO quote(Room room, LocalDateTime checkin, LocalDateTime checkout, Map<LocalDate, BigDecimal> nights) {
+        RoomQuoteVO quote = new RoomQuoteVO();
+        quote.setRoomNumber(room.getRoomNumber()); quote.setRoomType(room.getRoomType()); quote.setFloor(room.getFloor());
+        quote.setCheckIn(checkin); quote.setCheckOut(checkout); quote.setNights(new LinkedHashMap<>(nights)); quote.setTotal(total(nights));
+        return quote;
     }
 
     @Override

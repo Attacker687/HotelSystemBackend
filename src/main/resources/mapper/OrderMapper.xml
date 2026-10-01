@@ -2,6 +2,19 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.winniethepooh.hotelsystembackend.mapper.OrderMapper">
+    <insert id="insertBookingRequest">
+        insert into booking_request
+        set request_id = #{requestId}, user_id = #{userId}, action_type = #{actionType},
+            status = #{status}, created_at = now(), updated_at = now()
+    </insert>
+    <update id="markBookingRequestSuccess">
+        update booking_request set status = 'SUCCESS', order_id = #{orderId}, updated_at = now()
+        where request_id = #{requestId} and status = 'PROCESSING'
+    </update>
+    <select id="findBookingRequest" resultType="com.winniethepooh.hotelsystembackend.entity.BookingRequest">
+        select * from booking_request where request_id = #{requestId}
+    </select>
+
     <update id="insertRoomComment">
         update room_order
         set comment      = #{comment},

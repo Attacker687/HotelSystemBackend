@@ -2,7 +2,7 @@
 
 酒店预订与管理系统，包含 Spring Boot 后端和同源的原生 HTML/CSS/JavaScript 页面。住客、经理、前台和餐厅使用同一套服务，完成预订、订单、房态、餐饮和经营统计流程。
 
-本文对应 **`nova/review-fixes` 分支**。该分支已合入本轮行为修复、四角色前端和 Playwright 端到端测试。最近一次完整测试记录为 **137/137 条用例通过、285 次执行通过**；测试报告结论为**有条件通过**，保留 4 项低严重度遗留。
+本文包含本地 **`nova/booking-agent` 功能分支**的住客预订助手入口与运维步骤。四角色前端和 Playwright 测试来自 `nova/review-fixes` 历史批次；其 **137/137 条用例、285 次执行通过**和“有条件通过”结论保留作历史记录，4 项低严重度遗留仍见文末。助手当前实际结果见下文，真实模型验证仍缺 API key。
 
 [快速演示](#快速演示windows) · [手动启动](#手动启动) · [配置](#配置与-profile) · [运行测试](#运行测试) · [测试报告](docs/nova/review-fixes/test-report.md) · [API 文档](docs/api-overview.md)
 
@@ -42,14 +42,9 @@
 
 运行应用不需要 Node 或前端构建。**完整浏览器测试**另需 Node 20+、npm 和 Chromium；Docker 演示及集成测试需要 Docker Desktop 正常运行。
 
-## 获取本分支
+## 本地代码
 
-```bash
-git clone --branch nova/review-fixes --single-branch https://github.com/Attacker687/HotelSystemBackend.git
-cd HotelSystemBackend
-```
-
-以下命令均在仓库根目录执行。Windows 建议使用较短的目录路径，避免依赖和测试产物触发路径长度限制。
+`nova/booking-agent` 是本机的功能分支，当前未推送；远端旧 `nova/review-fixes` 分支不包含本次助手功能。以下命令在包含这些源码的 checkout 根目录执行。Windows 建议使用较短的目录路径，避免依赖和测试产物触发路径长度限制。
 
 ## 快速演示（Windows）
 
@@ -85,6 +80,108 @@ powershell -NoProfile -File scripts/demo.ps1 -Port 8080
 4. 用经理账号查看经营分析，维护价格日历和员工状态。
 
 `-DskipTests package` 只用于构建演示 jar，不能代替完整测试。
+
+## 住客预订助手：演示与独立评测
+
+需要 JDK 17+、Maven、运行中的 Docker、MySQL 8.0 / Redis 7；自动浏览器演示另需 Node 20+、npm 和 Chromium。首次在仓库根目录执行：
+
+```powershell
+npm ci
+npx playwright install chromium
+$hotelMaven = 'mvn'
+# Maven 不在 PATH 时改用实际路径，例如：
+# $hotelMaven = 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd'
+& $hotelMaven -B -DskipTests package
+```
+
+先跑 fake 演示。终端 A 启动现有 `demo.ps1` 管理的独立 dev 环境，数据库密码与 JWT 密钥由它随机生成，MySQL/Redis 使用随机宿主端口：
+
+```powershell
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode demo -Provider fake -Port 8080
+```
+
+确认 `target/agent-demo-source.json` 中的 `status` 为 `RUNNING` 后，在同一 checkout 的终端 B 执行（可用 `(Get-Content target/agent-demo-source.json -Raw | ConvertFrom-Json).status` 查询）：
+
+```powershell
+node scripts/booking-agent-demo.mjs --base-url http://127.0.0.1:8080 --provider fake
+```
+
+脚本用真实 Chromium 点击页面：按上海日期现算未来两晚双人间逐晚报价 → 订既有 302 的确认卡片（明确 2 人）→ 同卡两次确认同号、一张主单 → 支付后取消并核对已退款 → 拒绝他人手机号。每步核对隔离 MySQL 的订单、间夜与幂等记录；失败退出 1。结果、五张截图和去除临时 JWT 的 trace 在 `target/agent-demo-fake/`。启动包装器生成 `target/agent-demo-source.json`，关联本次 URL、容器、启动时间、Java 进程、jar 哈希与实际 SDK 条目；`--provider` 必须匹配这个运行来源，缺证或错标会失败。`--base-url` 的端口也必须与当前 `target/demo-info.json` 一致。
+
+演示结束后，在终端 B 核对本次 Java 身份再停止它，让终端 A 的原脚本正常清理本次容器：
+
+```powershell
+$hotelRun = Get-Content target/agent-demo-source.json -Raw | ConvertFrom-Json
+$hotelJava = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $hotelRun.javaPid)
+if (-not $hotelJava -or $hotelJava.Name -ne 'java.exe' -or $hotelJava.ParentProcessId -ne $hotelRun.launcherPid) { throw '本次 Java 身份不匹配。' }
+Stop-Process -Id $hotelJava.ProcessId
+```
+
+等待来源记录变为 `STOPPED`、本次容器移除后，再运行真实模型演示；每次启动均为新数据。终端 A 此时退出 1 表示 Java 被人工停止，不计五步失败。端口占用时，启动命令和浏览器命令一起改为同一个空闲端口。
+
+在启动终端将 key 放入进程环境（不写源码、命令参数或报告），然后分别执行终端 A / B 的命令：
+
+```powershell
+$env:OPENAI_API_KEY = [Net.NetworkCredential]::new('', (Read-Host 'OPENAI_API_KEY' -AsSecureString)).Password
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode demo -Provider openai -Port 8080
+```
+
+```powershell
+node scripts/booking-agent-demo.mjs --base-url http://127.0.0.1:8080 --provider openai
+```
+
+真实结果写入 `target/agent-demo-openai/`。包装器只保存本次 `agent.llm user=... model=gpt-6-luna ... result=SUCCESS` 的安全字段，浏览器报告还会自动核对五次 chat 对应的实际 SDK 成功发送证据；缺证即失败。启动器只在子进程范围设置 provider/model，退出后恢复进程环境；复用 `scripts/demo.ps1`，不改演示房号或业务请求。trace 先导出到临时 ZIP，脱敏并扫描成功后才保留 `trace.zip`；失败或超时会删除临时和最终 ZIP、保存安全失败报告。
+
+真实评测独立执行，停止演示后在已配置 key 的终端运行：
+
+```powershell
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode eval -Maven $hotelMaven
+# 本次维护机器的完整入口：
+# powershell -NoProfile -File scripts/booking-agent.ps1 -Mode eval -Maven 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd'
+```
+
+`Invoke-AgentEval` 实际执行 `mvn -B test-compile failsafe:integration-test@default failsafe:verify@default -Dit.test=AgentEval#evaluateRealModel`。Failsafe 3.2.5 的 [it.test / 方法选择文档](https://maven.apache.org/surefire-archives/surefire-3.2.5/maven-failsafe-plugin/examples/single-test.html) 对应这个命名 execution；不关闭 `failIfNoSpecifiedTests`。`AgentEval` 不匹配常规 Test/Tests/IT 命名，`mvn test` / `clean verify` 不发现它。
+
+评测通过生产 HTTP sessions/chat/actions 和实际 `OpenAiLlmClient` / `com.openai:openai-java:4.73.0` 调用 `gpt-6-luna`，固定 Responses `store=false` / `include=reasoning.encrypted_content`。每例重置独立 Testcontainers MySQL/Redis，加载 `src/test/resources/agent/eval-cases.json` 的 24 条场景。工具、卡片、合理追问规则、服务端金额与订单状态自动判定；本人两类订单、他人固定入住人记录、未确认零写、首次主单增量及重复同号单独核对。成功的他人订单结果或卡片也硬计越权。确认异常仍读取后置数据；无法核对状态时安全项为 UNKNOWN / null、整体失败。没有 key 时入口明确报前提错误、退出 1；第一次模型不可用、超时、传输或解析失败后保留部分结果、标明剩余未尝试项，避免重复网络调用。模型预算仍为 60 秒；客户端从发送至完整 SSE/DONE 有独立 75 秒绝对截止，半行停滞也会关闭本次 body 并取消读取。
+
+`target/agent-eval/report.json` 保留每次 chat 的回复和追问原文、首个**非空文本 delta** 的实际到达时间、逐条 3 秒达标情况及 P50/P90（nearest rank）；思考 status 不计首字，无文本和超时单列。五轮工具/NOTE 场景逐项核对模型 raw、后续 SDK 输入和 Redis 顺序、call/output 配对，加密项只报告实际数量与 SHA-256，不导出内容。追问原文供阅读复核，不新增人工测试用例。整体要求完成率 ≥90%、三项安全指标均 0、所有多轮成功回放；每次 chat 的 3 秒目标也决定总体结果，不因失败而删除样本。
+
+无 key 可先执行维护入口的离线契约检查；它只验证数据、判定负例、实际 HTTP/DB 前提和 SDK 转换，不产生真实模型指标：
+
+```powershell
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -Maven $hotelMaven
+```
+
+离线维护检查包含隔离本地 HTTP 的 EOF、坏 JSON、半行停滞、慢速流与初始化故障，以及原生 ZIP 的合成 JWT 脱敏/失败删除。可单独执行故障探针以复核**预期退出 1**的报告路径（不发模型）：
+
+```powershell
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe stream -Maven $hotelMaven
+# 预期退出 1；target/agent-eval-contract-stream/report.json 保留部分文本、TTFT 与 TIMEOUT 样本
+powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe init -Maven $hotelMaven
+# 预期退出 1；target/agent-eval-contract-init/report.json 保留失败初始化和后续未尝试项
+```
+
+这些产物注明 OFFLINE_CONTRACT，不计真实完成率、首字性能或模型回放结果。浏览器自检的内存故障替身只验证报告/自身资源收尾，实际五步仍按上面的独立 Chromium 命令执行。
+
+常规 `test` / `e2e` 仍使用 fake；TC-038、TC-048、TC-055、TC-056 是确定性接入回归，不能作为真实效果或性能结果。
+
+### 本地结果记录（2026-10-01）
+
+| 项目 | 实际结果 |
+| --- | --- |
+| 真实配置 | OpenAI 官方 API，`gpt-6-luna` / SDK 4.73.0；Responses API、`store=false`、`reasoning.effort=low`；key 来自 `OPENAI_API_KEY` 用户环境变量 |
+| 24 条真实评测 | 23:45（上海时间）`-Mode eval` 退出 0：**24/24（100%）**；越权 / 未确认写入 / 重复订单 **0 / 0 / 0**；29 次 chat 首字 **P50 1.14 秒、P90 1.79 秒**，超过 3 秒 0 次；请求失败与超时 0 |
+| 真实多轮 / 加密项 | 多轮场景 1/1 通过；实际返回带 `encrypted_content` 的推理项 20 个，并按序完整回放 |
+| 调优过程 | 默认推理强度下首字 P50 3.0 秒、14/29 次超过 3 秒；改为 `reasoning.effort=low` 并在提示词中要求「问齐日期/人数/房型」「调工具前先回一句」「逐晚日期写成 2026-10-02」后达标 |
+| fake 浏览器五步（r2） | 2026-10-01 21:07 上海时间，5/5、退出 0，**6.841 秒**，本次来源 `BOUND_TO_RUNNING_LAUNCH`；查询/提议零写，重复确认同号且一单，支付后取消 status=2 / pay_status=2，越权请求不改数据；本次 Java/启动器/容器/浏览器清理后均为 0，环境恢复 |
+| fake 错标 openai | 显式 `--provider openai` 与默认 openai 均退出 1；实际来源仍为 fake / UNKNOWN，0/5，不被计入真实结果 |
+| openai 浏览器五步 | 23:50（上海时间）**5/5、退出 0**，共 22.3 秒（各步 5.1 / 3.9 / 0.8 / 7.1 / 1.9 秒）；来源核验 `ACTUAL_SDK_SUCCESS_VERIFIED`；结束后 Java 与容器均已清理 |
+| 离线维护检查 | Windows PowerShell 5.1 → 实际 Failsafe 只选 `AgentEval#offlineCheck`：1/0/0/0；24 数据、判定/回放/DB/HTTP 前提、11 个 Node 故障阶段与 3 个原生 ZIP 路径通过，退出 0；真实 trace 的 23 个文本条目无 JWT |
+| 离线故障探针 | stream / init 两入口均按预期退出 1；保留 EOF/坏 JSON/部分文本/约 400ms 绝对截止 TIMEOUT 以及失败初始化后的 NOT_RUN，安全 UNKNOWN/null；不计模型效果 |
+| M2 已验证基线（历史） | 本地 `9197a013` 的完整回归 **640/0/0/0**（198 unit / 432 API / 10 browser），保留原 285 的执行身份 |
+| M3 最终回归 | 本地 `771ae25` 的 `mvn -B clean verify` **640/0/0/0**（198 unit / 432 API / 10 browser），BUILD SUCCESS |
+
+真实配置缺口未补齐前，这张表不代表 M3 整体验收通过。实际产物先备份到本机过程目录，再执行会清除 `target/` 的完整验证。
 
 ## 手动启动
 
@@ -134,6 +231,38 @@ java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSH
 
 `schema.sql` 是建表脚本，不是已有数据库的版本迁移或历史订单回填脚本；使用旧库时需要另外处理表结构变化和订单间夜数据。
 
+助手上线前，旧库需要手工执行新增的 `booking_request` DDL（默认 profile 不自动建表），再部署新 jar：
+
+```sql
+CREATE TABLE IF NOT EXISTS booking_request
+(
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    request_id VARCHAR(64) NOT NULL,
+    user_id INT NOT NULL,
+    action_type VARCHAR(16) NOT NULL,
+    order_id BIGINT NULL,
+    status VARCHAR(16) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_booking_request_request_id (request_id),
+    KEY idx_booking_request_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='确认动作幂等记录';
+```
+
+配置 key 后启动前确认 `HOTEL_AGENT_PROVIDER=openai`、`HOTEL_AGENT_MODEL=gpt-6-luna`。回退可以删除 key 并重启（只有助手 chat 返回 503，普通功能继续可用），或切换 fake 后重启：
+
+```powershell
+Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+$env:HOTEL_AGENT_PROVIDER = 'openai'
+java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSHOT.jar
+# fake 回退：停止上面的进程，修改 provider 后重启
+$env:HOTEL_AGENT_PROVIDER = 'fake'
+java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSHOT.jar
+```
+
+沿用上文数据库、Redis 与 JWT 连接配置，幂等表保留。provider/key 的环境变化只影响新启动的进程。
+
 ## 配置与 profile
 
 应用配置见 [application.yml](src/main/resources/application.yml)。
@@ -146,6 +275,9 @@ java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSH
 | `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Redis 连接 |
 | `REDIS_PASSWORD` | 空 | Redis 密码 |
 | `JWT_SECRET` | 必填，无默认值 | 至少 32 字节的随机签名密钥；缺失或过短时拒绝启动 |
+| `HOTEL_AGENT_PROVIDER` | `openai` | `test` / `e2e` 固定 fake；演示可用 fake 回退 |
+| `HOTEL_AGENT_MODEL` | `gpt-6-luna` | 本次批准的模型；独立评测固定此模型 |
+| `OPENAI_API_KEY` | openai 模式需要 | 只从进程环境传入；未配时助手 chat 503 |
 | `SPRING_PROFILES_ACTIVE` | 不激活任何 profile | 开发设为 `dev` |
 | `HOTEL_SCHEDULER_ENABLED` | `true` | 设为 `false` 关闭定时任务的 cron 触发 |
 | `CORS_ALLOWED_ORIGINS` | 空 | 允许跨域的来源列表，逗号分隔；同源静态页无需配置 |
@@ -230,7 +362,7 @@ mvn -B clean verify -Ddocker.api.version=1.43
 
 ### 测试结果与证据
 
-最近一次记录的完整测试于 **2026-09-30** 通过，源码基线为 `79e476e`：
+以下是 review-fixes 的**历史**完整测试记录（2026-09-30，源码基线 `79e476e`）；当前 booking-agent 的 M2 基线结果见上文：
 
 | 执行层 | 次数 | 失败 | 错误 | 跳过 |
 | --- | ---: | ---: | ---: | ---: |
@@ -267,9 +399,11 @@ mvn -B clean verify -Ddocker.api.version=1.43
 | F6 | 错误角色携带非法请求体时，参数校验可能先返回 400 |
 | F7 | 定稿方案的 Redis 版本文字仍与实际测试环境有差异；当前实际使用 Redis 7-alpine |
 
-此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。后续批次按用户决定跳过独立代码评审，自动化测试和人工浏览器检查不代表完成了代码评审。
+此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。review-fixes 历史批次跳过独立代码评审的记录不适用于本次 booking-agent；本次按批次执行一次三路独立评审、一次统一修正与全新独立验收。
 
-当前并发预订使用**房间行锁与时段重叠检查**。每日库存、`requestId` 幂等、热点缓存及定时任务失败自动重试仍是演进项，尚未实现；相关设计见 [并发预订与幂等设计](docs/booking-consistency.md)。
+当前并发预订使用**房间行锁与时段重叠检查**；助手确认已实现 `booking_request` 唯一键幂等及确认/取消互斥，普通下单接口的 requestId 幂等仍在范围外。每日库存、热点缓存和定时任务失败自动重试仍是演进项，见 [并发预订与幂等设计](docs/booking-consistency.md)。
+
+已接受的助手边界：同一会话多标签页并发消息无会话锁，可能打乱历史，可新建对话；每分钟限流的 INCR 与首次 EXPIRE 非原子。Redis 必须使用 7，并让应用、Redis 与 MySQL 时钟同步（例如 NTP），保持上海 JVM/JDBC 和 MySQL `+08:00`；会话 Lua 用 Redis TIME 判断应用传入的截止时间。服务端已提交但响应在网络中丢失时，客户端提交结果为 UNKNOWN（结果未知），不能视为未执行；同卡重试确认读取同一幂等结果。NOTE 写入是尽力而为，最终订单状态以数据库为准。
 
 ## 目录与文档
 

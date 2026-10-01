@@ -8,12 +8,18 @@ import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
+import com.winniethepooh.hotelsystembackend.vo.RoomQuoteVO;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderService {
     OrderQueryVO queryOrderService(LocalDate startDate, LocalDate endDate, Integer id);
+
+    RoomQuoteVO quoteRoomService(String roomNumber, LocalDateTime checkin, LocalDateTime checkout);
+
+    List<RoomQuoteVO> searchAvailableRoomsService(Integer roomType, LocalDateTime checkin, LocalDateTime checkout, int limit);
 
     void commentOrderService(CommentOrderDTO commentOrderDTO);
 
