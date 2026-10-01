@@ -33,6 +33,11 @@ springdoc:
     path: /swagger-ui.html
 
 hotel:
+  agent:
+    provider: ${HOTEL_AGENT_PROVIDER:openai}
+    model: ${HOTEL_AGENT_MODEL:gpt-6-luna}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
   scheduler:
     enabled: ${HOTEL_SCHEDULER_ENABLED:true}
   jwt:

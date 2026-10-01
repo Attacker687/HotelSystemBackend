@@ -1,4 +1,6 @@
 # 独立浏览器测试上下文；容器连接和随机密钥由 BrowserE2EIT 注入。
 hotel:
+  agent:
+    provider: fake
   scheduler:
     enabled: true

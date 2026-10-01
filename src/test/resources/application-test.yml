@@ -1,6 +1,9 @@
 # 测试 profile：数据源和 Redis 由 Testcontainers 的 @ServiceConnection 注入（见 IntegrationTestBase）。
 # 定时任务不按 cron 触发，测试里直接调用 CustomTaskScheduler 的方法推进。
 hotel:
+  agent:
+    provider: fake
+    timeout-seconds: 5
   scheduler:
     enabled: false
   login:
