@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.sun.net.httpserver.HttpServer;
+import com.winniethepooh.hotelsystembackend.agent.AgentItem;
+import com.winniethepooh.hotelsystembackend.agent.FakeLlmClient;
 import com.winniethepooh.hotelsystembackend.support.Fixtures;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -22,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -75,6 +78,7 @@ class BrowserE2EIT {
 
     @BeforeEach
     void reset() throws Exception {
+        app.getBean(FakeLlmClient.class).reset();
         fx.reset();
         base = fx.seedE2eBase();
         assertThat(jdbc.queryForObject("select count(*) from user", Integer.class)).isZero();
@@ -125,6 +129,21 @@ class BrowserE2EIT {
                 Object result = switch (action) {
                     case "data" -> testData;
                     case "state" -> state(db);
+                    case "agent-inputs" -> app.getBean(FakeLlmClient.class).inputs();
+                    case "agent-delayed-booking" -> {
+                        var fake = app.getBean(FakeLlmClient.class);
+                        fake.enqueue(new AgentItem(AgentItem.Type.FUNCTION_CALL, null, UUID.randomUUID().toString(), "propose_booking",
+                                JSON.writeValueAsString(Map.of("roomNumber", base.room("R2").number(),
+                                        "checkInDate", LocalDate.now().plusDays(1).toString(), "checkOutDate", LocalDate.now().plusDays(2).toString())), null, null));
+                        fake.enqueueDelayed(Duration.ofSeconds(3), AgentItem.assistant("请核对卡片后点击确认。"));
+                        yield Map.of("queued", true);
+                    }
+                    case "agent-expire" -> {
+                        String actionId = UUID.fromString(input.path("actionId").asText()).toString();
+                        var cache = app.getBean(StringRedisTemplate.class);
+                        assertThat(cache.hasKey("agent:action:" + actionId)).isTrue();
+                        yield Map.of("deleted", Boolean.TRUE.equals(cache.delete("agent:action:" + actionId)));
+                    }
                     case "checkin", "checkout", "expire" -> {
                         assertThat(db.queryForObject("select count(*) from room_order where id=?", Integer.class, id)).isEqualTo(1);
                         int updated = switch (action) {
@@ -176,6 +195,11 @@ class BrowserE2EIT {
     private void browser(String id) throws Exception {
         browser(id, "http://127.0.0.1:" + app.getWebServer().getPort(), jdbc, data());
     }
+
+    @Test void tc051_agentQuoteSessionLifecycleAndMobileLayout() throws Exception { browser("TC-051"); }
+    @Test void tc052_agentBookingIdempotencyAndCardBoundaries() throws Exception { browser("TC-052"); }
+    @Test void tc053_agentPaymentRefundAndMealCards() throws Exception { browser("TC-053"); }
+    @Test void tc054_agentOwnershipErrorsAndFragmentedStreams() throws Exception { browser("TC-054"); }
 
     @Test void tc132_guestRegistrationBookingPaymentRevenueAndCheckout() throws Exception { browser("TC-132"); }
     @Test void tc133_unpaidFrontOrderSurvivesTimeoutAndRoomIsCleaned() throws Exception { browser("TC-133"); }

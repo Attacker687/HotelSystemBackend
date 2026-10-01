@@ -49,33 +49,41 @@ function time(value) { return value ? value.replace('T', ' ').slice(0, 16) : '�
 function query(values) {
   return new URLSearchParams(Object.entries(values).filter(([, value]) => value !== '' && value !== null && value !== undefined)).toString();
 }
-async function api(path, method = 'GET', body) {
+function requestError(message, status) { return Object.assign(new Error(message), { status }); }
+function checkAuth(response, token) {
+  if (response.status !== 401 || !token) return;
+  const error = requestError('登录已失效，请重新登录', 401);
+  if (session?.token === token) {
+    const staff = session.role !== 0;
+    session = null;
+    sessionStorage.removeItem('hotel-session');
+    showAuth(staff ? 'staff' : 'user');
+    report(error);
+  }
+  throw error;
+}
+async function apiResult(response, token) {
+  checkAuth(response, token);
+  let result;
+  try { result = await response.json(); } catch { throw requestError(`请求失败（${response.status}），请稍后再试`, response.status); }
+  if (!response.ok || result.code !== 0) throw requestError(result.msg || `请求失败（${response.status}）`, response.status);
+  return result.data;
+}
+async function api(path, method = 'GET', body, options = {}) {
   const headers = {};
   const token = session?.token;
   if (token) headers.token = token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-  if (response.status === 401 && token) {
-    if (session?.token === token) {
-      const staff = session.role !== 0;
-      session = null;
-      sessionStorage.removeItem('hotel-session');
-      showAuth(staff ? 'staff' : 'user');
-    }
-    throw new Error('登录已失效，请重新登录');
-  }
-  let result;
-  try { result = await response.json(); } catch { throw new Error(`请求失败（${response.status}），请稍后再试`); }
-  if (!response.ok || result.code !== 0) throw new Error(result.msg || `请求失败（${response.status}）`);
-  return result.data;
+  const response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), ...options });
+  return apiResult(response, token);
 }
-function button(text, action, attrs = {}) {
+function button(text, action, attrs = {}, disabled = () => false) {
   const node = el('button', text, { type: 'button', ...attrs });
   node.addEventListener('click', async () => {
     node.disabled = true;
     clearError();
     try { await action(); } catch (error) { report(error); }
-    finally { node.disabled = false; }
+    finally { node.disabled = disabled(); }
   });
   return node;
 }
@@ -152,6 +160,7 @@ function heading(title, description) {
 }
 
 function showAuth(kind = 'user') {
+  removeAgent();
   ++navigationId;
   identity.textContent = '';
   navigation.replaceChildren();
@@ -195,6 +204,7 @@ function showAuth(kind = 'user') {
   content.replaceChildren(section);
 }
 function showNavigation() {
+  mountAgent();
   identity.textContent = `${roleNames[session.role]} · ${session.name}`;
   navigation.replaceChildren();
   roleViews[session.role].forEach(view => navigation.append(button(links[view], () => navigate(view), currentView === view ? { 'aria-current': 'page' } : {})));
@@ -542,5 +552,209 @@ async function staffView() {
 }
 const views = { home: homeView, rooms: roomsView, orders: ordersView, meals: mealsView, front: frontView,
   overview: overviewView, wall: wallView, live: liveView, calendar: calendarView, business: businessView, staff: staffView };
+
+let agent = null;
+function removeAgent() {
+  if (agent) {
+    agent.controller.abort();
+    agent.timers.forEach(clearInterval);
+    agent.panel.remove();
+    agent.toggle.remove();
+    agent = null;
+  }
+  sessionStorage.removeItem('hotel-agent-session');
+}
+function agentCurrent(state, generation, sessionId) {
+  return agent === state && session?.role === 0 && session.id === state.userId && session.token === state.token
+    && state.generation === generation && (!sessionId || state.sessionId === sessionId);
+}
+function agentInputs(state) {
+  state.input.disabled = state.busy || !state.sessionId;
+  state.send.disabled = state.input.disabled;
+}
+async function agentSession(state) {
+  if (state.sessionId) return;
+  if (state.creating) return state.creating;
+  const generation = state.generation;
+  state.busy = true;
+  agentInputs(state);
+  state.status.textContent = '正在创建对话…';
+  state.creating = (async () => {
+    try {
+      const result = await api('/agent/sessions', 'POST', undefined, { signal: state.controller.signal });
+      if (!agentCurrent(state, generation)) return;
+      state.sessionId = result.sessionId;
+      sessionStorage.setItem('hotel-agent-session', JSON.stringify({ userId: state.userId, sessionId: state.sessionId }));
+    } catch (error) {
+      if (agentCurrent(state, generation) && error.name !== 'AbortError') state.log.append(el('p', error.message, { class: 'agent-error' }));
+    } finally {
+      if (agentCurrent(state, generation)) {
+        state.creating = null;
+        state.busy = false;
+        state.status.textContent = '';
+        agentInputs(state);
+      }
+    }
+  })();
+  return state.creating;
+}
+function mountAgent() {
+  if (session.role !== 0) return removeAgent();
+  if (agent?.userId === session.id && agent.token === session.token) return;
+  if (agent) removeAgent();
+  let stored;
+  try { stored = JSON.parse(sessionStorage.getItem('hotel-agent-session')); } catch { /* 新建有效会话。 */ }
+  if (stored?.userId !== session.id || !/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i.test(stored?.sessionId || '')) {
+    stored = null;
+    sessionStorage.removeItem('hotel-agent-session');
+  }
+  const state = agent = { userId: session.id, token: session.token, generation: 0, sessionId: stored?.sessionId,
+    controller: new AbortController(), timers: new Set(), busy: false, creating: null };
+  state.panel = el('section', null, { class: 'agent-panel', id: 'agent-panel', 'data-testid': 'agent-panel', role: 'dialog', 'aria-label': '智能助手', hidden: '' });
+  const close = () => { state.panel.hidden = true; state.toggle.setAttribute('aria-expanded', 'false'); state.toggle.focus(); };
+  const top = el('div', null, { class: 'agent-header' });
+  top.append(el('h2', '智能助手'), button('新对话', async () => {
+    state.controller.abort();
+    state.timers.forEach(clearInterval);
+    state.timers.clear();
+    ++state.generation;
+    state.controller = new AbortController();
+    state.sessionId = null;
+    state.creating = null;
+    state.log.replaceChildren();
+    state.input.value = '';
+    sessionStorage.removeItem('hotel-agent-session');
+    await agentSession(state);
+    if (!state.panel.hidden) state.input.focus();
+  }, { class: 'secondary' }), button('关闭', close, { class: 'secondary' }));
+  state.log = el('div', null, { class: 'agent-log', role: 'log', 'aria-live': 'polite' });
+  state.status = el('p', '', { role: 'status', class: 'muted' });
+  const form = el('form', null, { class: 'agent-form' });
+  state.input = field(form, '消息', 'message', 'text', '', { maxlength: 500, autocomplete: 'off' });
+  state.send = button('发送', () => agentChat(state), {}, () => state.busy || !state.sessionId);
+  form.append(state.send);
+  form.addEventListener('submit', event => { event.preventDefault(); if (!state.send.disabled) state.send.click(); });
+  state.panel.append(top, state.log, state.status, form);
+  state.panel.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); close(); } });
+  state.toggle = button('智能助手', async () => {
+    state.panel.hidden = false;
+    state.toggle.setAttribute('aria-expanded', 'true');
+    await agentSession(state);
+    if (!state.panel.hidden) state.input.focus();
+  }, { class: 'agent-toggle', 'data-testid': 'agent-toggle', 'aria-controls': 'agent-panel', 'aria-expanded': 'false' });
+  document.body.append(state.toggle, state.panel);
+  agentInputs(state);
+}
+async function agentChat(state) {
+  const generation = state.generation, sessionId = state.sessionId;
+  const text = state.input.value.trim();
+  if (!agentCurrent(state, generation, sessionId) || state.busy || !sessionId || !text) return;
+  state.busy = true;
+  agentInputs(state);
+  state.input.value = '';
+  state.log.append(el('p', text, { class: 'agent-user' }));
+  const bubble = el('p', '', { class: 'agent-assistant' });
+  state.log.append(bubble);
+  const cards = [];
+  let reader, done = false;
+  try {
+    const response = await fetch('/agent/chat', { method: 'POST', headers: { token: state.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, message: text }), signal: state.controller.signal });
+    checkAuth(response, state.token);
+    if (!response.ok) await apiResult(response, state.token);
+    if (!agentCurrent(state, generation, sessionId)) return;
+    reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (!done) {
+      const chunk = await reader.read();
+      if (!agentCurrent(state, generation, sessionId)) return;
+      buffer += decoder.decode(chunk.value, { stream: !chunk.done });
+      let separator;
+      while (!done && (separator = buffer.match(/\r?\n\r?\n/))) {
+        const block = buffer.slice(0, separator.index).split(/\r?\n/);
+        buffer = buffer.slice(separator.index + separator[0].length);
+        const event = block.find(line => line.startsWith('event:'))?.slice(6).trim();
+        const data = block.filter(line => line.startsWith('data:')).map(line => line.slice(5).replace(/^ /, '')).join('\n');
+        if (!data) continue;
+        const payload = JSON.parse(data);
+        if (event === 'status') state.status.textContent = payload.text || '';
+        if (event === 'delta') { bubble.textContent += payload.text || ''; state.status.textContent = ''; }
+        if (event === 'card') cards.push(agentCard(state, payload, generation, sessionId));
+        if (event === 'error') state.log.append(el('p', payload.msg || '智能助手暂不可用', { class: 'agent-error' }));
+        if (event === 'done') { done = true; cards.forEach(card => card.enable()); }
+        state.log.scrollTop = state.log.scrollHeight;
+      }
+      if (chunk.done) break;
+    }
+    if (!done) throw new Error('响应未完成，请重新发送消息');
+  } catch (error) {
+    if (agentCurrent(state, generation, sessionId) && error.name !== 'AbortError') state.log.append(el('p', error.message, { class: 'agent-error' }));
+  } finally {
+    if (reader) {
+      if (done) reader.releaseLock();
+      else await reader.cancel().catch(() => {});
+    }
+    if (agentCurrent(state, generation, sessionId)) {
+      state.busy = false;
+      state.status.textContent = '';
+      agentInputs(state);
+    }
+  }
+}
+function agentCard(state, data, generation, sessionId) {
+  const card = el('article', null, { class: 'card agent-card', 'data-testid': `agent-card-${data.actionId}` });
+  const badge = el('span', '待确认', { class: 'badge' });
+  const countdown = el('span');
+  const lines = el('dl');
+  for (const [label, value] of data.lines || []) lines.append(el('dt', label), el('dd', value));
+  const details = el('ul');
+  for (const row of data.details || []) details.append(el('li', row.join(' · ')));
+  card.append(el('h3', data.title), lines, details);
+  if (data.total !== null && data.total !== undefined) card.append(el('p', `合计 ¥${data.total}`, { class: 'amount' }));
+  const result = el('p');
+  const controls = el('div', null, { class: 'actions' });
+  let ready = false, requesting = false, status = 'PENDING', timer;
+  const stop = () => { clearInterval(timer); state.timers.delete(timer); countdown.textContent = ''; };
+  const sync = () => { confirm.disabled = cancel.disabled = !ready || requesting || !['PENDING', 'CONFIRMED'].includes(status); };
+  const act = async action => {
+    if (!agentCurrent(state, generation, sessionId) || !ready || requesting) return;
+    requesting = true;
+    sync();
+    try {
+      const response = await api(`/agent/actions/${encodeURIComponent(data.actionId)}/${action}`, 'POST', undefined, { signal: state.controller.signal });
+      if (!agentCurrent(state, generation, sessionId)) return;
+      stop();
+      status = action === 'confirm' ? 'CONFIRMED' : 'CANCELLED';
+      badge.textContent = action === 'confirm' ? '已确认' : '已取消';
+      result.className = '';
+      result.textContent = action === 'confirm' ? `#${response.orderId} · ${response.message}` : '已取消，此操作未执行';
+      controls.replaceChildren();
+      if (action === 'confirm') controls.append(confirm, button('查看我的订单', () => navigate('orders'), { class: 'secondary' }));
+    } catch (error) {
+      if (!agentCurrent(state, generation, sessionId) || error.name === 'AbortError') return;
+      result.textContent = error.message;
+      result.className = 'agent-error';
+      if (error.status === 404 || (action === 'confirm' && [400, 409].includes(error.status))) { status = 'EXPIRED'; badge.textContent = '已失效'; stop(); controls.replaceChildren(); }
+    } finally { requesting = false; sync(); }
+  };
+  const disabled = () => !ready || requesting || !['PENDING', 'CONFIRMED'].includes(status);
+  const confirm = button('确认', () => act('confirm'), {}, disabled);
+  const cancel = button('取消', () => act('cancel'), { class: 'danger' }, disabled);
+  controls.append(confirm, cancel);
+  card.append(badge, countdown, result, controls);
+  state.log.append(card);
+  const expires = Date.now() + Math.max(0, Number(data.ttlSeconds) || 0) * 1000;
+  const tick = () => {
+    const seconds = Math.max(0, Math.ceil((expires - Date.now()) / 1000));
+    countdown.textContent = ` 剩余 ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    if (seconds === 0) { status = 'EXPIRED'; badge.textContent = '已失效'; result.textContent = '确认超时，请让助手重新生成卡片'; stop(); controls.replaceChildren(); }
+  };
+  timer = setInterval(tick, 1000);
+  state.timers.add(timer);
+  tick();
+  sync();
+  return { enable() { ready = true; sync(); } };
+}
 if (session && roleViews[session.role] && session.token) navigate(session.view || 'home');
 else showAuth();

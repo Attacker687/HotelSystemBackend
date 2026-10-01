@@ -5,7 +5,7 @@ async function fixture(action, id) {
   // 测试桥只接受有限动作；业务行为全部由页面按钮触发。
   const response = await fetch(process.env.E2E_FIXTURE_URL, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Fixture-Key': process.env.E2E_FIXTURE_KEY },
-    body: JSON.stringify({ action, id })
+    body: JSON.stringify({ action, ...(typeof id === 'object' ? id : { id }) })
   });
   const body = await response.json();
   expect(response.status, JSON.stringify(body)).toBe(200);
@@ -317,4 +317,443 @@ test('TC-137 住客支付后取消退款，经理概览为零，另一住客重�
   expect((await dbRoomOrder(second)).checkout_time).toBe(`${data.dates[1]}T12:00:00`);
   const orders = (await fixture('state')).roomOrders;
   expect(orders.filter(r => r.room_id === data.base.rooms.R1.id && r.status === 0)).toHaveLength(1);
+});
+
+function agentPanel(page) { return page.getByTestId('agent-panel'); }
+async function agentLoginHere(page, person) {
+  await page.getByRole('button', { name: '住客登录', exact: true }).click();
+  await page.getByLabel('手机号', { exact: true }).fill(person.phone);
+  await page.getByLabel('密码', { exact: true }).fill(person.password);
+  const waiting = page.waitForResponse(r => r.url().endsWith('/user/login') && r.request().method() === 'POST');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
+  expect((await (await waiting).json()).code).toBe(0);
+  await expect(page.getByRole('heading', { name: '住客首页', exact: true })).toBeVisible();
+}
+async function agentStorage(page) { return page.evaluate(() => JSON.parse(sessionStorage.getItem('hotel-agent-session'))); }
+async function openAgent(page) {
+  await expect(page.getByTestId('agent-toggle')).toBeVisible();
+  await expect(agentPanel(page)).toBeHidden();
+  const response = page.waitForResponse(r => r.url().endsWith('/agent/sessions') && r.request().method() === 'POST');
+  await page.getByTestId('agent-toggle').click();
+  const result = await (await response).json();
+  expect(result.code).toBe(0);
+  expect(result.data.sessionId).toMatch(/^[\da-f]{8}(-[\da-f]{4}){3}-[\da-f]{12}$/i);
+  await expect(agentPanel(page)).toHaveAttribute('role', 'dialog');
+  await expect(agentPanel(page)).toHaveAttribute('aria-label', '智能助手');
+  await expect(agentPanel(page).getByRole('log')).toHaveAttribute('aria-live', 'polite');
+  await expect(agentPanel(page).getByLabel('消息', { exact: true })).toBeEnabled();
+  await expect(agentPanel(page).getByLabel('消息', { exact: true })).toHaveAttribute('maxlength', '500');
+  const stored = await agentStorage(page);
+  const user = await page.evaluate(() => JSON.parse(sessionStorage.getItem('hotel-session')));
+  expect(stored).toEqual({ userId: user.id, sessionId: result.data.sessionId });
+  return stored;
+}
+function sseEvents(body) {
+  return body.replace(/\r\n/g, '\n').split('\n\n').filter(block => block.trim()).map(block => {
+    const lines = block.split('\n');
+    return { event: lines.find(line => line.startsWith('event:')).slice(6).trim(),
+      data: JSON.parse(lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n')) };
+  });
+}
+async function agentChat(page, message, status = 200) {
+  const box = agentPanel(page);
+  const stored = await agentStorage(page);
+  const user = await page.evaluate(() => JSON.parse(sessionStorage.getItem('hotel-session')));
+  await box.getByLabel('消息', { exact: true }).fill(message);
+  const waiting = page.waitForResponse(r => r.url().endsWith('/agent/chat') && r.request().method() === 'POST');
+  await box.getByRole('button', { name: '发送', exact: true }).click();
+  const response = await waiting;
+  expect(response.status()).toBe(status);
+  expect(response.request().headers().token).toBe(user.token);
+  expect(response.request().postDataJSON()).toEqual({ sessionId: stored.sessionId, message });
+  const body = await response.text();
+  if (status !== 200) return JSON.parse(body);
+  expect(response.headers()['content-type']).toContain('text/event-stream');
+  const events = sseEvents(body);
+  expect(events.some(item => item.event === 'done')).toBe(true);
+  await expect(box.getByLabel('消息', { exact: true })).toBeEnabled();
+  await expect(box.getByRole('button', { name: '发送', exact: true })).toBeEnabled();
+  return events;
+}
+function eventCard(events, type) {
+  const card = events.find(item => item.event === 'card' && item.data.type === type)?.data;
+  expect(card, `本轮应返回 ${type} 卡片`).toBeTruthy();
+  return card;
+}
+async function agentAction(page, card, action = 'confirm', status = 200) {
+  const box = page.getByTestId(`agent-card-${card.actionId}`);
+  const waiting = page.waitForResponse(r => r.url().endsWith(`/agent/actions/${card.actionId}/${action}`) && r.request().method() === 'POST');
+  await box.getByRole('button', { name: action === 'confirm' ? '确认' : '取消', exact: true }).click();
+  const response = await waiting;
+  expect(response.status()).toBe(status);
+  const result = await response.json();
+  expect(result.code).toBe(status === 200 ? 0 : 1);
+  if (status === 200 && action === 'confirm') {
+    await expect(box).toContainText(`#${result.data.orderId}`);
+    await expect(box).toContainText(result.data.message);
+    await expect(box.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
+    await expect(box.getByRole('button', { name: '取消', exact: true })).toHaveCount(0);
+  } else if (status === 200 || status === 404 || (action === 'confirm' && [400, 409].includes(status))) {
+    await expect(box).toContainText(action === 'cancel' && status === 200 ? '已取消' : '已失效');
+    if (status !== 200) await expect(box).toContainText(result.msg);
+    await expect(box.getByRole('button')).toHaveCount(0);
+  } else {
+    await expect(box).toContainText(result.msg);
+    await expect(box.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
+    await expect(box.getByRole('button', { name: '取消', exact: true })).toBeEnabled();
+    await expect(box).toContainText('剩余');
+  }
+  return result;
+}
+async function newAgentConversation(page) {
+  const previous = await agentStorage(page);
+  const waiting = page.waitForResponse(r => r.url().endsWith('/agent/sessions') && r.request().method() === 'POST');
+  await agentPanel(page).getByRole('button', { name: '新对话', exact: true }).click();
+  const result = await (await waiting).json();
+  await expect(agentPanel(page).getByRole('log')).toBeEmpty();
+  await expect(agentPanel(page).getByLabel('消息', { exact: true })).toBeEnabled();
+  const next = await agentStorage(page);
+  expect(next.sessionId).toBe(result.data.sessionId);
+  expect(next.sessionId).not.toBe(previous.sessionId);
+  return next;
+}
+
+test('TC-051 助手两晚双人房报价、会话隔离、角色入口与手机布局', async ({ page }) => {
+  await register(page, 'E');
+  await login(page, data.registrations.E, false);
+  const original = await openAgent(page);
+  const events = await agentChat(page, `${data.dates[0]} 到 ${data.dates[2]} 双人间有空房吗`);
+  expect(events.some(item => item.event === 'status' && item.data.tool === 'search_available_rooms')).toBe(true);
+  const log = agentPanel(page).getByRole('log');
+  for (const text of [data.base.rooms.R4.number, `${data.dates[0]} 299.00`, `${data.dates[1]} 299.00`, '合计 598.00']) await expect(log).toContainText(text);
+  await agentPanel(page).getByLabel('消息', { exact: true }).fill('下一问');
+  await expect(agentPanel(page).getByLabel('消息', { exact: true })).toHaveValue('下一问');
+  await agentPanel(page).getByRole('button', { name: '关闭', exact: true }).click();
+  await expect(agentPanel(page)).toBeHidden();
+  await expect(page.getByTestId('agent-toggle')).toBeFocused();
+  await page.getByTestId('agent-toggle').press('Enter');
+  await expect(agentPanel(page)).toBeVisible();
+  expect(await agentStorage(page)).toEqual(original);
+  await expect(log).toContainText('598.00');
+  await page.keyboard.press('Escape');
+  await expect(agentPanel(page)).toBeHidden();
+  await nav(page, '房间列表');
+  await expect(page.getByTestId(`room-${data.base.rooms.R1.id}`)).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.getByTestId('agent-toggle').click();
+  const rect = await agentPanel(page).boundingBox();
+  expect(rect.x).toBeGreaterThanOrEqual(0);
+  expect(rect.x + rect.width).toBeLessThanOrEqual(375);
+  expect(rect.width).toBeLessThanOrEqual(343);
+  expect(rect.height).toBeLessThanOrEqual(667 * .7 + 1);
+  expect(await page.locator('main').evaluate(node => parseInt(getComputedStyle(node).paddingBottom))).toBeGreaterThanOrEqual(96);
+  await agentPanel(page).getByRole('button', { name: '关闭', exact: true }).click();
+  await page.getByRole('button', { name: '查询房间', exact: true }).click();
+  await expect(page.getByTestId(`room-${data.base.rooms.R1.id}`)).toBeVisible();
+  await page.getByTestId('agent-toggle').click();
+  const next = await newAgentConversation(page);
+  await agentChat(page, '新会话问题');
+  const inputs = await fixture('agent-inputs');
+  expect(inputs.at(-1).filter(item => item.type === 'USER').map(item => item.text)).toEqual(['新会话问题']);
+
+  // 延迟的旧 chat 响应不得画到新对话；请求已经发出，再重置会话。
+  let releaseChat;
+  const heldChat = new Promise(resolve => { releaseChat = resolve; });
+  let chatSeen;
+  const seenChat = new Promise(resolve => { chatSeen = resolve; });
+  await page.evaluate(() => {
+    const original = window.fetch;
+    window.fetch = (url, options) => {
+      if (url !== '/agent/chat') return original(url, options);
+      window.oldAgentSignal = options.signal;
+      return original(url, { ...options, signal: undefined });
+    };
+  });
+  await page.route('**/agent/chat', async route => {
+    const response = await route.fetch(); chatSeen(); await heldChat;
+    await route.fulfill({ response }).catch(() => {});
+  }, { times: 1 });
+  await agentPanel(page).getByLabel('消息', { exact: true }).fill('旧消息');
+  await agentPanel(page).getByRole('button', { name: '发送', exact: true }).click();
+  await seenChat;
+  await expect(agentPanel(page).getByLabel('消息', { exact: true })).toBeDisabled();
+  await newAgentConversation(page);
+  expect(await page.evaluate(() => window.oldAgentSignal.aborted)).toBe(true);
+  releaseChat();
+  await page.waitForLoadState('networkidle');
+  await expect(agentPanel(page).getByRole('log')).toBeEmpty();
+  expect((await agentStorage(page)).sessionId).not.toBe(next.sessionId);
+  await logout(page);
+  await expect(agentPanel(page)).toHaveCount(0);
+  await expect(page.getByTestId('agent-toggle')).toHaveCount(0);
+  expect(await agentStorage(page)).toBeNull();
+  await register(page, 'F');
+  await login(page, data.registrations.F, false);
+
+  // 旧账号的 session 创建返回即使迟到也不能写入新账号 storage。
+  let releaseSession;
+  const heldSession = new Promise(resolve => { releaseSession = resolve; });
+  let sessionSeen;
+  const seenSession = new Promise(resolve => { sessionSeen = resolve; });
+  let obsolete;
+  await page.evaluate(() => {
+    const original = window.fetch;
+    window.fetch = (url, options) => {
+      if (url !== '/agent/sessions') return original(url, options);
+      window.oldAgentSessionSignal ||= options.signal;
+      return original(url, { ...options, signal: undefined });
+    };
+  });
+  await page.route('**/agent/sessions', async route => {
+    const response = await route.fetch(); obsolete = (await response.json()).data.sessionId;
+    sessionSeen(); await heldSession; await route.fulfill({ response }).catch(() => {});
+  }, { times: 1 });
+  await page.getByTestId('agent-toggle').click();
+  await seenSession;
+  await logout(page);
+  expect(await page.evaluate(() => window.oldAgentSessionSignal.aborted)).toBe(true);
+  await agentLoginHere(page, data.registrations.E);
+  const renewed = await openAgent(page);
+  releaseSession();
+  await page.waitForLoadState('networkidle');
+  expect(renewed.sessionId).not.toBe(obsolete);
+  expect(renewed.sessionId).not.toBe(original.sessionId);
+  await expect.poll(() => agentStorage(page)).toEqual(renewed);
+  await logout(page);
+  for (const role of ['it_manager', 'it_front', 'it_restaurant']) {
+    await login(page, data.base.staff[role]);
+    await expect(page.getByTestId('agent-toggle')).toHaveCount(0);
+    await expect(agentPanel(page)).toHaveCount(0);
+    expect(await agentStorage(page)).toBeNull();
+  }
+});
+
+test('TC-052 助手预订重复确认同号一单、DONE门槛及取消过期变价', async ({ page, browser }) => {
+  await register(page, 'E');
+  await login(page, data.registrations.E, false);
+  await openAgent(page);
+  const chats = [];
+  page.on('request', request => { if (request.url().endsWith('/agent/chat')) chats.push(request.postDataJSON()); });
+  const card = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R1.number}`), 'BOOKING');
+  const box = page.getByTestId(`agent-card-${card.actionId}`);
+  for (const text of [card.title, data.base.rooms.R1.number, data.dates[0], '199.00', '剩余']) await expect(box).toContainText(text);
+  expect((await fixture('state')).roomOrders).toHaveLength(0);
+  const one = await agentAction(page, card);
+  const two = await agentAction(page, card);
+  expect(two.data.orderId).toBe(one.data.orderId);
+  expect(chats).toHaveLength(1);
+  const id = one.data.orderId;
+  expect((await fixture('state')).roomOrders).toEqual([expect.objectContaining({ id, total_amount: 199, status: 0, pay_status: 0 })]);
+  await box.getByRole('button', { name: '查看我的订单', exact: true }).click();
+  await expect(roomOrder(page, id)).toContainText('待支付');
+  await expect(roomOrder(page, id)).toContainText('进行中');
+
+  // 同一真实提议先到 card，Fake 的后续模型输出延迟 3s，确认/取消都等待 DONE。
+  await fixture('agent-delayed-booking');
+  await agentPanel(page).getByLabel('消息', { exact: true }).fill('生成另一房间的预订');
+  const waiting = page.waitForResponse(r => r.url().endsWith('/agent/chat'));
+  await agentPanel(page).getByRole('button', { name: '发送', exact: true }).click();
+  const delayedBox = agentPanel(page).locator('[data-testid^="agent-card-"]').last();
+  await expect(delayedBox).toContainText(data.base.rooms.R2.number);
+  await expect(delayedBox.getByRole('button', { name: '确认', exact: true })).toBeDisabled();
+  await expect(delayedBox.getByRole('button', { name: '取消', exact: true })).toBeDisabled();
+  await expect(agentPanel(page).getByLabel('消息', { exact: true })).toBeDisabled();
+  const delayed = eventCard(sseEvents(await (await waiting).text()), 'BOOKING');
+  await expect(delayedBox.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
+  await page.route(`**/agent/actions/${delayed.actionId}/cancel`, route => route.fulfill({ status: 409, json: { code: 1, msg: '操作冲突，请重试' } }), { times: 1 });
+  const conflict = await agentAction(page, delayed, 'cancel', 409);
+  expect(conflict.msg).toBe('操作冲突，请重试');
+  await expect(delayedBox.locator('.badge')).toHaveText('待确认');
+  await expect(delayedBox.locator('.agent-error')).toHaveText('操作冲突，请重试');
+  const countdown = delayedBox.locator('span').filter({ hasText: '剩余' });
+  const remaining = await countdown.textContent();
+  await expect.poll(() => countdown.textContent()).not.toBe(remaining);
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
+  await agentAction(page, delayed, 'cancel');
+  await expect(delayedBox.locator('.agent-error')).toHaveCount(0);
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
+
+  const missing = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R2.number}`), 'BOOKING');
+  await fixture('agent-expire', { actionId: missing.actionId });
+  await agentAction(page, missing, 'confirm', 404);
+  const changed = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R2.number}`), 'BOOKING');
+  const managerContext = await browser.newContext({ baseURL: process.env.E2E_BASE_URL });
+  const manager = await managerContext.newPage();
+  try {
+    await login(manager, data.base.staff.it_manager);
+    await nav(manager, '价格日历');
+    await manager.getByLabel('开始日期', { exact: true }).fill(data.dates[0]);
+    await manager.getByLabel('结束日期', { exact: true }).fill(data.dates[0]);
+    await manager.getByLabel('设定价格', { exact: true }).fill('300');
+    await manager.getByRole('button', { name: '保存价格', exact: true }).click();
+    await expect(manager.getByTestId(`price-${data.dates[0]}`)).toContainText('300.00');
+  } finally { await managerContext.close(); }
+  const rejected = await agentAction(page, changed, 'confirm', 409);
+  expect(rejected.msg).toContain('价格已变化');
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
+
+  const bad = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R2.number}`), 'BOOKING');
+  await page.route(`**/agent/actions/${bad.actionId}/confirm`, route => route.fulfill({ status: 400, json: { code: 1, msg: '确认参数已失效，请重新生成' } }), { times: 1 });
+  await agentAction(page, bad, 'confirm', 400);
+  const expires = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R2.number}`), 'BOOKING');
+  await page.clock.install();
+  await page.clock.fastForward(expires.ttlSeconds * 1000 + 1001);
+  const expiredBox = page.getByTestId(`agent-card-${expires.actionId}`);
+  await expect(expiredBox).toContainText('已失效');
+  await expect(expiredBox).toContainText('超时');
+  await expect(expiredBox.getByRole('button')).toHaveCount(0);
+  await expect(box).toContainText('已确认');
+  await expect(box.getByRole('button', { name: '确认', exact: true })).toBeEnabled();
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
+});
+
+test('TC-053 助手自行订房后支付取消退款、NOTE回放与点餐统一卡片', async ({ page }) => {
+  await register(page, 'E');
+  await login(page, data.registrations.E, false);
+  await openAgent(page);
+  const bookingCard = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R1.number}`), 'BOOKING');
+  const id = (await agentAction(page, bookingCard)).data.orderId;
+  expect((await fixture('state')).roomOrders).toEqual([expect.objectContaining({ id, status: 0, pay_status: 0 })]);
+  const beforePayment = (await fixture('agent-inputs')).length;
+  const payment = eventCard(await agentChat(page, '把它付了'), 'PAYMENT');
+  const inputs = await fixture('agent-inputs');
+  const firstPayment = inputs[beforePayment];
+  const noteIndex = firstPayment.findIndex(item => item.type === 'NOTE' && item.text.startsWith('[系统通知] 住客已确认') && item.text.includes(String(id)));
+  expect(noteIndex).toBeGreaterThanOrEqual(0);
+  expect(noteIndex).toBeLessThan(firstPayment.findIndex(item => item.type === 'USER' && item.text === '把它付了'));
+  const paid = await agentAction(page, payment);
+  expect(paid.data).toMatchObject({ orderId: id, message: '支付成功' });
+  expect(await dbRoomOrder(id)).toMatchObject({ pay_status: 1, status: 0 });
+  const cancel = eventCard(await agentChat(page, '取消这单'), 'CANCEL');
+  await expect(page.getByTestId(`agent-card-${cancel.actionId}`)).toContainText('将标记为已退款');
+  const refunded = await agentAction(page, cancel);
+  expect(refunded.data.orderId).toBe(id);
+  expect(refunded.data.message).toContain('已退款');
+  expect((await fixture('state')).roomOrders).toEqual([expect.objectContaining({ id, status: 2, pay_status: 2 })]);
+  await page.getByTestId(`agent-card-${cancel.actionId}`).getByRole('button', { name: '查看我的订单', exact: true }).click();
+  await expect(roomOrder(page, id)).toContainText('已退款');
+  const meal = eventCard(await agentChat(page, `两份${data.base.dishes.X.name}送到 1101 房`), 'MEAL_ORDER');
+  const mealBox = page.getByTestId(`agent-card-${meal.actionId}`);
+  for (const text of ['点餐确认', `${data.base.dishes.X.name} × 2`, '1101 房', '76.00']) await expect(mealBox).toContainText(text);
+  expect((await fixture('state')).mealOrders).toHaveLength(0);
+  await agentAction(page, meal);
+  expect((await fixture('state')).mealOrders).toEqual([expect.objectContaining({ total_amount: 76, order_status: 0 })]);
+});
+
+test('TC-054 助手拒绝他人手机号、错误可见、UTF8碎片、EOF及旧响应隔离', async ({ page }) => {
+  await register(page, 'E');
+  await login(page, data.registrations.E, false);
+  await openAgent(page);
+  const events = await agentChat(page, '查一下 13800000002 的订单');
+  await expect(agentPanel(page).getByRole('log')).toContainText('只能查看和操作您本人的订单');
+  expect(events.filter(item => item.event === 'status' && item.data.tool)).toHaveLength(0);
+  expect(events.filter(item => item.event === 'card')).toHaveLength(0);
+  await expect(agentPanel(page).locator('[data-testid^="agent-card-"]')).toHaveCount(0);
+  expect((await fixture('state')).roomOrders).toHaveLength(0);
+  expect((await fixture('state')).mealOrders).toHaveLength(0);
+  for (const [status, msg] of [[429, '消息太频繁，请稍后再试'], [503, '智能助手暂不可用，请稍后再试']]) {
+    await page.route('**/agent/chat', route => route.fulfill({ status, json: { code: 1, msg } }), { times: 1 });
+    expect((await agentChat(page, `错误 ${status}`, status)).msg).toBe(msg);
+    await expect(agentPanel(page).getByRole('log')).toContainText(msg);
+    await expect(agentPanel(page).getByLabel('消息', { exact: true })).toBeEnabled();
+  }
+  // 仅边界响应分成单字节流，UTF8汉字、CRLF与JSON均跨chunk；主业务仍真实HTTP+Fake。
+  await page.evaluate(() => {
+    const original = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await original(...args);
+      if (args[0] !== '/agent/chat' || !response.ok) return response;
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let offset = 0;
+      return new Response(new ReadableStream({ pull(controller) {
+        if (offset === bytes.length) controller.close(); else controller.enqueue(bytes.slice(offset, ++offset));
+      } }), { status: response.status, headers: response.headers });
+    };
+  });
+  const hostile = '<img src=x onerror="window.agentXss=1">汉字🙂';
+  const synthetic = { actionId: '7a9d5dce-0be1-4d69-a42c-4308ae28223e', type: 'BOOKING', title: hostile,
+    status: 'PENDING', ttlSeconds: 600, lines: [['房间', hostile]], details: [['日期', hostile]], total: '199.00' };
+  const stream = rows => rows.map(([event, payload]) => `event: ${event}\r\ndata: ${JSON.stringify(payload)}\r\n\r\n`).join('');
+  await page.route('**/agent/chat', route => route.fulfill({ contentType: 'text/event-stream; charset=utf-8',
+    body: stream([['status', { text: hostile }], ['delta', { text: hostile }], ['error', { msg: '流内故障汉字🙂' }], ['done', {}]]) }), { times: 1 });
+  await agentChat(page, hostile);
+  await expect(agentPanel(page).getByRole('log')).toContainText(hostile);
+  await expect(agentPanel(page).getByRole('log')).toContainText('流内故障汉字🙂');
+  await expect(agentPanel(page).locator('img')).toHaveCount(0);
+  expect(await page.evaluate(() => window.agentXss)).toBeUndefined();
+  await page.route('**/agent/chat', route => route.fulfill({ contentType: 'text/event-stream; charset=utf-8',
+    body: stream([['card', synthetic]]) }), { times: 1 });
+  const waiting = page.waitForResponse(r => r.url().endsWith('/agent/chat'));
+  await agentPanel(page).getByLabel('消息', { exact: true }).fill('EOF');
+  await agentPanel(page).getByRole('button', { name: '发送', exact: true }).click();
+  await (await waiting).finished();
+  const eofCard = page.getByTestId(`agent-card-${synthetic.actionId}`);
+  await expect(eofCard).toContainText(hostile);
+  await expect(eofCard.locator('img')).toHaveCount(0);
+  await expect(eofCard.getByRole('button', { name: '确认', exact: true })).toBeDisabled();
+  await expect(eofCard.getByRole('button', { name: '取消', exact: true })).toBeDisabled();
+  await expect(agentPanel(page).getByRole('log')).toContainText('未完成');
+  await newAgentConversation(page);
+
+  // 旧确认（真实服务端已执行）迟到时不得污染新对话。
+  const old = eventCard(await agentChat(page, `${data.dates[0]} 到 ${data.dates[1]} 订 ${data.base.rooms.R1.number}`), 'BOOKING');
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  let seen;
+  const requested = new Promise(resolve => { seen = resolve; });
+  await page.route(`**/agent/actions/${old.actionId}/confirm`, async route => {
+    const response = await route.fetch(); seen(); await held; await route.fulfill({ response }).catch(() => {});
+  }, { times: 1 });
+  await page.getByTestId(`agent-card-${old.actionId}`).getByRole('button', { name: '确认', exact: true }).click();
+  await requested;
+  await newAgentConversation(page);
+  release();
+  await expect(agentPanel(page).getByRole('log')).toBeEmpty();
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
+
+  await page.route('**/agent/chat', route => route.fulfill({ status: 401, json: { code: 1, msg: '过期令牌' } }), { times: 1 });
+  await agentChat(page, '401', 401);
+  await expect(page.getByRole('heading', { name: '住客登录', exact: true })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('登录已失效');
+  await expect(agentPanel(page)).toHaveCount(0);
+  expect(await agentStorage(page)).toBeNull();
+  await login(page, data.registrations.E, false);
+  await openAgent(page);
+  await agentChat(page, '重新登录后的消息');
+
+  await register(page, 'F');
+  await login(page, data.registrations.E, false);
+  await openAgent(page);
+  // 模拟已撤销请求仍迟到的传输；它的401不得使新账号失效。
+  await page.evaluate(() => {
+    const original = window.fetch;
+    window.fetch = (url, options) => {
+      if (url !== '/agent/chat') return original(url, options);
+      window.oldTokenSignal = options.signal;
+      return original(url, { ...options, signal: undefined });
+    };
+  });
+  let releaseOld;
+  const oldHeld = new Promise(resolve => { releaseOld = resolve; });
+  let oldSeen;
+  const oldRequested = new Promise(resolve => { oldSeen = resolve; });
+  await page.route('**/agent/chat', async route => {
+    oldSeen(); await oldHeld;
+    await route.fulfill({ status: 401, json: { code: 1, msg: '旧账号已失效' } });
+  }, { times: 1 });
+  await agentPanel(page).getByLabel('消息', { exact: true }).fill('旧账号401');
+  const oldResponse = page.waitForResponse(r => r.url().endsWith('/agent/chat') && r.status() === 401);
+  await agentPanel(page).getByRole('button', { name: '发送', exact: true }).click();
+  await oldRequested;
+  await logout(page);
+  expect(await page.evaluate(() => window.oldTokenSignal.aborted)).toBe(true);
+  await agentLoginHere(page, data.registrations.F);
+  const renewed = await openAgent(page);
+  releaseOld();
+  await (await oldResponse).finished();
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByTestId('identity')).toContainText(data.registrations.F.name);
+  expect(await agentStorage(page)).toEqual(renewed);
+  await expect(agentPanel(page).getByRole('log')).toBeEmpty();
+  await agentChat(page, '新账号消息');
 });
