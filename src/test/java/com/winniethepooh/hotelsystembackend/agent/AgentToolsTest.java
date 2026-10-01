@@ -32,6 +32,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -61,10 +65,13 @@ class AgentToolsTest {
     private FoodMapper dishes;
     private PendingActionService pending;
     private AgentTools.ToolContext ctx;
+    private final Logger logger = (Logger) LoggerFactory.getLogger(AgentTools.class);
+    private ListAppender<ILoggingEvent> logs;
     private static final String QUOTE = "{\"roomNumber\":\"1101\",\"checkInDate\":\"2026-10-09\",\"checkOutDate\":\"2026-10-11\"}";
 
     @BeforeEach
     void prepare() {
+        logs = new ListAppender<>(); logs.start(); logger.addAppender(logs);
         orders = mock(OrderService.class); food = mock(FoodService.class); rooms = mock(RoomMapper.class);
         orderMapper = mock(OrderMapper.class); users = mock(UserMapper.class); dishes = mock(FoodMapper.class); pending = mock(PendingActionService.class);
         tools = new AgentTools(orders, food, rooms, json, orderMapper, users, dishes, pending);
@@ -73,7 +80,58 @@ class AgentToolsTest {
     }
 
     @AfterEach
-    void clearIdentity() { BaseContext.clear(); }
+    void clearIdentity() { BaseContext.clear(); logger.detachAppender(logs); logs.stop(); }
+
+    @ParameterizedTest
+    @CsvSource({"propose_payment,orderId", "propose_cancel,orderId", "search_available_rooms,roomType", "propose_meal_order,quantity", "propose_meal_order,dishId"})
+    void s06ac5_integerParametersNeverTruncateFloatingPoint(String tool, String field) throws Exception {
+        String body;
+        if (tool.equals("propose_meal_order")) body = "{\"items\":[{\"dishId\":" + (field.equals("dishId") ? "1.9" : "1") + ",\"quantity\":" + (field.equals("quantity") ? "1.9" : "1") + "}],\"address\":\"1101\"}";
+        else if (tool.equals("search_available_rooms")) body = "{\"roomType\":1.9,\"checkInDate\":\"2026-10-09\",\"checkOutDate\":\"2026-10-11\"}";
+        else body = "{\"orderId\":1.9}";
+        JsonNode result = json.readTree(tools.execute(tool, body, ctx).output());
+        assertThat(result.path("ok").asBoolean()).isFalse(); assertThat(result.path("error").asText()).contains("参数 JSON 解析失败");
+        verifyNoInteractions(orders, food, rooms, orderMapper, users, dishes, pending);
+        assertThat(json.isEnabled(com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_FLOAT_AS_INT)).isTrue();
+    }
+
+    @Test
+    void s06ac5_productionToolLogsOnlyTypedAllowedParametersWithoutIdentityOrRaw() {
+        when(orders.quoteRoomService(any(), any(), any())).thenReturn(quote());
+        String raw = QUOTE.substring(0, QUOTE.length() - 1) + ",\"userId\":8,\"phone\":\"13800000002\",\"idCard\":\"110101199001010015\",\"password\":\"private-password\"}";
+        tools.execute("get_price_quote", raw, ctx);
+        assertThat(logs.list).hasSize(1);
+        String log = logs.list.get(0).getFormattedMessage();
+        assertThat(log).contains("agent.tool user=7 tool=get_price_quote", "roomNumber", "1101", "2026-10-09", "ms=", "result=ok")
+                .doesNotContain("userId", "phone", "idCard", "password", "13800000002", "110101199001010015", "private-password");
+        assertThat(logs.list.get(0).getThrowableProxy()).isNull();
+    }
+
+    @Test
+    void s06ac5_productionToolLogTruncatesAddressAndOmitsUnloggedRemarks() throws Exception {
+        String raw = json.writeValueAsString(Map.of("items", List.of(Map.of("dishId", 1, "quantity", 1)), "address", "地".repeat(256), "remarks", "private-password 110101199001010015"));
+        assertThat(json.readTree(tools.execute("propose_meal_order", raw, ctx).output()).path("ok").asBoolean()).isFalse();
+        String log = logs.list.get(logs.list.size() - 1).getFormattedMessage();
+        String args = log.substring(log.indexOf(" args=") + 6, log.indexOf(" ms="));
+        assertThat(args.length()).isEqualTo(200); assertThat(args).contains("dishId", "quantity", "address");
+        assertThat(log).doesNotContain("remarks", "private-password", "110101199001010015");
+        String shortAddress = json.writeValueAsString(Map.of("items", List.of(Map.of("dishId", 1, "quantity", 1)), "address", "1101", "remarks", "private-password 110101199001010015"));
+        tools.execute("propose_meal_order", shortAddress, ctx);
+        assertThat(logs.list.get(logs.list.size() - 1).getFormattedMessage()).contains("address", "1101")
+                .doesNotContain("remarks", "private-password", "110101199001010015");
+    }
+
+    @Test
+    void s06ac5_untrustedFailureMessagesAndJacksonInputNeverAppearInLogs() {
+        when(orders.quoteRoomService(any(), any(), any())).thenThrow(new IllegalStateException("private-password 110101199001010015 full-reply"));
+        tools.execute("get_price_quote", QUOTE, ctx);
+        tools.execute("get_price_quote", "{\"roomNumber\":\"private-password 110101199001010015\",BROKEN}", ctx);
+        assertThat(logs.list).allSatisfy(event -> {
+            assertThat(event.getFormattedMessage()).doesNotContain("private-password", "110101199001010015", "full-reply", "BROKEN");
+            assertThat(event.getThrowableProxy()).isNull();
+        });
+        assertThat(logs.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).contains("failed", "IllegalStateException"));
+    }
 
     @ParameterizedTest
     @CsvSource({"0,7,true", "1,7,false", ",7,false", "0,8,false", "0,,false", "0,0,false", "0,-1,false"})

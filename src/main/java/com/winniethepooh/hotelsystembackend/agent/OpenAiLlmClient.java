@@ -130,12 +130,17 @@ public class OpenAiLlmClient implements LlmClient {
         long started = System.nanoTime();
         ResponseAccumulator accumulator = ResponseAccumulator.create();
         boolean[] streamedText = {false};
+        java.io.UncheckedIOException[] disconnected = {null};
+        Consumer<String> emit = text -> {
+            try { onTextDelta.accept(text); }
+            catch (java.io.UncheckedIOException e) { disconnected[0] = e; throw e; }
+        };
         try (var stream = client().responses().createStreaming(buildRequest(instructions, input), RequestOptions.builder().timeout(timeout).build())) {
             stream.stream().forEach(event -> {
                 if (System.nanoTime() - started >= timeout.toNanos()) throw new LlmException(true, null);
                 if (event.isError() || event.isFailed() || event.isIncomplete()) throw new LlmException(false, null);
                 accumulator.accumulate(event);
-                event.outputTextDelta().ifPresent(delta -> { streamedText[0] = true; onTextDelta.accept(delta.delta()); });
+                event.outputTextDelta().ifPresent(delta -> { streamedText[0] = true; emit.accept(delta.delta()); });
             });
             Response response = accumulator.response();
             response.usage().ifPresent(usage -> log.info("agent.llm user={} model={} input={} output={} cached={} ms={}",
@@ -143,10 +148,11 @@ public class OpenAiLlmClient implements LlmClient {
                     usage.inputTokensDetails().cachedTokens(), (System.nanoTime() - started) / 1_000_000));
             List<AgentItem> output = convertOutput(response.output());
             if (!streamedText[0]) output.stream().filter(item -> item.type() == AgentItem.Type.ASSISTANT)
-                    .forEach(item -> onTextDelta.accept(item.text()));
+                    .forEach(item -> emit.accept(item.text()));
             return output;
         } catch (LlmException e) { throw e; }
         catch (RuntimeException e) {
+            if (disconnected[0] != null) throw disconnected[0];
             boolean timedOut = System.nanoTime() - started >= timeout.toNanos();
             for (Throwable cause = e; cause != null; cause = cause.getCause()) {
                 if (cause instanceof InterruptedIOException || cause instanceof HttpTimeoutException || cause instanceof TimeoutException)

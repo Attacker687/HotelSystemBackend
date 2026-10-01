@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,20 +31,22 @@ public class AgentService {
     private final ObjectMapper json;
     private final SessionStore sessions;
     private final AgentTools tools;
+    private final StringRedisTemplate redis;
     private final Clock clock;
     private final String fixedPrompt;
 
     @Autowired
-    public AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, AgentTools tools) {
-        this(props, llm, json, sessions, tools, Clock.system(ZoneId.of("Asia/Shanghai")));
+    public AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, AgentTools tools, StringRedisTemplate redis) {
+        this(props, llm, json, sessions, tools, redis, Clock.system(ZoneId.of("Asia/Shanghai")));
     }
 
-    AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, AgentTools tools, Clock clock) {
+    AgentService(AgentProperties props, LlmClient llm, ObjectMapper json, SessionStore sessions, AgentTools tools, StringRedisTemplate redis, Clock clock) {
         this.props = props;
         this.llm = llm;
         this.json = json;
         this.sessions = sessions;
         this.tools = tools;
+        this.redis = redis;
         this.clock = clock;
         try (var resource = new ClassPathResource("agent/system-prompt.txt").getInputStream()) {
             fixedPrompt = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
@@ -57,6 +60,11 @@ public class AgentService {
 
     public void chat(Integer userId, String sessionId, String message, HttpServletResponse response) {
         if (!llm.available()) throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "智能助手暂不可用，请稍后再试");
+        String rateKey = "agent:rate:" + userId;
+        Long count = redis.opsForValue().increment(rateKey);
+        if (count != null && count == 1) redis.expire(rateKey, Duration.ofSeconds(60));
+        if (count != null && count > props.getRatePerMinute())
+            throw new BusinessException(HttpStatus.TOO_MANY_REQUESTS, "消息太频繁，请稍后再试");
         response.setContentType("text/event-stream");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setHeader("Cache-Control", "no-cache");
@@ -109,7 +117,7 @@ public class AgentService {
                 send(response, "error", Map.of("code", e.isTimeout() ? "TIMEOUT" : "MODEL_UNAVAILABLE", "msg", e.getMessage()));
             } catch (UncheckedIOException e) { return; }
             catch (RuntimeException e) {
-                log.error("agent.chat user={} failed", userId, e);
+                log.error("agent.chat user={} failed cause={}", userId, e.getClass().getSimpleName());
                 send(response, "error", Map.of("code", "INTERNAL", "msg", "系统繁忙，请稍后再试"));
             }
             send(response, "done", Map.of("toolCalls", toolCalls));

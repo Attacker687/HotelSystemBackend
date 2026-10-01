@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.entity.MealOrder;
@@ -55,7 +56,7 @@ public class AgentTools {
     public AgentTools(OrderService orders, FoodService food, RoomMapper rooms, ObjectMapper json,
                       OrderMapper orderMapper, UserMapper users, FoodMapper dishes, PendingActionService pending) {
         this.orders = orders; this.food = food; this.rooms = rooms;
-        this.json = json.copy().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        this.json = json.copy().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.ACCEPT_FLOAT_AS_INT);
         this.orderMapper = orderMapper; this.users = users; this.dishes = dishes; this.pending = pending;
     }
 
@@ -112,12 +113,16 @@ public class AgentTools {
     public ToolResult execute(String name, String arguments, ToolContext ctx) {
         long started = System.nanoTime();
         String safeArgs = "{}";
+        String logName = switch (name == null ? "" : name) {
+            case "search_available_rooms", "get_price_quote", "list_my_orders", "list_menu", "propose_booking", "propose_payment", "propose_cancel", "propose_meal_order" -> name;
+            default -> "unknown";
+        };
         Map<String, Object> result;
         Map<String, Object> card = null;
         Integer current = BaseContext.getCurrentId();
         if (!Objects.equals(BaseContext.getCurrentRole(), RoleConstant.USER) || current == null || current <= 0
                 || ctx == null || !current.equals(ctx.userId())) {
-            log.warn("agent.tool denied user={} tool={}", current, name);
+            log.warn("agent.tool denied user={} tool={}", current, logName);
             return new ToolResult(encode(Map.of("ok", false, "error", "无权限")), null);
         }
         try {
@@ -133,7 +138,9 @@ public class AgentTools {
                 default -> throw invalid("未知工具");
             };
             Object params = parse(arguments, type);
-            safeArgs = json.writeValueAsString(params);
+            ObjectNode allowed = json.valueToTree(params);
+            if (params instanceof ProposeMealOrder) allowed.remove("remarks");
+            safeArgs = json.writeValueAsString(allowed);
             Object data = switch (name) {
                 case "search_available_rooms" -> search((SearchAvailableRooms) params);
                 case "get_price_quote" -> price((GetPriceQuote) params);
@@ -153,10 +160,10 @@ public class AgentTools {
             } else result = Map.of("ok", true, "data", data);
         } catch (BusinessException e) { result = Map.of("ok", false, "error", e.getMessage()); }
         catch (Exception e) {
-            log.error("agent.tool user={} tool={} failed", current, name, e);
+            log.error("agent.tool user={} tool={} failed cause={}", current, logName, e.getClass().getSimpleName());
             result = Map.of("ok", false, "error", "系统繁忙，请稍后再试");
         }
-        log.info("agent.tool user={} tool={} args={} ms={} result={}", current, name,
+        log.info("agent.tool user={} tool={} args={} ms={} result={}", current, logName,
                 safeArgs.substring(0, Math.min(200, safeArgs.length())), (System.nanoTime() - started) / 1_000_000,
                 result.getOrDefault("error", "ok"));
         return new ToolResult(encode(result), card);
