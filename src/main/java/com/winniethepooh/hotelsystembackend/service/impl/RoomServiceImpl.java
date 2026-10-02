@@ -143,7 +143,7 @@ public class RoomServiceImpl implements RoomService {
         List<Room> roomList = roomMapper.queryRooms(pageSize, offset, roomNumber, roomType, status, null);
         int count = roomMapper.queryRoomsCount(roomNumber, roomType, status);
         LocalDate priceDate = date == null ? LocalDate.now() : date;
-        List<String> keys = roomList.stream().map(Room::getRoomType).distinct().map(type -> "price:" + type + ":" + priceDate).toList();
+        List<String> keys = roomList.stream().map(Room::getRoomType).filter(Objects::nonNull).distinct().map(type -> "price:" + type + ":" + priceDate).toList();
         Map<String, PriceCalendar> prices = hotCache.getAll(keys, PriceCalendar.class, missing -> {
             Map<String, PriceCalendar> loaded = new LinkedHashMap<>();
             for (String key : missing) {
@@ -154,8 +154,10 @@ public class RoomServiceImpl implements RoomService {
             return loaded;
         });
         for (Room room : roomList) {
-            PriceCalendar price = prices.get("price:" + room.getRoomType() + ":" + priceDate);
-            room.setPrice(price == null || price.getPrice() == null ? RoomTypeConstant.getDefaultPrice(room.getRoomType()) : price.getPrice());
+            if (room.getRoomType() != null) {
+                PriceCalendar price = prices.get("price:" + room.getRoomType() + ":" + priceDate);
+                room.setPrice(price == null || price.getPrice() == null ? RoomTypeConstant.getDefaultPrice(room.getRoomType()) : price.getPrice());
+            }
             QueryRoomsVO queryRoomsVO = convertToVO(room);
             voList.add(queryRoomsVO);
         }

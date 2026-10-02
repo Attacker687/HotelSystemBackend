@@ -93,6 +93,46 @@ class RoomCacheIT extends IntegrationTestBase {
         assertThat(keys.getValue()).hasSize(3).containsExactlyInAnyOrder("price:0:" + d, "price:1:" + d, "price:2:" + d);
     }
 
+    @ParameterizedTest @ValueSource(strings = {"cold", "hot", "disabled"})
+    void r2_nullRoomTypePreservesItsNullPriceAndPaginationWithoutNullPriceKeys(String mode) {
+        fx.price(0, d, new BigDecimal("350.00")); String a = login(base.userA());
+        if (!mode.equals("cold")) assertListPrices(list(a, d), "350.00");
+        jdbc.update("update room set room_type=null where id=?", base.room("R2").id());
+        if (mode.equals("disabled")) ReflectionTestUtils.setField(cache, "enabled", false);
+        List<Long> ids = jdbc.queryForList("select id from room where is_deleted=0 order by id", Long.class);
+        ValueOperations<String, String> values = spyValues(); clearInvocations(values);
+        sql.reset(); Resp first = get("/rooms?page=1&pageSize=8&date=" + d, a); success(first);
+        assertThat(first.data().path("total").asInt()).isEqualTo(ids.size());
+        assertThat(first.data().path("list")).extracting(room -> room.path("id").asLong()).containsExactlyElementsOf(ids.subList(0, 8));
+        Set<Integer> types = new HashSet<>();
+        for (JsonNode room : first.data().path("list")) {
+            if (room.path("id").asLong() == base.room("R2").id()) { assertThat(room.path("roomType").isNull()).isTrue(); assertThat(room.path("price").isNull()).isTrue(); }
+            else { types.add(room.path("roomType").asInt()); assertThat(room.path("price").decimalValue()).isEqualByComparingTo(switch (room.path("roomType").asInt()) { case 0 -> "350.00"; case 1 -> "299.00"; default -> "499.00"; }); }
+        }
+        assertThat(types).containsExactlyInAnyOrder(0, 1, 2);
+        assertThat(sql.count()).isEqualTo(mode.equals("hot") ? 2 : 5);
+        if (mode.equals("disabled")) {
+            verify(values, never()).get(argThat(RoomCacheIT::cacheKey)); verify(values, never()).multiGet(anyCollection());
+            verify(values, never()).set(argThat(RoomCacheIT::cacheKey), anyString(), any(Duration.class));
+        } else {
+            ArgumentCaptor<Collection<String>> keys = ArgumentCaptor.forClass(Collection.class); verify(values, times(1)).multiGet(keys.capture());
+            assertThat(keys.getValue()).hasSize(3).containsExactlyInAnyOrder("price:0:" + d, "price:1:" + d, "price:2:" + d).noneMatch(key -> key.contains(":null:"));
+        }
+        clearInvocations(values); Resp second = get("/rooms?page=2&pageSize=8&date=" + d, a); success(second);
+        assertThat(second.data().path("total").asInt()).isEqualTo(ids.size());
+        assertThat(second.data().path("list")).extracting(room -> room.path("id").asLong()).containsExactlyElementsOf(ids.subList(8, ids.size()));
+        assertThat(second.data().path("list").get(0).path("price").decimalValue()).isEqualByComparingTo("299.00");
+        assertThat(second.data().path("list").get(1).path("price").decimalValue()).isEqualByComparingTo("499.00");
+        if (mode.equals("disabled")) {
+            verify(values, never()).get(argThat(RoomCacheIT::cacheKey)); verify(values, never()).multiGet(anyCollection());
+            verify(values, never()).set(argThat(RoomCacheIT::cacheKey), anyString(), any(Duration.class));
+        } else {
+            ArgumentCaptor<Collection<String>> keys = ArgumentCaptor.forClass(Collection.class); verify(values, times(1)).multiGet(keys.capture());
+            assertThat(keys.getValue()).hasSizeBetween(1, 3).noneMatch(key -> key.contains(":null:"));
+        }
+        assertThat(redis.hasKey("price:null:" + d)).isFalse();
+    }
+
     @Test void tc041_threePreheatedPriceKeysAreDeletedInOneBatchAfterUpdateAndListShowsNewPrice() {
         String a = login(base.userA()), manager = login(base.manager());
         List<LocalDate> dates = d.datesUntil(d.plusDays(3)).toList(); List<String> keys = dates.stream().map(this::priceKey).toList();
