@@ -107,14 +107,18 @@ test('TC-132 住客注册、预订、支付、按晚营收和真实 cron 退房'
   await expect(page.getByTestId('identity')).toContainText(data.registrations.E.name);
   const requests = orderRequests(page), clicks = [];
   const id = await booking(page, 'R1', data.dates[3], data.registrations.E, async submit => {
-    for (const [status, msg] of [[409, '房间在该时段已被预订'], [422, '请求号与内容不一致'], [500, '服务器内部错误']]) {
+    for (const [status, msg, body = { code: 1, msg }] of [
+      [409, '房间在该时段已被预订'], [422, '请求号与内容不一致'], [500, '服务器内部错误'],
+      [409, '请求失败（409），请稍后再试', null], [200, '请求失败（200），请稍后再试', null],
+      [409, '请求失败（409），请稍后再试', { code: 1, msg: { toString: null } }]
+    ]) {
       const start = requests.length;
-      await page.route('**/order', route => route.fulfill({ status, json: { code: 1, msg } }));
+      await page.route('**/order', route => route.fulfill({ status, json: body }));
       await submit.click();
-      await expect(page.getByRole('alert')).toHaveText(msg);
       await expect(submit).toBeEnabled();
       await page.waitForTimeout(2000);
       expect(requests.slice(start)).toHaveLength(1);
+      await expect(page.getByRole('alert')).toHaveText(msg);
       expect((await fixture('state')).roomOrders).toHaveLength(0);
       clicks.push(requests[start]);
       await page.unroute('**/order');

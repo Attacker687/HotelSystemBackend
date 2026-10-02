@@ -76,7 +76,11 @@ async function api(path, method = 'GET', body, options = {}) {
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const response = await fetch(path, { method, body: body === undefined ? undefined : JSON.stringify(body), ...options,
     headers: { ...headers, ...options.headers } });
-  return apiResult(response, token);
+  try { return await apiResult(response, token); }
+  catch (error) {
+    if (error?.status !== undefined) throw error;
+    throw requestError(`请求失败（${response.status}），请稍后再试`, response.status);
+  }
 }
 function newKey() {
   return crypto.randomUUID ? crypto.randomUUID()
