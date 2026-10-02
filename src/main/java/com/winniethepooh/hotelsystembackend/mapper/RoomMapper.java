@@ -20,8 +20,6 @@ public interface RoomMapper {
 
     List<Room> queryRooms(Integer limit, Integer offset, String roomNumber, Integer roomType, Integer status, LocalDate date);
 
-    Room lockRoomByNumber(String roomNumber);
-
     Room lockRoomById(Integer id);
 
     int enableAvailableRoom(Integer id);

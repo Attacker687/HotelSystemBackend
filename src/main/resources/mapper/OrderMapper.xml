@@ -105,13 +105,24 @@
         delete from room_order_night where room_order_id = #{orderId}
     </delete>
 
-    <select id="findOverlappingOrder" resultType="java.lang.Long">
-        select id from room_order
-        where room_id = #{roomId} and status = 0 and is_deleted = 0
-          and checkin_time &lt; #{checkout} and checkout_time &gt; #{checkin}
-        <if test="excludeId != null">and id != #{excludeId}</if>
-        limit 1 for update
+    <insert id="insertRoomInventory">
+        insert into room_inventory (room_id, stay_date, order_id) values (#{roomId}, #{stayDate}, #{orderId})
+    </insert>
+    <select id="findRoomInventoryDates" resultType="java.time.LocalDate">
+        select stay_date from room_inventory where order_id = #{orderId} order by stay_date
     </select>
+    <select id="countRoomInventory" resultType="java.lang.Integer">
+        select count(*) from room_inventory where room_id = #{roomId} and stay_date >= #{start} and stay_date &lt; #{end}
+    </select>
+    <delete id="deleteRoomInventory">
+        delete from room_inventory where order_id = #{orderId}
+    </delete>
+    <delete id="deleteRoomInventoryDate">
+        delete from room_inventory where order_id = #{orderId} and stay_date = #{stayDate}
+    </delete>
+    <delete id="deleteRoomInventoryFromDate">
+        delete from room_inventory where order_id = #{orderId} and stay_date >= #{today}
+    </delete>
 
     <select id="getRoomOrderByIdForUpdate" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
         select * from room_order where id = #{id} and is_deleted = 0 for update
@@ -147,16 +158,15 @@
           and checkin_time &gt; #{now}
     </update>
 
-    <update id="flushExpiredRoomOrders">
-        update room_order
-        set status     = 2,
-            updated_at = now()
+    <select id="findExpiredRoomOrderIdsForUpdate" resultType="java.lang.Long">
+        select id from room_order
         where is_deleted = 0
           and status = 0
           and pay_status = 0
           and user_id is not null
           and created_at &lt; DATE_SUB(NOW(), INTERVAL 15 MINUTE)
-    </update>
+        order by id for update
+    </select>
     <update id="modifyMealOrderStatus">
         update meal_order
         set order_status = #{status},

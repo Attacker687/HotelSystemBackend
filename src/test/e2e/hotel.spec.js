@@ -413,6 +413,11 @@ test('TC-137 住客支付后取消退款，经理概览为零，另一住客重�
   expect((await dbRoomOrder(second)).checkout_time).toBe(`${data.dates[1]}T12:00:00`);
   const orders = (await fixture('state')).roomOrders;
   expect(orders.filter(r => r.room_id === data.base.rooms.R1.id && r.status === 0)).toHaveLength(1);
+  const inventory = (await fixture('state')).roomInventory;
+  expect(inventory.filter(r => r.room_id === data.base.rooms.R1.id)).toEqual([
+    expect.objectContaining({ stay_date: data.dates[0], order_id: second })
+  ]);
+  expect(inventory.filter(r => r.order_id === first)).toHaveLength(0);
 });
 
 function agentPanel(page) { return page.getByTestId('agent-panel'); }

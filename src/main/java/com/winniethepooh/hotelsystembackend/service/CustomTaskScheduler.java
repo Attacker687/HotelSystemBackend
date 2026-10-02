@@ -56,7 +56,10 @@ public class CustomTaskScheduler {
     @Scheduled(cron = "2 * * * * *")
     @Transactional
     public void flushExpiredRoomOrders() {
-        orderMapper.flushExpiredRoomOrders();
+        for (Long id : orderMapper.findExpiredRoomOrderIdsForUpdate()) {
+            orderMapper.modifyRoomOrderStatus(id, RoomOrderStatusConstant.CANCELLED);
+            orderMapper.deleteRoomInventory(id);
+        }
     }
 
     @Scheduled(cron = "0 30 3 * * ?")

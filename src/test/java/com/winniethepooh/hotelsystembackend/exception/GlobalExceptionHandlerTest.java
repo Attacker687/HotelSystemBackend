@@ -4,6 +4,7 @@ import com.winniethepooh.hotelsystembackend.entity.Result;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.CannotAcquireLockException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,6 +12,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    @Test void tc031_lockFailureReturns409WithGenericMessage() {
+        ResponseEntity<Result> r = handler.handleLockConflict(new CannotAcquireLockException("internal lock detail"));
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(r.getBody().getCode()).isEqualTo(1);
+        assertThat(r.getBody().getMsg()).isEqualTo("系统繁忙，请稍后重试");
+    }
 
     @Test
     void tc127_c1_unexpectedExceptionReturns500WithGenericMessage() {
