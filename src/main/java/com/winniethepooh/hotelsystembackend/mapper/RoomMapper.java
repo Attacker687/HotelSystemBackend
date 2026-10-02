@@ -34,6 +34,8 @@ public interface RoomMapper {
 
     Room queryRoomById(Integer id, boolean containDeleted);
 
+    List<Integer> getRoomStatus(Integer id);
+
     void insertRoom(InsertRoomDTO insertRoomDTO);
 
     void modifyRoomInfo(InsertRoomDTO dto, Integer id);
