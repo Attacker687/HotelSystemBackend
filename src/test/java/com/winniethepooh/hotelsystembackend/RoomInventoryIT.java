@@ -20,6 +20,8 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.http.*;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.mybatis.spring.SqlSessionTemplate;
 
 import java.math.BigDecimal;
@@ -46,6 +48,90 @@ class RoomInventoryIT extends IntegrationTestBase {
     @Autowired private PlatformTransactionManager transactions;
     @Autowired private SqlSessionTemplate sessions;
     @SpyBean private OrderMapper mapper;
+
+    @ParameterizedTest @CsvSource({"3,5,3,409", "5,3,4,200"})
+    void r2_concurrentSameRoomReschedulesUseCurrentInventoryAfterWaitingForOrderLock(int firstEnd, int finalEnd, int probeNight, int probeStatus) throws Exception {
+        assertThat(jdbc.queryForObject("select @@transaction_isolation", String.class)).isEqualTo("REPEATABLE-READ");
+        long id = order(login(base.userA()), "R1", 1, 4);
+        List<Map<String, Object>> common = stock().stream().filter(r -> ((String) r.get("stay_date")).compareTo(d.plusDays(3).toString()) < 0).toList();
+        String front = login(base.front());
+        CountDownLatch changed = new CountDownLatch(1), resume = new CountDownLatch(1), secondRead = new CountDownLatch(1);
+        pauseFirstRescheduleAfterNightWrite(id, changed, resume);
+        OrderMapper real = sessions.getMapper(OrderMapper.class); AtomicInteger reads = new AtomicInteger();
+        doAnswer(inv -> { var order = real.getRoomOrderById(inv.getArgument(0)); if (reads.incrementAndGet() == 2) secondRead.countDown(); return order; })
+                .when(mapper).getRoomOrderById(id);
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<Resp> first = pool.submit(() -> reschedule(front, id, "R1", 1, firstEnd));
+            await(changed);
+            Future<Resp> second = pool.submit(() -> reschedule(front, id, "R1", 1, finalEnd));
+            await(secondRead); awaitOrderLockWait(); assertThat(first.isDone()).isFalse(); assertThat(second.isDone()).isFalse();
+            resume.countDown(); success(first.get(10, TimeUnit.SECONDS)); success(second.get(10, TimeUnit.SECONDS));
+            assertThat(row(id).get("status")).isEqualTo(0); assertThat(row(id).get("pay_status")).isEqualTo(0);
+            inventory(id, "R1", d.plusDays(1), d.plusDays(finalEnd)); assertThat(stock()).containsAll(common);
+            assertRescheduledOrderAndNights(id, "R1", 1, finalEnd); assertInventoryConsistent();
+            Resp probe = book(login(base.userB()), "R1", probeNight, probeNight + 1);
+            if (probeStatus == 409) conflict(probe, "已被预订");
+            else { success(probe); inventory(probe.data().asLong(), "R1", d.plusDays(probeNight), d.plusDays(probeNight + 1)); }
+            inventory(id, "R1", d.plusDays(1), d.plusDays(finalEnd)); assertInventoryConsistent();
+        } finally { resume.countDown(); pool.shutdownNow(); assertThat(pool.awaitTermination(15, TimeUnit.SECONDS)).isTrue(); reset(mapper); }
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"R1", "R2"})
+    void r2_checkoutWaitingForRescheduleCannotEndItsFutureOrder(String target) throws Exception {
+        LocalDate today = LocalDate.now(); long id = seed("R1", today.minusDays(1), today.plusDays(2), 1, 0);
+        jdbc.update("update room set status=1 where id=?", base.room("R1").id());
+        String front = login(base.front()); CountDownLatch changed = new CountDownLatch(1), resume = new CountDownLatch(1), selectAttempt = new CountDownLatch(1);
+        pauseFirstRescheduleAfterNightWrite(id, changed, resume);
+        OrderMapper real = sessions.getMapper(OrderMapper.class);
+        doAnswer(inv -> { selectAttempt.countDown(); return real.getRoomOrderByRoomIdAndTime(inv.getArgument(0), inv.getArgument(1)); })
+                .when(mapper).getRoomOrderByRoomIdAndTime(eq(Math.toIntExact(base.room("R1").id())), any());
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<Resp> reschedule = pool.submit(() -> reschedule(front, id, target, 1, 3));
+            await(changed);
+            Future<Resp> checkout = pool.submit(() -> put("/rooms", front, Map.of("id", base.room("R1").id(), "status", 0)));
+            await(selectAttempt); awaitOrderLockWait(); assertThat(reschedule.isDone()).isFalse(); assertThat(checkout.isDone()).isFalse();
+            resume.countDown(); success(reschedule.get(10, TimeUnit.SECONDS)); success(checkout.get(10, TimeUnit.SECONDS));
+            assertThat(row(id).get("status")).isEqualTo(0); assertThat(row(id).get("pay_status")).isEqualTo(1);
+            assertThat(jdbc.queryForObject("select status from room where id=?", Integer.class, base.room("R1").id())).isZero();
+            inventory(id, target, d.plusDays(1), d.plusDays(3)); assertRescheduledOrderAndNights(id, target, 1, 3); assertInventoryConsistent();
+            String b = login(base.userB()); conflict(book(b, target, 1, 3), "已被预订");
+            success(post("/order", b, Fixtures.roomOrderBody("1101", today.atTime(14, 0), today.plusDays(1).atTime(12, 0))));
+            inventory(id, target, d.plusDays(1), d.plusDays(3)); assertInventoryConsistent();
+        } finally { resume.countDown(); pool.shutdownNow(); assertThat(pool.awaitTermination(15, TimeUnit.SECONDS)).isTrue(); reset(mapper); }
+    }
+
+    private void pauseFirstRescheduleAfterNightWrite(long id, CountDownLatch changed, CountDownLatch resume) {
+        OrderMapper real = sessions.getMapper(OrderMapper.class); AtomicInteger writes = new AtomicInteger();
+        doAnswer(inv -> {
+            real.insertRoomOrderNights(inv.getArgument(0), inv.getArgument(1));
+            if (writes.incrementAndGet() == 1) { changed.countDown(); await(resume); }
+            return null;
+        }).when(mapper).insertRoomOrderNights(eq(id), any());
+    }
+    private static void await(CountDownLatch latch) throws InterruptedException { assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue(); }
+    private void awaitOrderLockWait() throws InterruptedException {
+        // Testcontainers root connection can inspect actual MySQL lock waits; all business calls retain their ordinary datasource.
+        JdbcTemplate monitor = new JdbcTemplate(new DriverManagerDataSource(MYSQL.getJdbcUrl(), "root", MYSQL.getPassword()));
+        String waiting = "select count(*) from performance_schema.data_lock_waits w join performance_schema.data_locks l on l.engine=w.engine and l.engine_lock_id=w.requesting_engine_lock_id where l.object_schema=database() and l.object_name='room_order'";
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (monitor.queryForObject(waiting, Integer.class) == 0 && System.nanoTime() < deadline) Thread.sleep(20);
+        assertThat(monitor.queryForObject(waiting, Integer.class)).as("second HTTP transaction must really wait for the first order lock").isPositive();
+    }
+    private Resp reschedule(String front, long id, String room, int start, int end) {
+        return put("/order/" + id, front, Map.of("roomId", Long.toString(base.room(room).id()), "checkInTime", Fixtures.iso(in(start)), "checkOutTime", Fixtures.iso(out(end))));
+    }
+    private void assertRescheduledOrderAndNights(long id, String room, int start, int end) {
+        assertThat(jdbc.queryForObject("select room_id from room_order where id=?", Long.class, id)).isEqualTo(base.room(room).id());
+        assertThat(jdbc.queryForObject("select checkin_time from room_order where id=?", LocalDateTime.class, id)).isEqualTo(in(start));
+        assertThat(jdbc.queryForObject("select checkout_time from room_order where id=?", LocalDateTime.class, id)).isEqualTo(out(end));
+        assertThat((BigDecimal) row(id).get("total_amount")).isEqualByComparingTo(BigDecimal.valueOf(199L * (end - start)));
+        assertThat(jdbc.queryForList("select cast(night as char) from room_order_night where room_order_id=? order by night", String.class, id))
+                .containsExactlyElementsOf(d.plusDays(start).datesUntil(d.plusDays(end)).map(LocalDate::toString).toList());
+        assertThat(jdbc.queryForList("select price from room_order_night where room_order_id=? order by night", BigDecimal.class, id))
+                .allSatisfy(price -> assertThat(price).isEqualByComparingTo("199.00"));
+    }
 
     @Test void tc018_fiftyBookingsLeaveOnlyOneOrderNightAndNewGuest() throws Exception {
         String token = login(base.userA()); int people = fx.count("individual");

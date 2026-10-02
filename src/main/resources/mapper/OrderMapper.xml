@@ -109,7 +109,7 @@
         insert into room_inventory (room_id, stay_date, order_id) values (#{roomId}, #{stayDate}, #{orderId})
     </insert>
     <select id="findRoomInventoryDates" resultType="java.time.LocalDate">
-        select stay_date from room_inventory where order_id = #{orderId} order by stay_date
+        select stay_date from room_inventory where order_id = #{orderId} order by stay_date for update
     </select>
     <select id="countRoomInventory" resultType="java.lang.Integer">
         select count(*) from room_inventory where room_id = #{roomId} and stay_date >= #{start} and stay_date &lt; #{end}
@@ -361,6 +361,7 @@
           and checkout_time &gt; #{now}
           and (pay_status = 1 or user_id is null)
           and status = 0
+        for update
     </select>
     <select id="getRoomOrderById" resultType="com.winniethepooh.hotelsystembackend.entity.RoomOrder">
         select *
