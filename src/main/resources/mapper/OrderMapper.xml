@@ -7,6 +7,15 @@
         set request_id = #{requestId}, user_id = #{userId}, action_type = #{actionType},
             status = #{status}, created_at = now(), updated_at = now()
     </insert>
+    <insert id="insertOrderRequest">
+        insert into booking_request
+        set request_id = #{requestId}, user_id = #{userId}, requester_role = #{role}, action_type = 'ORDER',
+            status = #{status}, request_hash = #{hash}, fail_status = #{failStatus}, fail_message = #{failMessage},
+            created_at = now(), updated_at = now()
+    </insert>
+    <delete id="deleteExpiredBookingRequests">
+        delete from booking_request where created_at &lt; DATE_SUB(NOW(), INTERVAL 7 DAY)
+    </delete>
     <update id="markBookingRequestSuccess">
         update booking_request set status = 'SUCCESS', order_id = #{orderId}, updated_at = now()
         where request_id = #{requestId} and status = 'PROCESSING'

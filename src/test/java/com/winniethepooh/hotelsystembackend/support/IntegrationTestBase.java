@@ -101,9 +101,14 @@ public abstract class IntegrationTestBase {
 
     /** token 可为 null；body 为 String 时按原始 JSON 发送，为 MultiValueMap 时按表单/multipart 发送，其余按 JSON 序列化。 */
     protected Resp call(HttpMethod method, String path, String token, Object body) {
+        return call(method, path, token, body, Map.of());
+    }
+
+    protected Resp call(HttpMethod method, String path, String token, Object body, Map<String, String> extraHeaders) {
         HttpHeaders headers = new HttpHeaders();
         if (token != null) headers.set("token", token);
         if (body instanceof String) headers.setContentType(MediaType.APPLICATION_JSON);
+        extraHeaders.forEach(headers::set);
         ResponseEntity<String> r = rest.exchange(path, method, new HttpEntity<>(body, headers), String.class);
         JsonNode json;
         try {
@@ -116,6 +121,7 @@ public abstract class IntegrationTestBase {
 
     protected Resp get(String path, String token) { return call(HttpMethod.GET, path, token, null); }
     protected Resp post(String path, String token, Object body) { return call(HttpMethod.POST, path, token, body); }
+    protected Resp post(String path, String token, Object body, Map<String, String> headers) { return call(HttpMethod.POST, path, token, body, headers); }
     protected Resp put(String path, String token, Object body) { return call(HttpMethod.PUT, path, token, body); }
     protected Resp delete(String path, String token) { return call(HttpMethod.DELETE, path, token, null); }
 

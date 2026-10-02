@@ -4,6 +4,7 @@ import com.winniethepooh.hotelsystembackend.constant.RoomOrderStatusConstant;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class CustomTaskScheduler {
     private final String owner = UUID.randomUUID().toString();
 
@@ -55,6 +57,13 @@ public class CustomTaskScheduler {
     @Transactional
     public void flushExpiredRoomOrders() {
         orderMapper.flushExpiredRoomOrders();
+    }
+
+    @Scheduled(cron = "0 30 3 * * ?")
+    @Transactional
+    public void cleanBookingRequests() {
+        // ponytail: 单条 DELETE 适合演示数据量；清理拖慢时改为分批。
+        log.info("expired booking requests deleted={}", orderMapper.deleteExpiredBookingRequests());
     }
 
 }

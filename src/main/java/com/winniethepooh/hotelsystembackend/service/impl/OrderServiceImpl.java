@@ -93,8 +93,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void insertRoomOrderByFrontService(InsertRoomOrderDTO dto) {
-        insertRoomOrder(dto, null, Boolean.TRUE.equals(dto.getPaid()));
+    public Long insertRoomOrderByFrontService(InsertRoomOrderDTO dto) {
+        return insertRoomOrder(dto, null, Boolean.TRUE.equals(dto.getPaid()));
     }
 
     @Override

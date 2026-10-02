@@ -196,19 +196,24 @@ CREATE TABLE IF NOT EXISTS scheduler_task_lock
     PRIMARY KEY (task_name)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '定时任务互斥';
 
--- 确认动作幂等：同一动作最多执行一次，确认与取消通过唯一键互斥。
--- PROCESSING只存在于未提交的确认事务；执行失败整体回滚，不留记录。
+-- 下单 / 助手动作幂等：request_id 全局唯一，归属校验 user_id + requester_role。
+-- PROCESSING只存在于未提交事务；网页下单的 400/404 回滚后单独记录 FAILED。
 CREATE TABLE IF NOT EXISTS booking_request
 (
     id          BIGINT      NOT NULL AUTO_INCREMENT,
     request_id  VARCHAR(64) NOT NULL,
     user_id     INT         NOT NULL,
+    requester_role TINYINT  NOT NULL DEFAULT 0 COMMENT '请求方角色，助手记录默认住客 0',
     action_type VARCHAR(16) NOT NULL,
     order_id    BIGINT      NULL,
     status      VARCHAR(16) NOT NULL,
+    request_hash CHAR(64)   NULL COMMENT '请求摘要 SHA-256，助手记录为空',
+    fail_status INT         NULL COMMENT 'FAILED 时的 HTTP 状态',
+    fail_message VARCHAR(255) NULL COMMENT 'FAILED 时的失败原因',
     created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_booking_request_request_id (request_id),
-    KEY idx_booking_request_user (user_id)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '确认动作幂等记录';
+    KEY idx_booking_request_user (user_id),
+    KEY idx_booking_request_created (created_at)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '下单与确认动作幂等记录';

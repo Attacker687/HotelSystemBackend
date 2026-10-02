@@ -25,6 +25,10 @@ public interface OrderMapper {
 
     int insertBookingRequest(String requestId, Integer userId, String actionType, String status);
 
+    int insertOrderRequest(String requestId, Integer userId, Integer role, String status, String hash, Integer failStatus, String failMessage);
+
+    int deleteExpiredBookingRequests();
+
     int markBookingRequestSuccess(String requestId, Long orderId);
 
     BookingRequest findBookingRequest(String requestId);
