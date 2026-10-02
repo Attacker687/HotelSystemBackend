@@ -46,7 +46,23 @@ async function register(page, alias) {
   await expect(page.getByRole('heading', { name: '住客登录', exact: true })).toBeVisible();
 }
 async function nav(page, title) { await page.getByRole('button', { name: title, exact: true }).click(); }
-async function booking(page, alias = 'R1', checkout = data.dates[1], person = data.registrations.E) {
+function orderRequests(page) {
+  const requests = [];
+  page.on('request', request => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/order') requests.push({ request, at: Date.now() });
+  });
+  return requests;
+}
+function orderKeys(requests, pattern = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/) {
+  return requests.map(({ request }) => {
+    const headers = request.headers();
+    expect(headers.token).toBeTruthy();
+    expect(headers['content-type']).toBe('application/json');
+    expect(headers['idempotency-key']).toMatch(pattern);
+    return headers['idempotency-key'];
+  });
+}
+async function booking(page, alias = 'R1', checkout = data.dates[1], person = data.registrations.E, send = button => button.click()) {
   await nav(page, '房间列表');
   await page.getByTestId(`room-${data.base.rooms[alias].id}`).getByRole('button', { name: '预订', exact: true }).click();
   await page.getByLabel('入住人姓名', { exact: true }).fill(person.name);
@@ -54,7 +70,7 @@ async function booking(page, alias = 'R1', checkout = data.dates[1], person = da
   await page.getByLabel('入住人身份证号', { exact: true }).fill(person.idCardNumber);
   await page.getByLabel('入住日期', { exact: true }).fill(data.dates[0]);
   await page.getByLabel('离店日期', { exact: true }).fill(checkout);
-  await page.getByRole('button', { name: '提交预订' }).click();
+  await send(page.getByRole('button', { name: '提交预订' }));
   await expect(page.getByRole('status')).toContainText('预订成功');
   const orders = (await fixture('state')).roomOrders;
   return orders[orders.length - 1].id;
@@ -89,7 +105,53 @@ test('TC-132 住客注册、预订、支付、按晚营收和真实 cron 退房'
   await register(page, 'E');
   await login(page, data.registrations.E, false);
   await expect(page.getByTestId('identity')).toContainText(data.registrations.E.name);
-  const id = await booking(page, 'R1', data.dates[3]);
+  const requests = orderRequests(page), clicks = [];
+  const id = await booking(page, 'R1', data.dates[3], data.registrations.E, async submit => {
+    for (const [status, msg] of [[409, '房间在该时段已被预订'], [422, '请求号与内容不一致'], [500, '服务器内部错误']]) {
+      const start = requests.length;
+      await page.route('**/order', route => route.fulfill({ status, json: { code: 1, msg } }));
+      await submit.click();
+      await expect(page.getByRole('alert')).toHaveText(msg);
+      await expect(submit).toBeEnabled();
+      await page.waitForTimeout(2000);
+      expect(requests.slice(start)).toHaveLength(1);
+      expect((await fixture('state')).roomOrders).toHaveLength(0);
+      clicks.push(requests[start]);
+      await page.unroute('**/order');
+    }
+    const start = requests.length;
+    await page.route('**/order', route => route.abort('failed'));
+    await submit.click();
+    await expect(page.getByRole('alert')).toContainText('Failed to fetch');
+    await expect(submit).toBeEnabled();
+    await page.waitForTimeout(2000);
+    const failed = requests.slice(start);
+    expect(failed).toHaveLength(3);
+    const gaps = [failed[1].at - failed[0].at, failed[2].at - failed[1].at];
+    for (const [index, delay] of [500, 1000].entries()) {
+      expect(gaps[index]).toBeGreaterThanOrEqual(delay - 25);
+      expect(gaps[index]).toBeLessThan(delay + 500);
+    }
+    console.log(`TC-015 network retries: count=${failed.length}, gaps=${gaps.join(',')}ms`);
+    expect(new Set(orderKeys(failed)).size).toBe(1);
+    expect((await fixture('state')).roomOrders).toHaveLength(0);
+    clicks.push(failed[0]);
+    await page.unroute('**/order');
+    let attempts = 0;
+    const retryStart = requests.length;
+    await page.route('**/order', route => ++attempts === 1 ? route.abort('failed') : route.continue());
+    await submit.click();
+    await expect(page.getByRole('status')).toContainText('预订成功');
+    const retried = requests.slice(retryStart);
+    expect(retried).toHaveLength(2);
+    expect(new Set(orderKeys(retried)).size).toBe(1);
+    expect((await fixture('state')).roomOrders).toHaveLength(1);
+    await expect(page.getByRole('heading', { name: '我的订单', exact: true })).toBeVisible();
+    clicks.push(retried[0]);
+    expect(new Set(orderKeys(clicks)).size).toBe(clicks.length);
+    orderKeys(requests);
+    await page.unroute('**/order');
+  });
   await expect(roomOrder(page, id)).toContainText('待支付');
   await expect(roomOrder(page, id)).toContainText('748.00');
   expect(await dbRoomOrder(id)).toMatchObject({ total_amount: 748, pay_status: 0, status: 0 });
@@ -121,7 +183,15 @@ test('TC-132 住客注册、预订、支付、按晚营收和真实 cron 退房'
 });
 
 test('TC-133 前台未收款单经历 70 秒超时检查、入住、退房、清洁完成', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(crypto, 'randomUUID', { value: undefined }); });
   await login(page, data.base.staff.it_front);
+  expect(await page.evaluate(() => typeof crypto.randomUUID)).toBe('undefined');
+  expect(await page.evaluate(async () => {
+    const controller = new AbortController(); controller.abort();
+    try { await api('/rooms', 'GET', undefined, { headers: { 'X-S02-Signal': '1' }, signal: controller.signal }); return null; }
+    catch (error) { return error.name; }
+  })).toBe('AbortError');
+  const requests = orderRequests(page);
   await nav(page, '前台开单');
   for (const [label, key] of [['入住人姓名', 'name'], ['入住人手机号', 'phone'], ['入住人身份证号', 'idCard']]) {
     await page.getByLabel(label, { exact: true }).fill(data.guest[key]);
@@ -132,6 +202,8 @@ test('TC-133 前台未收款单经历 70 秒超时检查、入住、退房、清
   await page.getByLabel('收款', { exact: true }).selectOption('false');
   await page.getByRole('button', { name: '提交开单' }).click();
   await expect(page.getByRole('status')).toContainText('开单成功');
+  expect(requests).toHaveLength(1);
+  orderKeys(requests, /^[0-9a-f]{32}$/);
   const id = (await fixture('state')).roomOrders[0].id;
   expect(await dbRoomOrder(id)).toMatchObject({ total_amount: 398, pay_status: 0, status: 0, user_id: null });
   await nav(page, '订单总览');
@@ -292,7 +364,25 @@ test('TC-137 住客支付后取消退款，经理概览为零，另一住客重�
   await register(page, 'H');
   await register(page, 'K');
   await login(page, data.registrations.H, false);
-  const first = await booking(page, 'R1', data.dates[1], data.registrations.H);
+  const requests = orderRequests(page);
+  await page.evaluate(() => {
+    window.bookingSuccesses = 0;
+    new MutationObserver(changes => {
+      window.bookingSuccesses += changes.filter(change => change.target.textContent === '预订成功，请在 15 分钟内支付').length;
+    }).observe(document.querySelector('#notice'), { childList: true });
+  });
+  await page.route('**/order', async route => { await new Promise(resolve => setTimeout(resolve, 1000)); await route.continue(); });
+  const first = await booking(page, 'R1', data.dates[1], data.registrations.H, async submit => {
+    await submit.dblclick();
+    await expect(submit).toBeDisabled();
+  });
+  await page.waitForTimeout(2000);
+  expect(requests).toHaveLength(1);
+  expect((await fixture('state')).roomOrders).toHaveLength(1);
+  expect(await page.evaluate(() => window.bookingSuccesses)).toBe(1);
+  await expect(page.getByRole('status')).toHaveText('预订成功，请在 15 分钟内支付');
+  await expect(roomOrder(page, first)).toHaveCount(1);
+  await page.unroute('**/order');
   await expect(roomOrder(page, first)).toContainText('待支付');
   await expect(roomOrder(page, first)).toContainText('199.00');
   await roomOrder(page, first).getByRole('button', { name: '支付', exact: true }).click();
@@ -310,6 +400,8 @@ test('TC-137 住客支付后取消退款，经理概览为零，另一住客重�
   await expect(page.getByTestId('occupancy-rate')).toHaveText('0.00%');
   await login(page, data.registrations.K, false);
   const second = await booking(page, 'R1', data.dates[1], data.registrations.K);
+  expect(requests).toHaveLength(2);
+  expect(new Set(orderKeys(requests)).size).toBe(2);
   await expect(roomOrder(page, second)).toContainText('待支付');
   expect(await dbRoomOrder(first)).toMatchObject({ status: 2, pay_status: 2 });
   expect(await dbRoomOrder(second)).toMatchObject({ status: 0, pay_status: 0 });
