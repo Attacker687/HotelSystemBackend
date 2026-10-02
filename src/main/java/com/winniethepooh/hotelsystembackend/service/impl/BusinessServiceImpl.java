@@ -12,6 +12,7 @@ import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.mapper.UserMapper;
 import com.winniethepooh.hotelsystembackend.service.BusinessService;
+import com.winniethepooh.hotelsystembackend.service.HotCache;
 import com.winniethepooh.hotelsystembackend.utils.LocalDateUtil;
 import com.winniethepooh.hotelsystembackend.vo.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,8 @@ public class BusinessServiceImpl implements BusinessService {
     private RoomMapper roomMapper;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private HotCache hotCache;
 
     /** 统计和价格日历一次最多查询或设置的天数（含首尾，P3、B12，GAP-18）。 */
     static final int MAX_SPAN_DAYS = 366;
@@ -261,15 +264,19 @@ public class BusinessServiceImpl implements BusinessService {
 
     @Override
     public void updateRoomPriceService(DynamicUpdatePriceDTO dto) {
-        roomMapper.upsertPriceCalendar(dto.getRoomType(), dto.getPrice(), checkedDates(dto.getStartDate(), dto.getEndDate()));
+        List<LocalDate> dates = checkedDates(dto.getStartDate(), dto.getEndDate());
+        roomMapper.upsertPriceCalendar(dto.getRoomType(), dto.getPrice(), dates);
+        hotCache.evictAfterCommit(dates.stream().map(date -> "price:" + dto.getRoomType() + ":" + date).toList());
     }
 
     /** 每个日期一项，没有设价的日期为 null（与原接口一致）。 */
     @Override
     public List<PriceCalendar> getPriceCalendarService(LocalDate startDate, LocalDate endDate, Integer roomType) {
         List<LocalDate> dateList = checkedDates(startDate, endDate);
-        Map<LocalDate, PriceCalendar> byDate = roomMapper.getPriceCalendars(roomType, startDate, endDate).stream()
-                .collect(Collectors.toMap(PriceCalendar::getDate, p -> p));
-        return dateList.stream().map(byDate::get).collect(Collectors.toList());
+        List<String> keys = dateList.stream().map(date -> "price:" + roomType + ":" + date).toList();
+        Map<String, PriceCalendar> prices = hotCache.getAll(keys, PriceCalendar.class, missing ->
+                roomMapper.getPriceCalendars(roomType, startDate, endDate).stream()
+                        .collect(Collectors.toMap(p -> "price:" + roomType + ":" + p.getDate(), p -> p)));
+        return keys.stream().map(prices::get).collect(Collectors.toList());
     }
 }

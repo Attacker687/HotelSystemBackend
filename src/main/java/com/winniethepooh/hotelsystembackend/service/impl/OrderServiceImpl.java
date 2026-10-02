@@ -16,7 +16,10 @@ import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.RoomQuoteVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,9 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
     @Autowired private OrderMapper orderMapper;
     @Autowired private UserMapper userMapper;
@@ -52,7 +58,8 @@ public class OrderServiceImpl implements OrderService {
     public RoomQuoteVO quoteRoomService(String roomNumber, LocalDateTime checkin, LocalDateTime checkout) {
         validateStay(checkin, checkout, true);
         Room room = requireRoom(roomMapper.getRoomByRoomNumber(roomNumber));
-        checkOverlap(room.getId(), checkin, checkout, null);
+        if (orderMapper.countRoomInventory(room.getId(), checkin.toLocalDate(), checkout.toLocalDate()) != 0)
+            throw new BusinessException(HttpStatus.CONFLICT, "房间在该时段已被预订");
         return quote(room, checkin, checkout, prices(room, checkin, checkout));
     }
 
@@ -93,8 +100,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void insertRoomOrderByFrontService(InsertRoomOrderDTO dto) {
-        insertRoomOrder(dto, null, Boolean.TRUE.equals(dto.getPaid()));
+    public Long insertRoomOrderByFrontService(InsertRoomOrderDTO dto) {
+        return insertRoomOrder(dto, null, Boolean.TRUE.equals(dto.getPaid()));
     }
 
     @Override
@@ -105,8 +112,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Long insertRoomOrder(InsertRoomOrderDTO dto, Integer userId, boolean paid) {
         validateStay(dto.getCheckInTime(), dto.getCheckOutTime(), true);
-        Room room = requireRoom(roomMapper.lockRoomByNumber(dto.getRoomNumber()));
-        checkOverlap(room.getId(), dto.getCheckInTime(), dto.getCheckOutTime(), null);
+        Room room = requireRoom(roomMapper.getRoomByRoomNumber(dto.getRoomNumber()));
         Map<LocalDate, BigDecimal> nights = prices(room, dto.getCheckInTime(), dto.getCheckOutTime());
         Individual individual = findIndividualOrElseCreate(dto);
         RoomOrder order = new RoomOrder();
@@ -119,6 +125,7 @@ public class OrderServiceImpl implements OrderService {
         order.setPayStatus(paid ? RoomOrderPayStatusConstant.PAID : RoomOrderPayStatusConstant.UNPAID);
         if (userId == null) orderMapper.insertRoomOrderV1(order);
         else orderMapper.insertRoomOrderV2(order);
+        occupy(order.getId(), room.getId(), nights.keySet());
         orderMapper.insertRoomOrderNights(order.getId(), nights);
         if (userId == null && !LocalDateTime.now().isBefore(order.getCheckinTime()))
             roomMapper.enableAvailableRoom(Math.toIntExact(room.getId()));
@@ -133,23 +140,20 @@ public class OrderServiceImpl implements OrderService {
         try { target = dto.getRoomId() == null ? Math.toIntExact(original.getRoomId()) : Integer.parseInt(dto.getRoomId()); }
         catch (NumberFormatException e) { throw new BusinessException(HttpStatus.BAD_REQUEST, "roomId 必须是房间 id"); }
         int source = Math.toIntExact(original.getRoomId());
-        // 下单、改期都先锁房间；换房按 id 顺序锁两间，避免两张订单互换时死锁。
-        Room first = requireRoom(roomMapper.lockRoomById(Math.min(source, target)));
-        Room last = source == target ? first : requireRoom(roomMapper.lockRoomById(Math.max(source, target)));
-        Room room = target == Math.min(source, target) ? first : last;
+        Room room = requireRoom(roomMapper.queryRoomById(target, false));
         RoomOrder order = requireOrder(orderMapper.getRoomOrderByIdForUpdate(id.longValue()));
         if (order.getStatus() != RoomOrderStatusConstant.ONGOING || !Objects.equals(order.getRoomId(), original.getRoomId()))
             throw new BusinessException(HttpStatus.CONFLICT, "订单已结束或已变更，不能修改");
         LocalDateTime checkin = dto.getCheckInTime() == null ? order.getCheckinTime() : dto.getCheckInTime();
         LocalDateTime checkout = dto.getCheckOutTime() == null ? order.getCheckoutTime() : dto.getCheckOutTime();
         validateStay(checkin, checkout, false);
-        checkOverlap(room.getId(), checkin, checkout, order.getId());
         Map<LocalDate, BigDecimal> nights = prices(room, checkin, checkout);
         order.setRoomId(room.getId());
         order.setCheckinTime(checkin);
         order.setCheckoutTime(checkout);
         order.setTotalAmount(total(nights));
         if (orderMapper.modifyRoomOrder(order) == 0) throw new BusinessException(HttpStatus.CONFLICT, "订单状态已变更");
+        reoccupy(order.getId(), (long) source, room.getId(), nights.keySet());
         orderMapper.deleteRoomOrderNights(order.getId());
         orderMapper.insertRoomOrderNights(order.getId(), nights);
         if (source != target && !LocalDateTime.now().isBefore(checkin) && LocalDateTime.now().isBefore(checkout)) {
@@ -159,7 +163,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public void deleteRoomOrderService(Integer id) { orderMapper.deleteRoomOrder(id); }
+    @Transactional
+    public void deleteRoomOrderService(Integer id) {
+        orderMapper.deleteRoomOrder(id);
+        release(id.longValue());
+    }
 
     @Override
     public void payRoomOrderService(Long id) {
@@ -170,11 +178,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void cancelRoomOrderService(Long id) {
         if (orderMapper.cancelRoomOrder(id, BaseContext.getCurrentId(), LocalDateTime.now()) == 0) {
             requireOwnedOrder(id);
             throw new BusinessException(HttpStatus.CONFLICT, "只能取消尚未入住的进行中订单");
         }
+        release(id);
     }
 
     private RoomOrder requireOwnedOrder(Long id) {
@@ -203,9 +213,33 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "入住日期不能早于今天");
     }
 
-    private void checkOverlap(Long roomId, LocalDateTime checkin, LocalDateTime checkout, Long excludeId) {
-        if (orderMapper.findOverlappingOrder(roomId, checkin, checkout, excludeId) != null)
+    private void occupy(Long orderId, Long roomId, Collection<LocalDate> dates) {
+        try {
+            for (LocalDate date : dates.stream().sorted().toList())
+                orderMapper.insertRoomInventory(roomId, date, orderId);
+        } catch (DuplicateKeyException e) {
+            log.info("room inventory conflict orderId={} roomId={}", orderId, roomId);
             throw new BusinessException(HttpStatus.CONFLICT, "房间在该时段已被预订");
+        } catch (PessimisticLockingFailureException e) {
+            log.info("room inventory busy orderId={} roomId={}", orderId, roomId);
+            throw new BusinessException(HttpStatus.CONFLICT, "该时段预订繁忙，请稍后重试");
+        }
+    }
+
+    private void reoccupy(Long orderId, Long source, Long target, Collection<LocalDate> dates) {
+        if (!source.equals(target)) {
+            release(orderId);
+            occupy(orderId, target, dates);
+            return;
+        }
+        var oldDates = new HashSet<>(orderMapper.findRoomInventoryDates(orderId));
+        for (LocalDate date : oldDates.stream().filter(date -> !dates.contains(date)).sorted().toList())
+            orderMapper.deleteRoomInventoryDate(orderId, date);
+        occupy(orderId, target, dates.stream().filter(date -> !oldDates.contains(date)).toList());
+    }
+
+    private void release(Long orderId) {
+        orderMapper.deleteRoomInventory(orderId);
     }
 
     private Map<LocalDate, BigDecimal> prices(Room room, LocalDateTime checkin, LocalDateTime checkout) {

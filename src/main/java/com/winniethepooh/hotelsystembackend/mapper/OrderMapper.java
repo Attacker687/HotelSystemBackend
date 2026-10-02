@@ -25,6 +25,10 @@ public interface OrderMapper {
 
     int insertBookingRequest(String requestId, Integer userId, String actionType, String status);
 
+    int insertOrderRequest(String requestId, Integer userId, Integer role, String status, String hash, Integer failStatus, String failMessage);
+
+    int deleteExpiredBookingRequests();
+
     int markBookingRequestSuccess(String requestId, Long orderId);
 
     BookingRequest findBookingRequest(String requestId);
@@ -45,7 +49,17 @@ public interface OrderMapper {
 
     RoomOrder getRoomOrderByIdForUpdate(Long id);
 
-    Long findOverlappingOrder(Long roomId, LocalDateTime checkin, LocalDateTime checkout, Long excludeId);
+    void insertRoomInventory(Long roomId, LocalDate stayDate, Long orderId);
+
+    List<LocalDate> findRoomInventoryDates(Long orderId);
+
+    int countRoomInventory(Long roomId, LocalDate start, LocalDate end);
+
+    void deleteRoomInventory(Long orderId);
+
+    void deleteRoomInventoryDate(Long orderId, LocalDate stayDate);
+
+    void deleteRoomInventoryFromDate(Long orderId, LocalDate today);
 
     void insertRoomOrderNights(Long orderId, Map<LocalDate, BigDecimal> nights);
 
@@ -89,7 +103,7 @@ public interface OrderMapper {
 
     int claimTaskLock(String taskName, String owner);
 
-    void flushExpiredRoomOrders();
+    List<Long> findExpiredRoomOrderIdsForUpdate();
 
     RoomOrder getRoomOrderById(Long id);
 

@@ -1,9 +1,9 @@
 {
-  "root": "C:/t/hsb/.nova/worktrees/_integration",
-  "commit": "79e476ead522a034b507c29d939310566063631b",
-  "generated_at": "2026-09-30T15:31:20+00:00",
+  "root": "C:/t/hsb/.nova/worktrees/booking-consistency",
+  "commit": "48c56aa83f160eaa37fda1c5ba35ca0d2142e1f0",
+  "generated_at": "2026-10-01T17:21:56+00:00",
   "program": "hotelsystembackend",
   "mode": "update",
-  "batches": 4,
-  "source_files": 123
+  "batches": 1,
+  "source_files": 205
 }

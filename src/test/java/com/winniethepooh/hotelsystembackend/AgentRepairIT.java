@@ -15,6 +15,7 @@ import com.winniethepooh.hotelsystembackend.service.FoodService;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -27,6 +28,7 @@ class AgentRepairIT extends IntegrationTestBase {
     @SpyBean private SessionStore sessions;
     @SpyBean private FoodService food;
     private String token, session;
+    private volatile long redisPauseUntilNanos;
 
     @BeforeEach
     void prepare() {
@@ -65,15 +67,31 @@ class AgentRepairIT extends IntegrationTestBase {
             }).when(food).getAllDishesService();
             else doAnswer(i -> { pauseRedis(4000); return i.callRealMethod(); }).when(sessions).append(any(), any(), any());
         }
-        long start = System.nanoTime(); String body = chat("慢边界");
-        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(5900));
-        assertThat(body).contains("TIMEOUT").doesNotContain("event: card").endsWith("event: done\ndata: {\"toolCalls\":" + (boundary.equals("tool") ? 1 : 0) + "}\n\n");
+        try {
+            long start = System.nanoTime(); String body = chat("慢边界");
+            assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(5900));
+            assertThat(body).contains("TIMEOUT").doesNotContain("event: card").endsWith("event: done\ndata: {\"toolCalls\":" + (boundary.equals("tool") ? 1 : 0) + "}\n\n");
+        } finally { resumeRedis(); }
         assertThat(redis.opsForList().range(key, 0, -1)).isEqualTo(previous); assertThat(redis.getExpire(key)).isBetween(1L, 60L);
     }
 
     private void pauseRedis(int milliseconds) throws Exception {
         var result = REDIS.execInContainer("redis-cli", "CLIENT", "PAUSE", Integer.toString(milliseconds), "ALL");
+        // Start after the acknowledgement so cleanup never shortens the server's pause window.
+        redisPauseUntilNanos = System.nanoTime() + Duration.ofMillis(milliseconds).toNanos();
         assertThat(result.getExitCode()).isZero(); assertThat(result.getStdout().trim()).isEqualTo("OK");
+    }
+
+    private void resumeRedis() throws Exception {
+        if (redisPauseUntilNanos == 0) return;
+        try {
+            long remaining;
+            while ((remaining = redisPauseUntilNanos - System.nanoTime()) > 0) TimeUnit.NANOSECONDS.sleep(remaining);
+        } finally {
+            var result = REDIS.execInContainer("redis-cli", "CLIENT", "UNPAUSE");
+            assertThat(result.getExitCode()).isZero(); assertThat(result.getStdout().trim()).isEqualTo("OK");
+            redisPauseUntilNanos = 0;
+        }
     }
 
     private String chat(String message) {

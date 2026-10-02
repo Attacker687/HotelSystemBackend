@@ -20,8 +20,6 @@ public interface RoomMapper {
 
     List<Room> queryRooms(Integer limit, Integer offset, String roomNumber, Integer roomType, Integer status, LocalDate date);
 
-    Room lockRoomByNumber(String roomNumber);
-
     Room lockRoomById(Integer id);
 
     int enableAvailableRoom(Integer id);
@@ -35,6 +33,8 @@ public interface RoomMapper {
     Long getRoomIdByRoomNumber(String roomNumber);
 
     Room queryRoomById(Integer id, boolean containDeleted);
+
+    List<Integer> getRoomStatus(Integer id);
 
     void insertRoom(InsertRoomDTO insertRoomDTO);
 

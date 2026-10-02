@@ -68,6 +68,22 @@ class PendingActionServiceTest {
     }
     @AfterEach void clear() { BaseContext.clear(); }
 
+    @ParameterizedTest
+    @CsvSource({"7,SUCCESS,ORDER", "7,FAILED,ORDER", "99,SUCCESS,ORDER", "7,SUCCESS,UNKNOWN", "99,SUCCESS,UNKNOWN", "7,SUCCESS,"})
+    void tc012_nonAssistantRecordIsInvalidBeforeOwnershipAndDoesNotWrite(int owner, String state, String type) {
+        BookingRequest row = record(owner, state); row.setActionType(type);
+        when(mapper.findBookingRequest(id)).thenReturn(row);
+        for (boolean confirm : List.of(true, false)) {
+            assertThatThrownBy(() -> { if (confirm) service.confirm(id, 7); else service.cancel(id, 7); })
+                    .isInstanceOfSatisfying(BusinessException.class, e -> {
+                        assertThat(e.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                        assertThat(e.getMessage()).isEqualTo("确认卡片已失效");
+                    });
+        }
+        verify(mapper, times(2)).findBookingRequest(id); verifyNoMoreInteractions(mapper);
+        verifyNoInteractions(orders, tx, sessions, redis, values);
+    }
+
     @Test
     void s04ac1_createWritesExactOwnerParamsCardAndTtlInOneSet() throws Exception {
         ObjectMapper json = new ObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

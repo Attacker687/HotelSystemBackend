@@ -105,6 +105,7 @@ class BrowserE2EIT {
 
     private static Map<String, Object> state(JdbcTemplate db) {
         return Map.of("roomOrders", db.queryForList("select * from room_order order by id"),
+                "roomInventory", db.queryForList("select id,room_id,cast(stay_date as char) as stay_date,order_id from room_inventory order by id"),
                 "mealOrders", db.queryForList("select * from meal_order order by id"),
                 "rooms", db.queryForList("select * from room order by id"),
                 "staff", db.queryForList("select id, account, role, status, is_deleted from staff order by id"),

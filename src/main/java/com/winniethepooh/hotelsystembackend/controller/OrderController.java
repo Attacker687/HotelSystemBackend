@@ -9,6 +9,7 @@ import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.dto.ModifyRoomOrderDTO;
 import com.winniethepooh.hotelsystembackend.entity.Result;
 import com.winniethepooh.hotelsystembackend.service.OrderService;
+import com.winniethepooh.hotelsystembackend.service.OrderRequestService;
 import com.winniethepooh.hotelsystembackend.vo.GetAllRoomOrderVO;
 import com.winniethepooh.hotelsystembackend.vo.OrderQueryVO;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
@@ -29,6 +30,9 @@ import java.time.LocalDate;
 public class OrderController {
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private OrderRequestService orderRequestService;
 
     @RoleRequired({RoleConstant.USER})
     @GetMapping("/user/query")
@@ -55,13 +59,10 @@ public class OrderController {
 
     @PostMapping
     @RoleRequired({RoleConstant.FRONT, RoleConstant.USER})
-    public Result insertRoomOrderController(@Valid @RequestBody InsertRoomOrderDTO insertRoomOrderDTO) {
-        if (BaseContext.getCurrentRole() == RoleConstant.USER) {
-            Long id = orderService.insertRoomOrderByUserService(insertRoomOrderDTO);
-            return Result.success(id);
-        }
-        else orderService.insertRoomOrderByFrontService(insertRoomOrderDTO);
-        return Result.success();
+    public Result insertRoomOrderController(@Valid @RequestBody InsertRoomOrderDTO insertRoomOrderDTO,
+                                            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
+        Long id = orderRequestService.placeOrder(key, insertRoomOrderDTO);
+        return BaseContext.getCurrentRole() == RoleConstant.USER ? Result.success(id) : Result.success();
     }
 
     @PutMapping("/{id}")

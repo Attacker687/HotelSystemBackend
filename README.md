@@ -19,7 +19,8 @@
 
 关键业务规则：
 
-- **预订冲突**：事务内先锁房间行，再检查 `[入住时刻, 离店时刻)` 是否重叠；冲突返回 HTTP 409。
+- **预订冲突**：订单事务内按 `[入住日, 离店日)` 升序逐晚写 `room_inventory`，同房同日唯一键裁决并发；任一晚冲突返回 HTTP 409 并回滚整单，房态不参与可售判断。
+- **下单重试**：`POST /order` 可带 8～64 位 `Idempotency-Key`；同身份、角色和内容在 7 天内重试返回同一订单，前台响应 data 仍为空。400/404 业务失败原样回放；修改内容须换新请求号。不带头保持原行为。
 - **客房计价**：服务端按每晚价格计算金额，优先取房型价格日历，缺省价为单人间 199、双人间 299、套房 499 元；金额写入订单，并逐晚写入 `room_order_night`。
 - **餐饮计价**：单价取数据库中的菜品价格，忽略客户端金额；不存在或已下架的菜品不能下单。
 - **支付与取消**：通过条件更新约束订单状态和归属。已支付的客房订单在入住前取消时，支付状态置为“已退款”。当前支付、退款只记录本地业务状态，未连接真实支付渠道。
@@ -231,7 +232,7 @@ java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSH
 
 `schema.sql` 是建表脚本，不是已有数据库的版本迁移或历史订单回填脚本；使用旧库时需要另外处理表结构变化和订单间夜数据。
 
-助手上线前，旧库需要手工执行新增的 `booking_request` DDL（默认 profile 不自动建表），再部署新 jar：
+尚无 `booking_request` 表的旧库先手工建表（默认 profile 不自动建表），再部署新 jar：
 
 ```sql
 CREATE TABLE IF NOT EXISTS booking_request
@@ -239,16 +240,42 @@ CREATE TABLE IF NOT EXISTS booking_request
     id BIGINT NOT NULL AUTO_INCREMENT,
     request_id VARCHAR(64) NOT NULL,
     user_id INT NOT NULL,
+    requester_role TINYINT NOT NULL DEFAULT 0,
     action_type VARCHAR(16) NOT NULL,
     order_id BIGINT NULL,
     status VARCHAR(16) NOT NULL,
+    request_hash CHAR(64) NULL,
+    fail_status INT NULL,
+    fail_message VARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_booking_request_request_id (request_id),
-    KEY idx_booking_request_user (user_id)
+    KEY idx_booking_request_user (user_id),
+    KEY idx_booking_request_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='确认动作幂等记录';
 ```
+
+已有 `booking_request` 表的旧库在部署前手工执行一次 [m1-booking-request.sql](src/main/resources/db/migration/m1-booking-request.sql)，增加四列及清理索引。ALTER 不可重复执行；新库执行 `schema.sql` 或上面的完整建表 DDL 后不再执行 ALTER。M1 回滚可直接回滚 jar，新列的默认值及可空值兼容旧代码；ORDER 记录可保留或手工清理。
+
+### 每日库存建表与回填（M2）
+
+S03 提供 `room_inventory` 建表和手工回填工具，S04 已接入库存业务读写。新库的 `schema.sql` 已含库存表，旧库使用 [m2-room-inventory.sql](src/main/resources/db/migration/m2-room-inventory.sql)。两份 DDL 字段、键一致：同房同日唯一，按 `order_id` 索引，无外键。默认 profile 不自动执行迁移。
+
+旧库必须在同一个停写窗口完成以下步骤，再接续启动含 S04 库存维护的当前版本（包括 M3）：
+
+1. 停止旧版本及其他订单写入，确认 JVM/JDBC 为 `Asia/Shanghai`、MySQL 会话为 `+08:00`。
+2. 在目标库手工执行 `m2-room-inventory.sql`，确认 `room_inventory` 为空。
+3. 打开 [m2-room-inventory-backfill.sql](src/main/resources/db/migration/m2-room-inventory-backfill.sql)，**只执行步骤 1，人工核对冲突清单**。有任何输出就停止，按业务核实并处理历史冲突，再重跑步骤 1，直到无输出；不要直接执行整份文件。
+4. 单独执行步骤 2 的一条 `INSERT…WITH RECURSIVE`。只填进行中、未删、有房间且离店时间在未来的订单，夜集合为 `[入住日, 离店日)`，已入住订单包含过去晚；唯一键冲突会使整条语句失败，空库存仍为空。
+5. 执行[核对 SQL I1/I2](docs/booking-consistency.md#历史订单回填与核对)，两条均无输出才可继续。
+6. 保持停写，部署并启动当前版本；冒烟下单、同房同晚重复下单返回 409、取消后重新预订成功。不能在回填后恢复旧版写入，再沿用先前的库存结果。
+
+回填脚本**只执行一次**；需要重做时，在停写窗口先 `TRUNCATE room_inventory`，再从步骤 3 开始。dev 演示数据没有订单，无需历史回填。
+
+M2 回滚可回滚 jar 并保留库存表，旧版本仍按订单区间判断冲突。回滚期间旧版本不会维护库存；**再次上线库存版本前必须重新停写、清空 `room_inventory`、重新回填并核对 I1/I2**。旧库的 M1 ALTER 先按上节执行一次，再完成本节库存迁移；M3 缓存无需额外 DDL。
+
+### 助手配置与回退
 
 配置 key 后启动前确认 `HOTEL_AGENT_PROVIDER=openai`、`HOTEL_AGENT_MODEL=gpt-6-luna`。回退可以删除 key 并重启（只有助手 chat 返回 503，普通功能继续可用），或切换 fake 后重启：
 
@@ -274,6 +301,7 @@ java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSH
 | `DB_USERNAME` / `DB_PASSWORD` | `root` / 空 | 数据库账号与密码 |
 | `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | Redis 连接 |
 | `REDIS_PASSWORD` | 空 | Redis 密码 |
+| `HOTEL_CACHE_ENABLED` | `true` | 房间静态详情、列表价格和价格日历缓存；设为 `false` 直接读库，写入口仍删除缓存 |
 | `JWT_SECRET` | 必填，无默认值 | 至少 32 字节的随机签名密钥；缺失或过短时拒绝启动 |
 | `HOTEL_AGENT_PROVIDER` | `openai` | `test` / `e2e` 固定 fake；演示可用 fake 回退 |
 | `HOTEL_AGENT_MODEL` | `gpt-6-luna` | 本次批准的模型；独立评测固定此模型 |
@@ -401,7 +429,11 @@ mvn -B clean verify -Ddocker.api.version=1.43
 
 此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。review-fixes 历史批次跳过独立代码评审的记录不适用于本次 booking-agent；本次按批次执行一次三路独立评审、一次统一修正与全新独立验收。
 
-当前并发预订使用**房间行锁与时段重叠检查**；助手确认已实现 `booking_request` 唯一键幂等及确认/取消互斥，普通下单接口的 requestId 幂等仍在范围外。每日库存、热点缓存和定时任务失败自动重试仍是演进项，见 [并发预订与幂等设计](docs/booking-consistency.md)。
+当前并发预订使用**每日库存唯一键与订单事务**；同房改期只更新夜集合差集并保留共同晚的库存 ID，取消、超时取消和软删除同事务释放全部占用，提前结束只释放今天及以后的晚，正常退房保留历史夜，支付不动库存。助手报价与搜房只读库存且不加锁。`POST /order` 可带 `Idempotency-Key` 安全重试，助手确认通过同一表的全局唯一键幂等及确认/取消互斥。请求号记录保留 7 天，每日 03:30 清理（受 `HOTEL_SCHEDULER_ENABLED` 控制）；窗口外再次使用请求号会重新执行。定时任务失败自动重试仍是演进项，见 [并发预订与幂等设计](docs/booking-consistency.md)。
+
+M3 已接入房间详情、列表价格和价格日历缓存：`room:detail:{id}` 只存房号、房型、楼层、容量、描述、图片；命中后仍用一条 SQL 实时读房态并检查未删。列表保留过滤、分页和计数，按本页最多三种房型一次 MGET 读取 `price:{type}:{date}`，未设价仍用 199/299/499 默认价。`GET /business/calendar` 按日期一次 MGET 相同价格键，全命中零 SQL；任一天缺失则用原完整区间一次 SQL，回填缺键，按日期返回原 `PriceCalendar` 字段及未设价的 null 项。有值 TTL 为 1800～2400 秒随机，空值 `NULL` 为 300 秒。房间静态修改/删除和批量改价在提交后删键，无外层事务时在 SQL 自动提交后立即删，批量价格键用一次 DEL。
+
+Redis 命令超时为 1 秒，也作用于登录态读取。缓存读取或 JSON 解码故障回退读库，缓存写入/删键故障忽略并记录 WARN，日志只含前缀和异常类；数据库业务异常保留原语义。订单、改期、报价、助手计价与库存可售全部读库，房态和库存不进入缓存。直接改库须手工删键；读旧值与删键的竞争或删键失败可能让展示旧值留到 TTL，订单金额始终以数据库为准。缓存开关关闭时不读写缓存，写入口仍删除相关键。
 
 已接受的助手边界：同一会话多标签页并发消息无会话锁，可能打乱历史，可新建对话；每分钟限流的 INCR 与首次 EXPIRE 非原子。Redis 必须使用 7，并让应用、Redis 与 MySQL 时钟同步（例如 NTP），保持上海 JVM/JDBC 和 MySQL `+08:00`；会话 Lua 用 Redis TIME 判断应用传入的截止时间。服务端已提交但响应在网络中丢失时，客户端提交结果为 UNKNOWN（结果未知），不能视为未执行；同卡重试确认读取同一幂等结果。NOTE 写入是尽力而为，最终订单状态以数据库为准。
 
@@ -428,4 +460,4 @@ docs/                         API、设计、代码地图与测试报告
 - [系统设计](docs/architecture.md)：模块边界、数据模型与业务时序。
 - [API 与权限概览](docs/api-overview.md)：接口、角色与状态编码。
 - [代码地图](docs/codemap/hotelsystembackend/README.md)：入口、数据、流程和业务规则索引。
-- [并发预订与幂等设计](docs/booking-consistency.md)：后续演进的数据模型与验收方案。
+- [并发预订与幂等设计](docs/booking-consistency.md)：当前库存、幂等、缓存边界与手工上线步骤。

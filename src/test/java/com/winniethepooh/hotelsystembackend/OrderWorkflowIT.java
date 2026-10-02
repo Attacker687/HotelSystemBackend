@@ -189,8 +189,14 @@ class OrderWorkflowIT extends IntegrationTestBase {
         String b = login(base.user("B")); long id = order(b, "R1", in(1), out(3));
         if (pay) paid(b, id);
         LocalDateTime checkin = scenario == 0 ? in(2) : scenario == 1 ? in(0) : d.plusDays(3).atTime(10, 0);
-        conflict(book(login(base.user("A")), "R1", checkin, out(4)));
-        assertThat(fx.count("room_order")).isEqualTo(1); state(id, 0, pay ? 1 : 0);
+        if (scenario == 2) {
+            Resp r = book(login(base.user("A")), "R1", checkin, out(4)); ok(r);
+            assertThat(fx.count("room_order")).isEqualTo(2); state(r.data().asLong(), 0, 0);
+        } else {
+            conflict(book(login(base.user("A")), "R1", checkin, out(4)));
+            assertThat(fx.count("room_order")).isEqualTo(1);
+        }
+        state(id, 0, pay ? 1 : 0);
     }
     @ParameterizedTest @ValueSource(ints = {0, 1, 2}) void tc064_paidOverlapIsRejected(int scenario) { overlap(scenario, true); }
     @ParameterizedTest @ValueSource(ints = {0, 1, 2}) void tc065_unpaidOverlapIsRejected(int scenario) { overlap(scenario, false); }
@@ -218,12 +224,14 @@ class OrderWorkflowIT extends IntegrationTestBase {
             assertThat(result.stream().filter(r -> r.code() == 0).count()).as("round %s", k).isEqualTo(1);
             result.stream().filter(r -> r.code() != 0).forEach(this::conflict);
             assertThat(fx.count("room_order", "room_id = ? and checkin_time = ? and status = 0 and is_deleted = 0", base.room("R3").id(), in)).isEqualTo(1);
+            assertThat(fx.count("room_inventory", "room_id=? and stay_date=?", base.room("R3").id(), in.toLocalDate())).isEqualTo(1);
         }
     }
     @Test void tc069_timeoutCancelledOrderCannotBePaid() {
         String token = login(base.user("A")); long id = order(token); fx.createdMinutesAgo("room_order", id, 16);
         scheduler.flushExpiredRoomOrders(); state(id, 2, 0);
         rejected(post("/order/pay?id=" + id, token, null)); state(id, 2, 0);
+        assertThat(fx.count("room_inventory", "order_id=?", id)).isZero();
     }
     @Test void tc070_cancelledOrderCannotBePaid() {
         String token = login(base.user("A")); long id = order(token); ok(post("/order/cancel?id=" + id, token, null));
@@ -254,11 +262,13 @@ class OrderWorkflowIT extends IntegrationTestBase {
             result.forEach(r -> { if (r.code() != 0) rejected(r); });
             Map<String, Object> row = row(id); int status = ((Number) row.get("status")).intValue(), pay = ((Number) row.get("pay_status")).intValue();
             assertThat((status == 0 && pay == 1) || (status == 2 && (pay == 0 || pay == 2))).as("round %s: %s", k, row).isTrue();
+            assertThat(fx.count("room_inventory", "order_id=?", id)).isEqualTo(status == 2 ? 0 : 1);
         }
     }
     @Test void tc076_unpaidFutureOrderCanBeCancelled() {
         String token = login(base.user("A")); long id = order(token);
         ok(post("/order/cancel?id=" + id, token, null)); state(id, 2, 0);
+        assertThat(fx.count("room_inventory", "order_id=?", id)).isZero();
     }
     @ParameterizedTest @ValueSource(ints = {1, 2})
     void tc077_terminalRoomOrdersCannotBeCancelled(int terminal) {
@@ -282,6 +292,7 @@ class OrderWorkflowIT extends IntegrationTestBase {
         assertThat(post("/order", login(base.user("A")), body).code()).isNotZero();
         assertThat(fx.count("individual")).isEqualTo(people); assertThat(fx.count("individual", "phone = ?", Fixtures.guest("P9").get("phone"))).isZero();
         assertThat(fx.count("room_order")).isZero(); assertThat(fx.count("room_order_night")).isZero();
+        assertThat(fx.count("room_inventory")).isZero();
     }
     @Test void tc081_missingRoomIsRejectedBeforeAnyWrite() {
         int people = fx.count("individual"); Map<String, Object> body = Fixtures.roomOrderBody("9999", in(0), out(1)); body.putAll(Fixtures.guest("P9"));
@@ -299,6 +310,7 @@ class OrderWorkflowIT extends IntegrationTestBase {
         assertThat(row(id).get("room_id")).isEqualTo(base.room("R1").id());
         assertThat((BigDecimal) row(id).get("total_amount")).isEqualByComparingTo("250");
         assertThat(fx.count("room_order_night", "room_order_id = ?", id)).isEqualTo(1);
+        assertThat(fx.count("room_inventory", "order_id=?", id)).isEqualTo(1);
         assertThat(jdbc.queryForObject("select price from room_order_night where room_order_id = ? and night = ?", BigDecimal.class, id, today)).isEqualByComparingTo("250");
         paid(token, id); Resp stats = get("/business/revenue/stats?date=" + today, login(base.manager())); ok(stats);
         assertThat(stats.data().path("today").decimalValue()).isEqualByComparingTo("250");
@@ -335,6 +347,7 @@ class OrderWorkflowIT extends IntegrationTestBase {
     @Test void tc089_manualCheckoutEndsCurrentOrder() {
         long id = occupiedOrder(); ok(put("/rooms", login(base.front()), Map.of("id", base.room("R1").id(), "status", 0)));
         assertThat(roomState("R1")).isZero(); state(id, 1, 1);
+        assertThat(fx.count("room_inventory", "order_id=?", id)).isZero();
     }
     @Test void tc090_occupiedRoomWithoutOrderCanBecomeAvailable() {
         roomState("R2", 1); List<Map<String, Object>> before = jdbc.queryForList("select * from room_order order by id");
@@ -379,7 +392,9 @@ class OrderWorkflowIT extends IntegrationTestBase {
     }
     @Test void tc095_moveToOverlappingRoomIsRejected() {
         String f = login(base.front()); long id = front(f, true); String b = login(base.user("B")); long old = order(b, "R2", in(1), out(3)); paid(b, old);
+        List<Map<String, Object>> inventory = jdbc.queryForList("select * from room_inventory order by id");
         Map<String, Object> before = row(id); conflict(modify(f, id, "R2", in(0), out(2))); assertThat(row(id)).isEqualTo(before);
+        assertThat(jdbc.queryForList("select * from room_inventory order by id")).isEqualTo(inventory);
     }
     @Test void tc096_invalidModificationDatesAre400() {
         String f = login(base.front()); long id = front(f, true); Map<String, Object> before = row(id);
@@ -387,12 +402,15 @@ class OrderWorkflowIT extends IntegrationTestBase {
     }
     @Test void tc097_extensionRepricesAndRewritesNights() {
         String f = login(base.front()); long id = front(f, true);
+        List<Map<String, Object>> inventory = jdbc.queryForList("select * from room_inventory order by id");
         assertThat((BigDecimal) row(id).get("total_amount")).isEqualByComparingTo("398"); ok(modify(f, id, "R1", in(0), out(3)));
         assertThat((BigDecimal) row(id).get("total_amount")).isEqualByComparingTo("597");
         assertThat(fx.count("room_order_night", "room_order_id = ?", id)).isEqualTo(3);
         assertThat(jdbc.queryForObject("select sum(price) from room_order_night where room_order_id = ?", BigDecimal.class, id)).isEqualByComparingTo("597");
         Resp stats = get("/business/revenue/stats?date=" + d.plusDays(2), login(base.manager())); ok(stats);
         assertThat(stats.data().path("today").decimalValue()).isEqualByComparingTo("199");
+        assertThat(fx.count("room_inventory", "order_id=?", id)).isEqualTo(3);
+        assertThat(jdbc.queryForList("select * from room_inventory where stay_date<? order by id", d.plusDays(2))).isEqualTo(inventory);
     }
     @Test void tc098_moveToSuiteRepricesNights() {
         String f = login(base.front()); long id = front(f, true); assertThat((BigDecimal) row(id).get("total_amount")).isEqualByComparingTo("398");
@@ -458,6 +476,7 @@ class OrderWorkflowIT extends IntegrationTestBase {
         ok(post("/order/cancel?id=" + id, token, null)); state(id, 2, 2);
         Resp stats = get("/business/revenue/stats?date=" + d, login(base.manager())); ok(stats);
         assertThat(stats.data().path("today").decimalValue()).isEqualByComparingTo("0");
+        assertThat(fx.count("room_inventory", "order_id=?", id)).isZero();
     }
     @Test void tc080_nightInsertFailureRollsBackGuestOrderAndNights() {
         int people = fx.count("individual"); String token = login(base.user("A"));
@@ -466,15 +485,18 @@ class OrderWorkflowIT extends IntegrationTestBase {
             Map<String, Object> body = Fixtures.roomOrderBody(base.room("R1").number(), in(0), out(2)); body.putAll(Fixtures.guest("P9"));
             assertThat(post("/order", token, body).code()).isNotZero();
             assertThat(fx.count("individual")).isEqualTo(people); assertThat(fx.count("room_order")).isZero(); assertThat(fx.count("room_order_night")).isZero();
+            assertThat(fx.count("room_inventory")).isZero();
         } finally { jdbc.execute("drop trigger fail_night_insert"); }
     }
     @Test void tc097_nightRewriteFailureRollsBackModificationAndOriginalNights() {
         String f = login(base.front()); long id = front(f, true); Map<String, Object> before = row(id);
         List<Map<String, Object>> nights = jdbc.queryForList("select * from room_order_night where room_order_id = ? order by night", id);
+        List<Map<String, Object>> inventory = jdbc.queryForList("select * from room_inventory order by id");
         jdbc.execute("create trigger fail_night_rewrite before insert on room_order_night for each row signal sqlstate '45000' set message_text = 'injected night failure'");
         try {
             assertThat(modify(f, id, "S1", in(0), out(3)).code()).isNotZero(); assertThat(row(id)).isEqualTo(before);
             assertThat(jdbc.queryForList("select * from room_order_night where room_order_id = ? order by night", id)).isEqualTo(nights);
+            assertThat(jdbc.queryForList("select * from room_inventory order by id")).isEqualTo(inventory);
         } finally { jdbc.execute("drop trigger fail_night_rewrite"); }
     }
     @Test void tc088_unpaidFrontOrderIsEnabledAndReleasedByTime() {

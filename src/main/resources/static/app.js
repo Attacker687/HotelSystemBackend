@@ -74,8 +74,27 @@ async function api(path, method = 'GET', body, options = {}) {
   const token = session?.token;
   if (token) headers.token = token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), ...options });
-  return apiResult(response, token);
+  const response = await fetch(path, { method, body: body === undefined ? undefined : JSON.stringify(body), ...options,
+    headers: { ...headers, ...options.headers } });
+  try { return await apiResult(response, token); }
+  catch (error) {
+    if (error?.status !== undefined) throw error;
+    throw requestError(`请求失败（${response.status}），请稍后再试`, response.status);
+  }
+}
+function newKey() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function postOrder(body) {
+  const key = newKey();
+  for (let attempt = 0; ; attempt++) {
+    try { return await api('/order', 'POST', body, { headers: { 'Idempotency-Key': key } }); }
+    catch (error) {
+      if (error.status !== undefined || attempt >= 2) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
 }
 function button(text, action, attrs = {}, disabled = () => false) {
   const node = el('button', text, { type: 'button', ...attrs });
@@ -289,7 +308,7 @@ function showBooking(room) {
   const form = el('form');
   stayFields(form, session.profile);
   submit(form, '提交预订', async values => {
-    await api('/order', 'POST', stayBody({ ...values, roomNumber: room.roomNumber }));
+    await postOrder(stayBody({ ...values, roomNumber: room.roomNumber }));
     await navigate('orders');
     message('预订成功，请在 15 分钟内支付');
   });
@@ -306,7 +325,7 @@ async function frontView() {
   stayFields(form);
   select(form, '收款', 'paid', [['false', '未收款'], ['true', '已收款']], 'false');
   submit(form, '提交开单', async values => {
-    await api('/order', 'POST', stayBody(values));
+    await postOrder(stayBody(values));
     await navigate('overview');
     message('开单成功');
   });

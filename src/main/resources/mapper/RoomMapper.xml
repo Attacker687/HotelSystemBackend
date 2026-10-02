@@ -7,15 +7,11 @@
         where r.is_deleted = 0
         <if test="roomType != null">and r.room_type = #{roomType}</if>
           and not exists (
-              select 1 from room_order o
-              where o.room_id = r.id and o.status = 0 and o.is_deleted = 0
-                and o.checkin_time &lt; #{checkout} and o.checkout_time &gt; #{checkin}
+              select 1 from room_inventory i
+              where i.room_id = r.id and i.stay_date >= DATE(#{checkin}) and i.stay_date &lt; DATE(#{checkout})
           )
         order by r.room_number
         limit #{limit}
-    </select>
-    <select id="lockRoomByNumber" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
-        select * from room where room_number = #{roomNumber} and is_deleted = 0 for update
     </select>
     <select id="lockRoomById" resultType="com.winniethepooh.hotelsystembackend.entity.Room">
         select * from room where id = #{id} and is_deleted = 0 for update
@@ -90,6 +86,10 @@
                 and is_deleted = 0
             </if>
         </where>
+    </select>
+
+    <select id="getRoomStatus" resultType="java.lang.Integer">
+        select status from room where id = #{id} and is_deleted = 0
     </select>
 
     <select id="getExistFloors" resultType="java.lang.Integer">

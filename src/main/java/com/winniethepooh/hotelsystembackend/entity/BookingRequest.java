@@ -8,6 +8,10 @@ public class BookingRequest {
     private Long id;
     private String requestId;
     private Integer userId;
+    private Integer requesterRole;
+    private String requestHash;
+    private Integer failStatus;
+    private String failMessage;
     private String actionType;
     private Long orderId;
     private String status;
