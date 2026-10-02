@@ -13,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -69,6 +72,8 @@ public class OrderRequestService {
             throw new BusinessException(HttpStatus.CONFLICT, "请求号已被占用，请更换后重试");
         if (!"ORDER".equals(record.getActionType()) || !Objects.equals(record.getRequestHash(), hash))
             throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "请求号与内容不一致");
+        if ("SUCCESS".equals(record.getStatus()) || "FAILED".equals(record.getStatus()))
+            log.info("order idempotency hit key={} status={}", record.getRequestId(), record.getStatus());
         if ("SUCCESS".equals(record.getStatus())) return record.getOrderId();
         if ("FAILED".equals(record.getStatus())) throw new BusinessException(HttpStatus.valueOf(record.getFailStatus()), record.getFailMessage());
         throw processing();
@@ -80,7 +85,12 @@ public class OrderRequestService {
         String canonical = String.join("|", field(dto.getRoomNumber()), field(dto.getCheckInTime()), field(dto.getCheckOutTime()),
                 field(dto.getName()), field(dto.getPhone()), field(dto.getIdCard()));
         if (role == RoleConstant.FRONT) canonical += "|" + field(dto.getPaid());
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8))); }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(StandardCharsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT).encode(CharBuffer.wrap(canonical)));
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (CharacterCodingException e) { throw new BusinessException(HttpStatus.BAD_REQUEST, "请求内容含非法 Unicode 字符"); }
         catch (NoSuchAlgorithmException e) { throw new IllegalStateException("SHA-256 unavailable", e); }
     }
 

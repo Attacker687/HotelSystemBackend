@@ -52,6 +52,32 @@ class OrderIdempotencyIT extends IntegrationTestBase {
     @BeforeEach void prepare() { fake.reset(); }
 
     @ParameterizedTest
+    @CsvSource({"uD800,existing", "uDC00,existing", "uD800,new", "uDC00,new", "chinese,valid", "emoji,valid"})
+    void tc005_rawJsonUnicodeCannotAliasQuestionMarkAndValidNamesStillReplay(String value, String kind) throws Exception {
+        String token = login(base.userA()), key = "idem-unicode-0001";
+        Map<String, Object> body = body();
+        if (kind.equals("valid")) {
+            body.put("name", value.equals("chinese") ? "正常中文入住人" : "正常中文" + new String(Character.toChars(0x1F600)));
+            String raw = json.writeValueAsString(body);
+            Resp first = post("/order", token, raw, Map.of("Idempotency-Key", key)); ok(first);
+            Map<String, List<Map<String, Object>>> before = snapshot();
+            Resp repeated = post("/order", token, raw, Map.of("Idempotency-Key", key)); ok(repeated);
+            assertThat(repeated.data()).isEqualTo(first.data()); assertThat(snapshot()).isEqualTo(before);
+            body.put("name", body.get("name") + "改名");
+            rejected(post("/order", token, json.writeValueAsString(body), Map.of("Idempotency-Key", key)), 422, MISMATCH);
+            assertThat(snapshot()).isEqualTo(before);
+        } else {
+            if (kind.equals("existing")) { body.put("name", "?"); ok(book(token, key, body)); }
+            Map<String, List<Map<String, Object>>> before = snapshot();
+            body.put("name", "UNICODE_MARKER");
+            String raw = json.writeValueAsString(body).replace("UNICODE_MARKER", "\\" + value);
+            sql.reset(); Resp rejected = post("/order", token, raw, Map.of("Idempotency-Key", key));
+            rejected(rejected, 400, "请求内容含非法 Unicode 字符");
+            assertThat(snapshot()).isEqualTo(before); assertThat(sql.statements()).isEmpty();
+        }
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"user", "front"})
     void tc001_sequentialRetriesReturnSameResultAndStoreOnlyOnePrivateRequest(String role) {
         boolean front = role.equals("front");

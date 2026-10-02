@@ -1,5 +1,9 @@
 package com.winniethepooh.hotelsystembackend.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.winniethepooh.hotelsystembackend.constant.RoleConstant;
 import com.winniethepooh.hotelsystembackend.context.BaseContext;
 import com.winniethepooh.hotelsystembackend.dto.InsertRoomOrderDTO;
@@ -16,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.PessimisticLockingFailureException;
@@ -58,6 +63,25 @@ class OrderRequestServiceTest {
         when(mapper.markBookingRequestSuccess(anyString(), anyLong())).thenReturn(1);
     }
     @AfterEach void clear() throws Exception { BaseContext.clear(); mocks.close(); }
+
+    @ParameterizedTest
+    @CsvSource({"SUCCESS,200", "FAILED,400", "FAILED,404"})
+    void tc014_replayLogsOnlyKeyAndStateAtInfoWhileKeepingOriginalResult(String state, int status) throws Exception {
+        BookingRequest row = record(state); row.setFailStatus(status); row.setFailMessage("原失败消息");
+        when(mapper.findBookingRequest(KEY)).thenReturn(row);
+        Logger logger = (Logger) LoggerFactory.getLogger(OrderRequestService.class); ListAppender<ILoggingEvent> logs = new ListAppender<>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            if (state.equals("SUCCESS")) assertThat(service.placeOrder(KEY, dto())).isEqualTo(123L);
+            else assertBusiness(() -> service.placeOrder(KEY, dto()), status, row.getFailMessage());
+            assertThat(logs.list).hasSize(1);
+            ILoggingEvent event = logs.list.get(0); assertThat(event.getLevel()).isEqualTo(Level.INFO);
+            assertThat(event.getFormattedMessage()).isEqualTo("order idempotency hit key=" + KEY + " status=" + state)
+                    .doesNotContain(dto().getName(), dto().getPhone(), dto().getIdCard(), row.getFailMessage());
+            assertThat(event.getArgumentArray()).containsExactly(KEY, state); assertThat(event.getThrowableProxy()).isNull();
+            verifyNoInteractions(orders, tx);
+        } finally { logger.detachAppender(logs); logs.stop(); }
+    }
 
     @ParameterizedTest
     @ValueSource(ints = {RoleConstant.USER, RoleConstant.FRONT})
