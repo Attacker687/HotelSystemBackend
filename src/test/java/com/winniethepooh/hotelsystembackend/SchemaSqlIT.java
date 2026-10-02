@@ -3,15 +3,18 @@ package com.winniethepooh.hotelsystembackend;
 import com.winniethepooh.hotelsystembackend.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * E1：schema.sql 在空库上建表。不启动应用；复用测试 JVM 共享的 MySQL 8.0 容器，
@@ -54,6 +57,7 @@ class SchemaSqlIT {
                             "group by index_name", String.class, DB);
             assertThat(uniqueIndexCols).contains("room_type,date");
             bookingRequestSchema(jdbc);
+            roomInventorySchema(jdbc);
         }
     }
 
@@ -90,5 +94,33 @@ class SchemaSqlIT {
         assertThat(jdbc.queryForObject("select character_maximum_length from information_schema.columns where table_schema=? and table_name='booking_request' and column_name='fail_message'", Integer.class, DB)).isEqualTo(255);
         assertThat(jdbc.queryForList("select column_name from information_schema.statistics where table_schema=? and table_name='booking_request' and index_name='idx_booking_request_created' order by seq_in_index", String.class, DB)).containsExactly("created_at");
         assertThat(jdbc.queryForList("select column_name from information_schema.statistics where table_schema=? and table_name='booking_request' and index_name='uk_booking_request_request_id' and non_unique=0 order by seq_in_index", String.class, DB)).containsExactly("request_id");
+    }
+
+    private void roomInventorySchema(JdbcTemplate jdbc) {
+        assertThat(jdbc.queryForList("select column_name from information_schema.columns where table_schema=? and table_name='room_inventory' order by ordinal_position", String.class, DB))
+                .containsExactly("id", "room_id", "stay_date", "order_id", "created_at");
+        for (String[] spec : List.of(new String[]{"id", "bigint"}, new String[]{"room_id", "bigint"},
+                new String[]{"stay_date", "date"}, new String[]{"order_id", "bigint"}, new String[]{"created_at", "datetime"})) {
+            assertThat(jdbc.queryForMap("select data_type,is_nullable from information_schema.columns where table_schema=? and table_name='room_inventory' and column_name=?", DB, spec[0]))
+                    .containsEntry("DATA_TYPE", spec[1]).containsEntry("IS_NULLABLE", "NO");
+        }
+        assertThat(jdbc.queryForObject("select extra from information_schema.columns where table_schema=? and table_name='room_inventory' and column_name='id'", String.class, DB)).contains("auto_increment");
+        assertThat(jdbc.queryForObject("select column_default from information_schema.columns where table_schema=? and table_name='room_inventory' and column_name='created_at'", String.class, DB)).isEqualToIgnoringCase("CURRENT_TIMESTAMP");
+        assertThat(jdbc.queryForMap("select engine,table_collation from information_schema.tables where table_schema=? and table_name='room_inventory'", DB))
+                .containsEntry("ENGINE", "InnoDB");
+        assertThat(jdbc.queryForObject("select table_collation from information_schema.tables where table_schema=? and table_name='room_inventory'", String.class, DB)).startsWith("utf8mb4_");
+        assertThat(jdbc.queryForList("select column_name from information_schema.statistics where table_schema=? and table_name='room_inventory' and index_name='PRIMARY' order by seq_in_index", String.class, DB)).containsExactly("id");
+        assertThat(jdbc.queryForList("select column_name from information_schema.statistics where table_schema=? and table_name='room_inventory' and index_name='uk_room_inventory_room_date' and non_unique=0 order by seq_in_index", String.class, DB)).containsExactly("room_id", "stay_date");
+        assertThat(jdbc.queryForList("select column_name from information_schema.statistics where table_schema=? and table_name='room_inventory' and index_name='idx_room_inventory_order' order by seq_in_index", String.class, DB)).containsExactly("order_id");
+        assertThat(jdbc.queryForObject("select count(*) from information_schema.table_constraints where table_schema=? and table_name='room_inventory' and constraint_type='FOREIGN KEY'", Integer.class, DB)).isZero();
+
+        LocalDate date = LocalDate.now().plusDays(11);
+        jdbc.update("insert into room_inventory(room_id,stay_date,order_id) values (1,?,1)", date);
+        assertThatThrownBy(() -> jdbc.update("insert into room_inventory(room_id,stay_date,order_id) values (1,?,2)", date))
+                .isInstanceOf(DuplicateKeyException.class);
+        jdbc.update("insert into room_inventory(room_id,stay_date,order_id) values (1,?,2)", date.plusDays(1));
+        jdbc.update("insert into room_inventory(room_id,stay_date,order_id) values (2,?,3)", date);
+        assertThat(jdbc.queryForObject("select count(*) from room_inventory", Integer.class)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("select count(*) from room_inventory where created_at is not null", Integer.class)).isEqualTo(3);
     }
 }

@@ -173,7 +173,7 @@ sequenceDiagram
     T->>R: 到店时标记占用，离店后置清洁中
 ```
 
-当前流程在数据库事务内用房间行锁与 `[checkin, checkout)` 冲突检查防止重叠预订，金额和按晚明细一起落库。每日库存与 `requestId` 幂等仅设计完成，尚未实现，见[《并发预订与幂等设计》](booking-consistency.md)。前台订单按 `paid` 设置收款状态，未收款前台单不参与超时取消，仍由入住/退房任务推进。
+当前流程在数据库事务内用房间行锁与 `[checkin, checkout)` 冲突检查防止重叠预订，金额和按晚明细一起落库。M1 已实现 `POST /order` 的可选 `Idempotency-Key`。S03 已提供每日库存表 DDL 和手工历史回填，生产订单读写在 S04 一次切换；部署需停写完成回填、核对后接续启动 S04，见[《并发预订与幂等设计》](booking-consistency.md)和 [README 上线步骤](../README.md#每日库存建表与回填m2)。前台订单按 `paid` 设置收款状态，未收款前台单不参与超时取消，仍由入住/退房任务推进。
 
 ### 5.3 餐饮主从订单事务
 
@@ -240,6 +240,8 @@ erDiagram
     USER ||--o{ ROOM_ORDER : places
     INDIVIDUAL ||--o{ ROOM_ORDER : stays
     ROOM ||--o{ ROOM_ORDER : assigned_to
+    ROOM ||--o{ ROOM_INVENTORY : nights
+    ROOM_ORDER ||--o{ ROOM_INVENTORY : occupies
     USER ||--o{ MEAL_ORDER : places
     MEAL_ORDER ||--|{ MEAL_ORDER_ITEM : contains
     DISH ||--o{ MEAL_ORDER_ITEM : referenced_by
@@ -270,6 +272,13 @@ erDiagram
         int pay_status
         int status
     }
+    ROOM_INVENTORY {
+        bigint id PK
+        bigint room_id
+        date stay_date
+        bigint order_id
+        datetime created_at
+    }
     MEAL_ORDER {
         int id PK
         int user_id FK
@@ -292,6 +301,8 @@ erDiagram
 ```
 
 `INDIVIDUAL` 与 `USER` 分离，是为了同时支持注册用户在线预订和未注册住客由前台代客开单。
+
+`room_inventory` 用 `(room_id, stay_date)` 唯一键表达每晚占用，`order_id` 有普通索引；图中为逻辑关系，DDL 无外键。S03 回填有效历史订单的完整夜集合（含已入住单的过去晚），不依赖 `room_order_night`；后者继续只保存每晚价格快照和支持营收统计。库存业务维护在 S04 接入。
 
 ## 8. 经营指标的数据路径
 
@@ -326,12 +337,12 @@ flowchart LR
 | 价格 | 房型日期日历 | 满足节假日和旺季定价 | 规则引擎、套餐与促销叠加 |
 | 调度 | 每分钟 `@Scheduled`；退房任务在事务内通过 `scheduler_task_lock` 数据库行锁和分钟条件抢占整批互斥，另两项任务采用条件更新 | 退房任务支持多实例互斥，重复更新受状态条件约束 | 失败重试与补偿尚未实现 |
 | 经营统计 | 请求时实时聚合 | 数据新鲜、实现直接 | 汇总表、缓存和异步计算 |
-| 库存 | 房间行锁 + 有效订单的时刻区间冲突检查 | 防止重叠预订 | 每日库存表、条件更新与幂等请求（仅设计完成） |
+| 库存 | 当前仍用房间行锁 + 有效订单的时刻区间冲突检查；S03 提供每日库存建表与手工回填 | 用同房同日唯一键准备按晚裁决 | S04 在订单事务内逐晚 INSERT 库存、各释放入口同步删除；停写回填后连续切换 |
 
 ## 10. 工程化改进清单
 
-- [ ] 为客房预订增加每日库存记录和唯一约束；
-- [ ] 引入 `requestId` 唯一索引及幂等状态机；
+- [ ] 将 S03 已建的每日库存表与唯一约束接入客房预订和释放（S04）；
+- [x] 引入 `Idempotency-Key` 唯一索引及幂等状态机（M1）；
 - [x] JWT/OSS 等敏感配置使用环境变量，JWT 随机密钥缺失时拒绝启动；
 - [ ] 补充 Flyway/Liquibase 数据库迁移脚本；
 - [x] 建立 API 集成、并发及六条 Playwright 端到端回归测试；
