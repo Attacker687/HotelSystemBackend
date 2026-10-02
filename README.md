@@ -258,6 +258,25 @@ CREATE TABLE IF NOT EXISTS booking_request
 
 已有 `booking_request` 表的旧库在部署前手工执行一次 [m1-booking-request.sql](src/main/resources/db/migration/m1-booking-request.sql)，增加四列及清理索引。ALTER 不可重复执行；新库执行 `schema.sql` 或上面的完整建表 DDL 后不再执行 ALTER。M1 回滚可直接回滚 jar，新列的默认值及可空值兼容旧代码；ORDER 记录可保留或手工清理。
 
+### 每日库存建表与回填（M2）
+
+S03 提供 `room_inventory` 建表和手工回填工具；库存业务读写在 S04 接入。新库的 `schema.sql` 已含库存表，旧库使用 [m2-room-inventory.sql](src/main/resources/db/migration/m2-room-inventory.sql)。两份 DDL 字段、键一致：同房同日唯一，按 `order_id` 索引，无外键。默认 profile 不自动执行迁移。
+
+旧库必须在同一个停写窗口完成以下步骤，再接续启动 S04 库存版本：
+
+1. 停止旧版本及其他订单写入，确认 JVM/JDBC 为 `Asia/Shanghai`、MySQL 会话为 `+08:00`。
+2. 在目标库手工执行 `m2-room-inventory.sql`，确认 `room_inventory` 为空。
+3. 打开 [m2-room-inventory-backfill.sql](src/main/resources/db/migration/m2-room-inventory-backfill.sql)，**只执行步骤 1，人工核对冲突清单**。有任何输出就停止，按业务核实并处理历史冲突，再重跑步骤 1，直到无输出；不要直接执行整份文件。
+4. 单独执行步骤 2 的一条 `INSERT…WITH RECURSIVE`。只填进行中、未删、有房间且离店时间在未来的订单，夜集合为 `[入住日, 离店日)`，已入住订单包含过去晚；唯一键冲突会使整条语句失败，空库存仍为空。
+5. 执行[核对 SQL I1/I2](docs/booking-consistency.md#历史订单回填与核对)，两条均无输出才可继续。
+6. 保持停写，部署并启动 S04 版本；冒烟下单、同房同晚重复下单返回 409、取消后重新预订成功。不能在回填后恢复旧版写入，再沿用先前的库存结果。
+
+回填脚本**只执行一次**；需要重做时，在停写窗口先 `TRUNCATE room_inventory`，再从步骤 3 开始。dev 演示数据没有订单，无需历史回填。
+
+M2 回滚可回滚 jar 并保留库存表，旧版本仍按订单区间判断冲突。回滚期间旧版本不会维护库存；**再次上线 S04 前必须重新停写、清空 `room_inventory`、重新回填并核对 I1/I2**。
+
+### 助手配置与回退
+
 配置 key 后启动前确认 `HOTEL_AGENT_PROVIDER=openai`、`HOTEL_AGENT_MODEL=gpt-6-luna`。回退可以删除 key 并重启（只有助手 chat 返回 503，普通功能继续可用），或切换 fake 后重启：
 
 ```powershell
@@ -409,7 +428,7 @@ mvn -B clean verify -Ddocker.api.version=1.43
 
 此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。review-fixes 历史批次跳过独立代码评审的记录不适用于本次 booking-agent；本次按批次执行一次三路独立评审、一次统一修正与全新独立验收。
 
-当前并发预订使用**房间行锁与时段重叠检查**；`POST /order` 可带 `Idempotency-Key` 安全重试，助手确认通过同一表的全局唯一键幂等及确认/取消互斥。请求号记录保留 7 天，每日 03:30 清理（受 `HOTEL_SCHEDULER_ENABLED` 控制）；窗口外再次使用请求号会重新执行。每日库存、热点缓存和定时任务失败自动重试仍是演进项，见 [并发预订与幂等设计](docs/booking-consistency.md)。
+当前并发预订使用**房间行锁与时段重叠检查**；`POST /order` 可带 `Idempotency-Key` 安全重试，助手确认通过同一表的全局唯一键幂等及确认/取消互斥。请求号记录保留 7 天，每日 03:30 清理（受 `HOTEL_SCHEDULER_ENABLED` 控制）；窗口外再次使用请求号会重新执行。每日库存建表和手工回填已提供，库存业务切换留 S04；热点缓存和定时任务失败自动重试仍是演进项，见 [并发预订与幂等设计](docs/booking-consistency.md)。
 
 已接受的助手边界：同一会话多标签页并发消息无会话锁，可能打乱历史，可新建对话；每分钟限流的 INCR 与首次 EXPIRE 非原子。Redis 必须使用 7，并让应用、Redis 与 MySQL 时钟同步（例如 NTP），保持上海 JVM/JDBC 和 MySQL `+08:00`；会话 Lua 用 Redis TIME 判断应用传入的截止时间。服务端已提交但响应在网络中丢失时，客户端提交结果为 UNKNOWN（结果未知），不能视为未执行；同卡重试确认读取同一幂等结果。NOTE 写入是尽力而为，最终订单状态以数据库为准。
 

@@ -108,6 +108,19 @@ CREATE TABLE IF NOT EXISTS room_order
     KEY idx_room_order_created_at (created_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '客房订单';
 
+-- 客房每晚占用：同房同日唯一；S04 接入业务写入，历史订单先在停写窗口回填。
+CREATE TABLE IF NOT EXISTS room_inventory
+(
+    id         BIGINT   NOT NULL AUTO_INCREMENT,
+    room_id    BIGINT   NOT NULL,
+    stay_date  DATE     NOT NULL,
+    order_id   BIGINT   NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_room_inventory_room_date (room_id, stay_date),
+    KEY idx_room_inventory_order (order_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '客房每晚占用';
+
 -- 客房订单按晚明细：每晚一行，night 为该晚的日期（入住日 … 离店日前一天），price 为下单时该晚的房价，
 -- 各晚 price 之和等于 room_order.total_amount。下单时写入；营收、平均房价（ADR）按 night 汇总，
 -- 是否计入看所属订单（已支付、未取消、未删除）。改期重算时整单删除后重写。
