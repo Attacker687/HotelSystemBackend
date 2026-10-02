@@ -12,6 +12,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+      timeout: 1s
   servlet:
     multipart:
       max-file-size: 5MB
@@ -33,6 +34,8 @@ springdoc:
     path: /swagger-ui.html
 
 hotel:
+  cache:
+    enabled: ${HOTEL_CACHE_ENABLED:true}
   agent:
     provider: ${HOTEL_AGENT_PROVIDER:openai}
     model: ${HOTEL_AGENT_MODEL:gpt-6-luna}

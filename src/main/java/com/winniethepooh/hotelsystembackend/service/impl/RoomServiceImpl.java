@@ -7,6 +7,7 @@ import com.winniethepooh.hotelsystembackend.dto.InsertRoomDTO;
 import com.winniethepooh.hotelsystembackend.entity.Individual;
 import com.winniethepooh.hotelsystembackend.entity.Room;
 import com.winniethepooh.hotelsystembackend.entity.RoomOrder;
+import com.winniethepooh.hotelsystembackend.entity.PriceCalendar;
 import com.winniethepooh.hotelsystembackend.exception.RoomNumberDuplicatedException;
 import com.winniethepooh.hotelsystembackend.exception.UnknownRoomTypeException;
 import com.winniethepooh.hotelsystembackend.exception.BusinessException;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import com.winniethepooh.hotelsystembackend.mapper.OrderMapper;
 import com.winniethepooh.hotelsystembackend.mapper.RoomMapper;
 import com.winniethepooh.hotelsystembackend.service.RoomService;
+import com.winniethepooh.hotelsystembackend.service.HotCache;
 import com.winniethepooh.hotelsystembackend.vo.PageBean;
 import com.winniethepooh.hotelsystembackend.vo.QueryRoomsVO;
 import com.winniethepooh.hotelsystembackend.vo.RoomStatusWallVO;
@@ -25,6 +27,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -33,6 +37,10 @@ public class RoomServiceImpl implements RoomService {
     private RoomMapper roomMapper;
     @Autowired
     private OrderMapper orderMapper;
+    @Autowired
+    private HotCache hotCache;
+
+    private record RoomStatic(String roomNumber, Integer roomType, Integer floor, Integer capacity, String description, String image) {}
 
     private void roomTypeValid(Integer roomType) {
         if (roomType == null || (roomType != RoomTypeConstant.SINGLE && roomType != RoomTypeConstant.DOUBLE && roomType != RoomTypeConstant.SUITE))
@@ -78,7 +86,19 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public QueryRoomsVO queryRoomByIdService(Integer id) {
-        Room room = roomMapper.queryRoomById(id, false);
+        Room[] loaded = new Room[1];
+        RoomStatic info = hotCache.get("room:detail:" + id, RoomStatic.class, () -> {
+            loaded[0] = roomMapper.queryRoomById(id, false);
+            Room room = loaded[0];
+            return room == null ? null : new RoomStatic(room.getRoomNumber(), room.getRoomType(), room.getFloor(), room.getCapacity(), room.getDescription(), room.getImage());
+        });
+        if (info == null) return null;
+        if (loaded[0] != null) return convertToVO(loaded[0]);
+        List<Integer> statuses = roomMapper.getRoomStatus(id);
+        if (statuses.isEmpty()) return null;
+        Room room = new Room(); room.setId(id.longValue()); room.setStatus(statuses.get(0));
+        room.setRoomNumber(info.roomNumber()); room.setRoomType(info.roomType()); room.setFloor(info.floor());
+        room.setCapacity(info.capacity()); room.setDescription(info.description()); room.setImage(info.image());
         return convertToVO(room);
     }
 
@@ -99,11 +119,13 @@ public class RoomServiceImpl implements RoomService {
         roomTypeValid(insertRoomDTO.getRoomType());
         if (insertRoomDTO.getStatus() != null) statusValid(insertRoomDTO.getStatus());
         roomMapper.modifyRoomInfo(insertRoomDTO, id);
+        hotCache.evictAfterCommit(List.of("room:detail:" + id));
     }
 
     @Override
     public void deleteRoomService(Integer id) {
         roomMapper.deleteRoom(id);
+        hotCache.evictAfterCommit(List.of("room:detail:" + id));
     }
 
     @Override
@@ -118,9 +140,24 @@ public class RoomServiceImpl implements RoomService {
         List<QueryRoomsVO> voList = new ArrayList<>();
         PageBean<QueryRoomsVO> pageBean = new PageBean<>();
         Integer offset = (page - 1) * pageSize;
-        List<Room> roomList = roomMapper.queryRooms(pageSize, offset, roomNumber, roomType, status, date);
+        List<Room> roomList = roomMapper.queryRooms(pageSize, offset, roomNumber, roomType, status, null);
         int count = roomMapper.queryRoomsCount(roomNumber, roomType, status);
+        LocalDate priceDate = date == null ? LocalDate.now() : date;
+        List<String> keys = roomList.stream().map(Room::getRoomType).filter(Objects::nonNull).distinct().map(type -> "price:" + type + ":" + priceDate).toList();
+        Map<String, PriceCalendar> prices = hotCache.getAll(keys, PriceCalendar.class, missing -> {
+            Map<String, PriceCalendar> loaded = new LinkedHashMap<>();
+            for (String key : missing) {
+                int type = Integer.parseInt(key.split(":")[1]);
+                List<PriceCalendar> rows = roomMapper.getPriceCalendars(type, priceDate, priceDate);
+                loaded.put(key, rows.isEmpty() ? null : rows.get(0));
+            }
+            return loaded;
+        });
         for (Room room : roomList) {
+            if (room.getRoomType() != null) {
+                PriceCalendar price = prices.get("price:" + room.getRoomType() + ":" + priceDate);
+                room.setPrice(price == null || price.getPrice() == null ? RoomTypeConstant.getDefaultPrice(room.getRoomType()) : price.getPrice());
+            }
             QueryRoomsVO queryRoomsVO = convertToVO(room);
             voList.add(queryRoomsVO);
         }

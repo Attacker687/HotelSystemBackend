@@ -88,6 +88,10 @@
         </where>
     </select>
 
+    <select id="getRoomStatus" resultType="java.lang.Integer">
+        select status from room where id = #{id} and is_deleted = 0
+    </select>
+
     <select id="getExistFloors" resultType="java.lang.Integer">
         select distinct floor
         from room
