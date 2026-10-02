@@ -25,7 +25,7 @@ public interface OrderService {
 
     PageBean<GetAllRoomOrderVO> getAllRoomOrderService(Integer page, Integer pageSize);
 
-    void insertRoomOrderByFrontService(InsertRoomOrderDTO insertRoomOrderDTO);
+    Long insertRoomOrderByFrontService(InsertRoomOrderDTO insertRoomOrderDTO);
 
     void modifyRoomOrderService(Integer id, ModifyRoomOrderDTO modifyRoomOrderDTO);
 

@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -153,6 +154,7 @@ public class PendingActionService {
     }
 
     private Map<String, Object> byRecord(BookingRequest record, Integer userId, boolean confirm) {
+        if (Arrays.stream(PendingAction.Type.values()).noneMatch(type -> type.name().equals(record.getActionType()))) throw invalid();
         requireOwner(record.getUserId(), userId);
         if ("SUCCESS".equals(record.getStatus())) {
             if (!confirm) throw new BusinessException(HttpStatus.CONFLICT, "已确认，不能取消");
