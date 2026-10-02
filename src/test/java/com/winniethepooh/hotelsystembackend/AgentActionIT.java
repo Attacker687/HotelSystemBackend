@@ -168,7 +168,8 @@ class AgentActionIT extends IntegrationTestBase {
         Action a = propose("BOOKING", stay(room, 1, out));
         Resp booking = post("/order", login(base.userB()), Fixtures.roomOrderBody(room, today.plusDays(1).atTime(14, 0), today.plusDays(out).atTime(12, 0))); success(booking);
         long id = booking.data().asLong(); Map<String, List<Map<String, Object>>> before = businessSnapshot();
-        rejected(confirm(a.id(), token), 409, "已被预订"); invalidated(a, before);
+        Resp conflict = confirm(a.id(), token); rejected(conflict, 409, "已被预订");
+        assertThat(conflict.msg()).doesNotContain("确认请求冲突"); invalidated(a, before);
         assertThat(fx.count("room_order")).isEqualTo(1); assertThat(jdbc.queryForObject("select user_id from room_order where id=?", Integer.class, id)).isEqualTo(base.userB().id());
         assertThat(fx.count("room_order", "user_id=?", base.userA().id())).isZero();
     }
@@ -340,7 +341,7 @@ class AgentActionIT extends IntegrationTestBase {
     private void rejected(Resp r, int status, String message) { assertThat(r.status()).as("%s", r.body()).isEqualTo(status); assertThat(r.code()).isEqualTo(1); assertThat(r.msg()).contains(message); }
     private void confirmed(Resp r, Action a, String type) { success(r); assertThat(r.data().fieldNames()).toIterable().containsExactlyInAnyOrder("actionId", "type", "status", "orderId", "message"); assertThat(r.data().path("actionId").asText()).isEqualTo(a.id()); assertThat(r.data().path("type").asText()).isEqualTo(type); assertThat(r.data().path("status").asText()).isEqualTo("CONFIRMED"); assertThat(r.data().path("orderId").asLong()).isPositive(); }
     private void request(Action a, String state, Long id) { assertThat(fx.count("booking_request")).isEqualTo(1); Map<String, Object> r = jdbc.queryForMap("select * from booking_request where request_id=?", a.id()); assertThat(r.get("user_id")).isEqualTo(base.userA().id()); assertThat(r.get("status")).isEqualTo(state); assertThat(r.get("order_id")).isEqualTo(id); }
-    private Map<String, List<Map<String, Object>>> businessSnapshot() { Map<String, List<Map<String, Object>>> r = new LinkedHashMap<>(); for (String table : List.of("room_order", "room_order_night", "individual", "meal_order", "meal_order_item")) r.put(table, jdbc.queryForList("select * from " + table + " order by id")); return r; }
+    private Map<String, List<Map<String, Object>>> businessSnapshot() { Map<String, List<Map<String, Object>>> r = new LinkedHashMap<>(); for (String table : List.of("room_order", "room_order_night", "room_inventory", "individual", "meal_order", "meal_order_item")) r.put(table, jdbc.queryForList("select * from " + table + " order by id")); return r; }
     private void invalidated(Action a, Map<String, List<Map<String, Object>>> before) { assertThat(businessSnapshot()).isEqualTo(before); assertThat(fx.count("booking_request")).isZero(); assertThat(redis.hasKey(key(a))).isFalse(); rejected(confirm(a.id(), token), 404, "已失效"); assertThat(businessSnapshot()).isEqualTo(before); }
     private <T> List<T> together(List<Callable<T>> jobs) throws Exception {
         var pool = Executors.newFixedThreadPool(jobs.size()); CountDownLatch ready = new CountDownLatch(jobs.size()), go = new CountDownLatch(1);

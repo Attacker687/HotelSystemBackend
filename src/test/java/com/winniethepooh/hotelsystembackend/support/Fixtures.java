@@ -367,7 +367,11 @@ public class Fixtures {
         m.put("total_amount", total);
         m.put("pay_status", payStatus);
         m.put("status", status);
-        return insert("room_order", m);
+        long id = insert("room_order", m);
+        // 统计夹具故意包含重叠订单，先到的占用保留，不改变既有统计种子。
+        if (status == 0) for (LocalDate date = checkin.toLocalDate(); date.isBefore(checkout.toLocalDate()); date = date.plusDays(1))
+            jdbc.update("insert ignore into room_inventory (room_id,stay_date,order_id) values (?,?,?)", roomId, date, id);
+        return id;
     }
 
     public long mealOrder(int userId, BigDecimal total, int orderStatus) {

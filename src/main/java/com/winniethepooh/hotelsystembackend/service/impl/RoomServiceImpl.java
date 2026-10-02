@@ -68,7 +68,10 @@ public class RoomServiceImpl implements RoomService {
         if (room == null) throw new BusinessException(HttpStatus.NOT_FOUND, "房间不存在");
         if (room.getStatus() == RoomStatusConstant.OCCUPIED && status == RoomStatusConstant.AVAILABLE) {
             RoomOrder order = orderMapper.getRoomOrderByRoomIdAndTime(id, LocalDateTime.now());
-            if (order != null) orderMapper.modifyRoomOrderStatus(order.getId(), RoomOrderStatusConstant.DONE);
+            if (order != null) {
+                orderMapper.modifyRoomOrderStatus(order.getId(), RoomOrderStatusConstant.DONE);
+                orderMapper.deleteRoomInventoryFromDate(order.getId(), LocalDate.now());
+            }
         }
         roomMapper.modifyRoomStatus(id, status);
     }

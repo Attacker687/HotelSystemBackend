@@ -149,8 +149,8 @@ class AgentProposalIT extends IntegrationTestBase {
 
     @Test
     void tc062_overlappingBookingCannotCreateAnAction() throws Exception {
-        long id = order(base.userA().id(), 0, 0, new BigDecimal("398.00"));
-        jdbc.update("update room_order set checkout_time=? where id=?", today.plusDays(3).atTime(12, 0), id);
+        long individual = jdbc.queryForObject("select id from individual where phone=?", Long.class, base.userA().login());
+        fx.roomOrder(base.userA().id(), individual, base.room("R1").id(), today.plusDays(1).atTime(14, 0), today.plusDays(3).atTime(12, 0), new BigDecimal("398.00"), 0, 0);
         Chat chat = chat(List.of("propose_booking"), List.of(stay("1101", 2, 4)));
         assertThat(chat.outputs().get(0).path("error").asText()).contains("已被预订"); rejected(chat);
     }
@@ -251,7 +251,7 @@ class AgentProposalIT extends IntegrationTestBase {
 
     private Map<String, List<Map<String, Object>>> snapshots() {
         Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        for (String table : List.of("room_order", "room_order_night", "meal_order", "meal_order_item")) result.put(table, jdbc.queryForList("select * from " + table + " order by id"));
+        for (String table : List.of("room_order", "room_order_night", "room_inventory", "meal_order", "meal_order_item")) result.put(table, jdbc.queryForList("select * from " + table + " order by id"));
         return result;
     }
 }

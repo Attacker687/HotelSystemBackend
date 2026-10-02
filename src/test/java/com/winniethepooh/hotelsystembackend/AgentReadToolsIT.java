@@ -47,7 +47,8 @@ class AgentReadToolsIT extends IntegrationTestBase {
         roomOrder(base.userA().id(), "R1", 0);
         roomOrder(base.userA().id(), "R2", 2);
         long deleted = roomOrder(base.userA().id(), "R3", 0);
-        jdbc.update("update room_order set is_deleted=1 where id=?", deleted);
+        Resp deletion = delete("/order/" + deleted, login(base.manager()));
+        assertThat(deletion.status()).isEqualTo(200); assertThat(deletion.code()).isZero();
         Map<String, Object> args = stay(group.equals("adjacent") ? 3 : 2, 4);
         if (!group.equals("room-status")) args.put("roomType", 0);
 
@@ -258,7 +259,7 @@ class AgentReadToolsIT extends IntegrationTestBase {
 
     private Map<String, List<Map<String, Object>>> snapshots() {
         Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        for (String table : List.of("room", "room_order", "room_order_night", "meal_order", "meal_order_item"))
+        for (String table : List.of("room", "room_order", "room_order_night", "room_inventory", "meal_order", "meal_order_item"))
             result.put(table, jdbc.queryForList("select * from " + table + " order by id"));
         return result;
     }
