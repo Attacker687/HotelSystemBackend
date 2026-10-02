@@ -42,7 +42,7 @@ async function register(page, alias) {
     await page.getByLabel(label, { exact: true }).fill(person[key]);
   }
   await page.getByRole('button', { name: '提交注册' }).click();
-  await expect(page.getByRole('status')).toContainText('注册成功');
+  await expect(page.locator('#notice')).toContainText('注册成功');
   await expect(page.getByRole('heading', { name: '住客登录', exact: true })).toBeVisible();
 }
 async function nav(page, title) { await page.getByRole('button', { name: title, exact: true }).click(); }
@@ -71,7 +71,7 @@ async function booking(page, alias = 'R1', checkout = data.dates[1], person = da
   await page.getByLabel('入住日期', { exact: true }).fill(data.dates[0]);
   await page.getByLabel('离店日期', { exact: true }).fill(checkout);
   await send(page.getByRole('button', { name: '提交预订' }));
-  await expect(page.getByRole('status')).toContainText('预订成功');
+  await expect(page.locator('#notice')).toContainText('预订成功');
   const orders = (await fixture('state')).roomOrders;
   return orders[orders.length - 1].id;
 }
@@ -145,7 +145,7 @@ test('TC-132 住客注册、预订、支付、按晚营收和真实 cron 退房'
     const retryStart = requests.length;
     await page.route('**/order', route => ++attempts === 1 ? route.abort('failed') : route.continue());
     await submit.click();
-    await expect(page.getByRole('status')).toContainText('预订成功');
+    await expect(page.locator('#notice')).toContainText('预订成功');
     const retried = requests.slice(retryStart);
     expect(retried).toHaveLength(2);
     expect(new Set(orderKeys(retried)).size).toBe(1);
@@ -205,7 +205,7 @@ test('TC-133 前台未收款单经历 70 秒超时检查、入住、退房、清
   await page.getByLabel('离店日期', { exact: true }).fill(data.dates[2]);
   await page.getByLabel('收款', { exact: true }).selectOption('false');
   await page.getByRole('button', { name: '提交开单' }).click();
-  await expect(page.getByRole('status')).toContainText('开单成功');
+  await expect(page.locator('#notice')).toContainText('开单成功');
   expect(requests).toHaveLength(1);
   orderKeys(requests, /^[0-9a-f]{32}$/);
   const id = (await fixture('state')).roomOrders[0].id;
@@ -247,7 +247,7 @@ test('TC-134 两张餐饮单取消一张，另一张推进、评价并计入 Top
     await page.getByTestId(`dish-${data.base.dishes.X.id}`).getByLabel('数量', { exact: true }).fill('2');
     await page.getByLabel('送餐地址').fill(`${data.base.rooms.R1.number} 房`);
     await page.getByRole('button', { name: '提交餐饮订单' }).click();
-    await expect(page.getByRole('status')).toContainText('下单成功');
+    await expect(page.locator('#notice')).toContainText('下单成功');
   }
   await nav(page, '我的订单');
   const [one, two] = (await fixture('state')).mealOrders;
@@ -384,7 +384,7 @@ test('TC-137 住客支付后取消退款，经理概览为零，另一住客重�
   expect(requests).toHaveLength(1);
   expect((await fixture('state')).roomOrders).toHaveLength(1);
   expect(await page.evaluate(() => window.bookingSuccesses)).toBe(1);
-  await expect(page.getByRole('status')).toHaveText('预订成功，请在 15 分钟内支付');
+  await expect(page.locator('#notice')).toHaveText('预订成功，请在 15 分钟内支付');
   await expect(roomOrder(page, first)).toHaveCount(1);
   await page.unroute('**/order');
   await expect(roomOrder(page, first)).toContainText('待支付');
