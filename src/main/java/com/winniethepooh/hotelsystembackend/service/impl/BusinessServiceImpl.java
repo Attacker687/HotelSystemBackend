@@ -273,8 +273,10 @@ public class BusinessServiceImpl implements BusinessService {
     @Override
     public List<PriceCalendar> getPriceCalendarService(LocalDate startDate, LocalDate endDate, Integer roomType) {
         List<LocalDate> dateList = checkedDates(startDate, endDate);
-        Map<LocalDate, PriceCalendar> byDate = roomMapper.getPriceCalendars(roomType, startDate, endDate).stream()
-                .collect(Collectors.toMap(PriceCalendar::getDate, p -> p));
-        return dateList.stream().map(byDate::get).collect(Collectors.toList());
+        List<String> keys = dateList.stream().map(date -> "price:" + roomType + ":" + date).toList();
+        Map<String, PriceCalendar> prices = hotCache.getAll(keys, PriceCalendar.class, missing ->
+                roomMapper.getPriceCalendars(roomType, startDate, endDate).stream()
+                        .collect(Collectors.toMap(p -> "price:" + roomType + ":" + p.getDate(), p -> p)));
+        return keys.stream().map(prices::get).collect(Collectors.toList());
     }
 }
