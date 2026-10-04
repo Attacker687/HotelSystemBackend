@@ -1,10 +1,19 @@
 # HotelSystemBackend
 
-酒店预订与管理系统，包含 Spring Boot 后端和同源的原生 HTML/CSS/JavaScript 页面。住客、经理、前台和餐厅使用同一套服务，完成预订、订单、房态、餐饮和经营统计流程。
+[![CI](https://github.com/Attacker687/HotelSystemBackend/actions/workflows/ci.yml/badge.svg)](https://github.com/Attacker687/HotelSystemBackend/actions/workflows/ci.yml)
 
-本文包含本地 **`nova/booking-agent` 功能分支**的住客预订助手入口与运维步骤。四角色前端和 Playwright 测试来自 `nova/review-fixes` 历史批次；其 **137/137 条用例、285 次执行通过**和“有条件通过”结论保留作历史记录，4 项低严重度遗留仍见文末。助手当前实际结果见下文，真实模型验证仍缺 API key。
+酒店预订与管理系统，包含 Spring Boot 后端和同源的原生 HTML/CSS/JavaScript 页面。住客、经理、前台和餐厅使用同一套服务，完成预订、订单、房态、餐饮和经营统计流程；住客还可以通过基于大模型工具调用的预订助手查房、下单和支付。
 
-[快速演示](#快速演示windows) · [手动启动](#手动启动) · [配置](#配置与-profile) · [运行测试](#运行测试) · [测试报告](docs/nova/review-fixes/test-report.md) · [API 文档](docs/api-overview.md)
+## 项目亮点
+
+- **防超卖**：每间房每晚一行 `room_inventory`，由 `(room_id, stay_date)` 唯一键裁决并发；日期升序插入避免死锁，任一晚冲突整单回滚并返回 409。见 [`OrderServiceImpl`](src/main/java/com/winniethepooh/hotelsystembackend/service/impl/OrderServiceImpl.java)。
+- **下单幂等**：`Idempotency-Key` 写入 `booking_request`，与订单同一事务提交；并发重试在唯一键上等待首单提交，返回同一订单号。请求内容做 SHA-256 指纹，同一请求号改内容返回 422。见 [`OrderRequestService`](src/main/java/com/winniethepooh/hotelsystembackend/service/OrderRequestService.java)。
+- **Redis 缓存**：房间静态信息和按「房型 + 日期」切分的价格走旁路缓存；空值缓存防穿透，TTL 随机抖动防雪崩，事务提交后删键。下单计价与可售判断始终读库。见 [`HotCache`](src/main/java/com/winniethepooh/hotelsystembackend/service/HotCache.java)。
+- **登录与权限**：JWT + Redis 可撤销会话；Filter 校验登录，`@RoleRequired` + AOP 校验角色；BCrypt 存储密码（旧 MD5 登录时自动迁移），登录失败限流。
+- **AI 预订助手**：OpenAI Responses API 工具调用，SSE 流式输出。模型只能生成确认卡片，写操作必须由住客点击确认；确认复用下单事务与幂等表，并重新核对金额。真实模型 24 条评测 24/24 通过，越权、未确认写入、重复下单均为 0。见 [`agent/`](src/main/java/com/winniethepooh/hotelsystembackend/agent/)。
+- **测试与 CI**：JUnit/Mockito 单元测试、Testcontainers（MySQL 8 + Redis 7）API 集成测试、Playwright 浏览器端到端测试；GitHub Actions 对每个 PR 和 master 推送运行全部三层测试（`mvn clean verify`）。
+
+[快速演示](#快速演示windows) · [手动启动](#手动启动) · [配置](#配置与-profile) · [运行测试](#运行测试) · [系统设计](docs/architecture.md) · [并发与幂等设计](docs/booking-consistency.md) · [API 文档](docs/api-overview.md)
 
 ## 当前功能
 
@@ -35,7 +44,7 @@
 | 数据访问 | MyBatis 3.0.3、MySQL 8.0 |
 | 登录态与权限 | Redis、JWT、Servlet Filter、角色注解与 AOP、BCrypt |
 | 前端 | Spring Boot 静态资源，原生 HTML/CSS/JavaScript |
-| 构建 | Maven；本分支验证版本为 3.9.9 |
+| 构建 | Maven；验证版本为 3.9.9 |
 | 测试 | JUnit 5、Mockito、Testcontainers 1.20.3、Playwright 1.63.0 / Chromium |
 | 图片上传 | 阿里云 OSS，仅上传功能需要配置 |
 
@@ -43,18 +52,14 @@
 
 运行应用不需要 Node 或前端构建。**完整浏览器测试**另需 Node 20+、npm 和 Chromium；Docker 演示及集成测试需要 Docker Desktop 正常运行。
 
-## 本地代码
-
-`nova/booking-agent` 是本机的功能分支，当前未推送；远端旧 `nova/review-fixes` 分支不包含本次助手功能。以下命令在包含这些源码的 checkout 根目录执行。Windows 建议使用较短的目录路径，避免依赖和测试产物触发路径长度限制。
-
 ## 快速演示（Windows）
 
-准备 JDK、Maven 和 Docker Desktop，然后在 PowerShell 执行：
+准备 JDK、Maven 和 Docker Desktop，然后在仓库根目录的 PowerShell 中执行。Windows 建议使用较短的目录路径，避免依赖和测试产物触发路径长度限制。
 
 ```powershell
 $hotelMaven = 'mvn'
-# Maven 未加入 PATH 时，改为实际路径。本次维护环境为：
-# $hotelMaven = 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd'
+# Maven 未加入 PATH 时，改为 mvn.cmd 的实际路径，例如：
+# $hotelMaven = 'C:\tools\apache-maven-3.9.9\bin\mvn.cmd'
 
 & $hotelMaven -B -DskipTests package
 powershell -NoProfile -File scripts/demo.ps1 -Port 8080
@@ -90,8 +95,8 @@ powershell -NoProfile -File scripts/demo.ps1 -Port 8080
 npm ci
 npx playwright install chromium
 $hotelMaven = 'mvn'
-# Maven 不在 PATH 时改用实际路径，例如：
-# $hotelMaven = 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd'
+# Maven 不在 PATH 时改用 mvn.cmd 的实际路径，例如：
+# $hotelMaven = 'C:\tools\apache-maven-3.9.9\bin\mvn.cmd'
 & $hotelMaven -B -DskipTests package
 ```
 
@@ -137,8 +142,6 @@ node scripts/booking-agent-demo.mjs --base-url http://127.0.0.1:8080 --provider 
 
 ```powershell
 powershell -NoProfile -File scripts/booking-agent.ps1 -Mode eval -Maven $hotelMaven
-# 本次维护机器的完整入口：
-# powershell -NoProfile -File scripts/booking-agent.ps1 -Mode eval -Maven 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd'
 ```
 
 `Invoke-AgentEval` 实际执行 `mvn -B test-compile failsafe:integration-test@default failsafe:verify@default -Dit.test=AgentEval#evaluateRealModel`。Failsafe 3.2.5 的 [it.test / 方法选择文档](https://maven.apache.org/surefire-archives/surefire-3.2.5/maven-failsafe-plugin/examples/single-test.html) 对应这个命名 execution；不关闭 `failIfNoSpecifiedTests`。`AgentEval` 不匹配常规 Test/Tests/IT 命名，`mvn test` / `clean verify` 不发现它。
@@ -166,7 +169,7 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe 
 
 常规 `test` / `e2e` 仍使用 fake；TC-038、TC-048、TC-055、TC-056 是确定性接入回归，不能作为真实效果或性能结果。
 
-### 本地结果记录（2026-10-01）
+### 实测结果（2026-10-01）
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -175,14 +178,12 @@ powershell -NoProfile -File scripts/booking-agent.ps1 -Mode check -FailureProbe 
 | 真实多轮 / 加密项 | 多轮场景 1/1 通过；实际返回带 `encrypted_content` 的推理项 20 个，并按序完整回放 |
 | 调优过程 | 默认推理强度下首字 P50 3.0 秒、14/29 次超过 3 秒；改为 `reasoning.effort=low` 并在提示词中要求「问齐日期/人数/房型」「调工具前先回一句」「逐晚日期写成 2026-10-02」后达标 |
 | fake 浏览器五步（r2） | 2026-10-01 21:07 上海时间，5/5、退出 0，**6.841 秒**，本次来源 `BOUND_TO_RUNNING_LAUNCH`；查询/提议零写，重复确认同号且一单，支付后取消 status=2 / pay_status=2，越权请求不改数据；本次 Java/启动器/容器/浏览器清理后均为 0，环境恢复 |
-| fake 错标 openai | 显式 `--provider openai` 与默认 openai 均退出 1；实际来源仍为 fake / UNKNOWN，0/5，不被计入真实结果 |
 | openai 浏览器五步 | 23:50（上海时间）**5/5、退出 0**，共 22.3 秒（各步 5.1 / 3.9 / 0.8 / 7.1 / 1.9 秒）；来源核验 `ACTUAL_SDK_SUCCESS_VERIFIED`；结束后 Java 与容器均已清理 |
 | 离线维护检查 | Windows PowerShell 5.1 → 实际 Failsafe 只选 `AgentEval#offlineCheck`：1/0/0/0；24 数据、判定/回放/DB/HTTP 前提、11 个 Node 故障阶段与 3 个原生 ZIP 路径通过，退出 0；真实 trace 的 23 个文本条目无 JWT |
 | 离线故障探针 | stream / init 两入口均按预期退出 1；保留 EOF/坏 JSON/部分文本/约 400ms 绝对截止 TIMEOUT 以及失败初始化后的 NOT_RUN，安全 UNKNOWN/null；不计模型效果 |
-| M2 已验证基线（历史） | 本地 `9197a013` 的完整回归 **640/0/0/0**（198 unit / 432 API / 10 browser），保留原 285 的执行身份 |
-| M3 最终回归 | 本地 `771ae25` 的 `mvn -B clean verify` **640/0/0/0**（198 unit / 432 API / 10 browser），BUILD SUCCESS |
+| 完整回归 | 提交 `771ae25`（助手功能完成时）的 `mvn -B clean verify` **640/0/0/0**（198 unit / 432 API / 10 browser），BUILD SUCCESS。此后加入的幂等、每日库存与缓存由 CI 在 master 上验证通过 |
 
-真实配置缺口未补齐前，这张表不代表 M3 整体验收通过。实际产物先备份到本机过程目录，再执行会清除 `target/` 的完整验证。
+完整验证会清空 `target/`，需要保留的演示和评测产物请先备份。
 
 ## 手动启动
 
@@ -219,7 +220,7 @@ java '-Duser.timezone=Asia/Shanghai' -jar target/HotelSystemBackend-0.0.1-SNAPSH
 
 `dev` 启动时会自动执行 [schema.sql](src/main/resources/db/schema.sql) 和 [demo-data.sql](src/main/resources/db/demo-data.sql)。脚本使用 `CREATE TABLE IF NOT EXISTS` 和固定主键的 `INSERT IGNORE`，可以重复执行；已有数据不会因此被重置。
 
-JVM、JDBC 和 MySQL 时区应保持一致：本分支约定 `Asia/Shanghai`，MySQL 时区为 `+08:00`。演示脚本和自动化测试已设置相应参数，手动启动时也需检查数据库时区。
+JVM、JDBC 和 MySQL 时区应保持一致：项目约定 `Asia/Shanghai`，MySQL 时区为 `+08:00`。演示脚本和自动化测试已设置相应参数，手动启动时也需检查数据库时区。
 
 ### 使用默认配置部署
 
@@ -364,12 +365,6 @@ npx playwright install chromium
 mvn -B clean verify
 ```
 
-本次维护环境 Maven 不在 PATH，完整命令为：
-
-```powershell
-& 'C:\t\tools\apache-maven-3.9.9\bin\mvn.cmd' -B clean verify
-```
-
 按层定位问题时可以分别运行：
 
 ```bash
@@ -390,7 +385,7 @@ mvn -B clean verify -Ddocker.api.version=1.43
 
 ### 测试结果与证据
 
-以下是 review-fixes 的**历史**完整测试记录（2026-09-30，源码基线 `79e476e`）；当前 booking-agent 的 M2 基线结果见上文：
+以下是四角色前端完成时的**历史**完整测试记录（2026-09-30，源码基线 `79e476e`）；之后的回归结果见[实测结果](#实测结果2026-10-01)：
 
 | 执行层 | 次数 | 失败 | 错误 | 跳过 |
 | --- | ---: | ---: | ---: | ---: |
@@ -418,7 +413,7 @@ mvn -B clean verify -Ddocker.api.version=1.43
 
 ## 已知遗留与演进
 
-测试报告按 nova 固定规则判为“有条件通过”：全部用例通过，但以下 4 项原评审低严重度问题尚未整体关闭。
+2026-09-30 的测试报告结论为“有条件通过”：全部用例通过，但以下 4 项低严重度问题尚未关闭。
 
 | 编号 | 遗留 |
 | --- | --- |
@@ -427,7 +422,7 @@ mvn -B clean verify -Ddocker.api.version=1.43
 | F6 | 错误角色携带非法请求体时，参数校验可能先返回 400 |
 | F7 | 定稿方案的 Redis 版本文字仍与实际测试环境有差异；当前实际使用 Redis 7-alpine |
 
-此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。review-fixes 历史批次跳过独立代码评审的记录不适用于本次 booking-agent；本次按批次执行一次三路独立评审、一次统一修正与全新独立验收。
+此外，已有数据库迁移与旧订单间夜回填尚未验收；退款与改期差价未对接支付渠道。
 
 当前并发预订使用**每日库存唯一键与订单事务**；同房改期只更新夜集合差集并保留共同晚的库存 ID，取消、超时取消和软删除同事务释放全部占用，提前结束只释放今天及以后的晚，正常退房保留历史夜，支付不动库存。助手报价与搜房只读库存且不加锁。`POST /order` 可带 `Idempotency-Key` 安全重试，助手确认通过同一表的全局唯一键幂等及确认/取消互斥。请求号记录保留 7 天，每日 03:30 清理（受 `HOTEL_SCHEDULER_ENABLED` 控制）；窗口外再次使用请求号会重新执行。定时任务失败自动重试仍是演进项，见 [并发预订与幂等设计](docs/booking-consistency.md)。
 
